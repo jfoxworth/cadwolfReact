@@ -1,103 +1,363 @@
-// ** Type Import
-import { OwnerStateThemeType } from './'
+// MUI Imports
+import type { Theme } from '@mui/material/styles'
 
-// ** Theme Config Imports
-import themeConfig from 'src/configs/themeConfig'
+// Config Imports
+import themeConfig from '@configs/themeConfig'
 
-// ** Util Import
-import { hexToRGBA } from 'src/@core/utils/hex-to-rgba'
-
-const Button = () => {
-  return {
-    MuiButton: {
-      styleOverrides: {
-        root: ({ ownerState, theme }: OwnerStateThemeType) => ({
-          fontWeight: 500,
-          borderRadius: 8,
-          lineHeight: 1.715,
-          ...(ownerState.size === 'medium' &&
-            ownerState.variant === 'text' && {
-              padding: `${theme.spacing(1.75, 3)}`
-            }),
-          '&.MuiButton-textPrimary:hover': {
-            backgroundColor: hexToRGBA(theme.palette.primary.main, 0.08)
-          },
-          '&.MuiButton-textSecondary:hover': {
-            backgroundColor: hexToRGBA(theme.palette.secondary.main, 0.08)
-          },
-          '&.MuiButton-textSuccess:hover': {
-            backgroundColor: hexToRGBA(theme.palette.success.main, 0.08)
-          },
-          '&.MuiButton-textError:hover': {
-            backgroundColor: hexToRGBA(theme.palette.error.main, 0.08)
-          },
-          '&.MuiButton-textWarning:hover': {
-            backgroundColor: hexToRGBA(theme.palette.warning.main, 0.08)
-          },
-          '&.MuiButton-textInfo:hover': {
-            backgroundColor: hexToRGBA(theme.palette.info.main, 0.08)
-          }
-        }),
-        contained: ({ theme }: OwnerStateThemeType) => ({
-          boxShadow: theme.shadows[3],
-          padding: `${theme.spacing(1.75, 5.5)}`
-        }),
-        outlined: ({ theme }: OwnerStateThemeType) => ({
-          lineHeight: 1.572,
-          padding: `${theme.spacing(1.75, 5.25)}`,
-          '&.MuiButton-outlinedPrimary:hover': {
-            backgroundColor: hexToRGBA(theme.palette.primary.main, 0.08)
-          },
-          '&.MuiButton-outlinedSecondary:hover': {
-            backgroundColor: hexToRGBA(theme.palette.secondary.main, 0.08)
-          },
-          '&.MuiButton-outlinedSuccess:hover': {
-            backgroundColor: hexToRGBA(theme.palette.success.main, 0.08)
-          },
-          '&.MuiButton-outlinedError:hover': {
-            backgroundColor: hexToRGBA(theme.palette.error.main, 0.08)
-          },
-          '&.MuiButton-outlinedWarning:hover': {
-            backgroundColor: hexToRGBA(theme.palette.warning.main, 0.08)
-          },
-          '&.MuiButton-outlinedInfo:hover': {
-            backgroundColor: hexToRGBA(theme.palette.info.main, 0.08)
-          }
-        }),
-        sizeSmall: ({ ownerState, theme }: OwnerStateThemeType) => ({
-          lineHeight: 1.693,
-          ...(ownerState.variant === 'text' && {
-            padding: `${theme.spacing(1, 2.25)}`
-          }),
-          ...(ownerState.variant === 'contained' && {
-            padding: `${theme.spacing(1, 3.25)}`
-          }),
-          ...(ownerState.variant === 'outlined' && {
-            lineHeight: 1.539,
-            padding: `${theme.spacing(1, 3)}`
-          })
-        }),
-        sizeLarge: ({ ownerState, theme }: OwnerStateThemeType) => ({
-          lineHeight: 1.734,
-          ...(ownerState.variant === 'text' && {
-            padding: `${theme.spacing(2, 5.5)}`
-          }),
-          ...(ownerState.variant === 'contained' && {
-            padding: `${theme.spacing(2, 6.5)}`
-          }),
-          ...(ownerState.variant === 'outlined' && {
-            lineHeight: 1.6,
-            padding: `${theme.spacing(2, 6.25)}`
-          })
+const iconStyles = (size?: string) => ({
+  '& > *:nth-of-type(1)': {
+    ...(size === 'small'
+      ? {
+          fontSize: '14px'
+        }
+      : {
+          ...(size === 'medium'
+            ? {
+                fontSize: '16px'
+              }
+            : {
+                fontSize: '20px'
+              })
         })
-      }
-    },
-    MuiButtonBase: {
-      defaultProps: {
-        disableRipple: themeConfig.disableRipple
-      }
+  }
+})
+
+const button: Theme['components'] = {
+  MuiButtonBase: {
+    defaultProps: {
+      disableRipple: themeConfig.disableRipple
     }
+  },
+  MuiButton: {
+    styleOverrides: {
+      root: ({ theme, ownerState }) => ({
+        borderRadius: 'var(--mui-shape-customBorderRadius-lg)',
+        '&.Mui-disabled': {
+          opacity: 0.45
+        },
+        ...(ownerState.variant === 'text'
+          ? {
+              ...(ownerState.size === 'small' && {
+                padding: theme.spacing(2, 2.25)
+              }),
+              ...(ownerState.size === 'medium' && {
+                padding: theme.spacing(2, 3)
+              }),
+              ...(ownerState.size === 'large' && {
+                padding: theme.spacing(2, 5.5)
+              })
+            }
+          : {
+              ...(ownerState.variant === 'outlined'
+                ? {
+                    ...(ownerState.size === 'small' && {
+                      padding: theme.spacing(1.75, 2.75)
+                    }),
+                    ...(ownerState.size === 'medium' && {
+                      padding: theme.spacing(1.75, 5.25)
+                    }),
+                    ...(ownerState.size === 'large' && {
+                      padding: theme.spacing(1.75, 6.25)
+                    })
+                  }
+                : {
+                    ...(ownerState.size === 'small' && {
+                      padding: theme.spacing(2, 3)
+                    }),
+                    ...(ownerState.size === 'medium' && {
+                      padding: theme.spacing(2, 5.5)
+                    }),
+                    ...(ownerState.size === 'large' && {
+                      padding: theme.spacing(2, 6.5)
+                    })
+                  })
+            })
+      }),
+      contained: ({ ownerState }) => ({
+        boxShadow: 'var(--mui-customShadows-xs)',
+        ...(!ownerState.disabled && {
+          '&:hover, &.Mui-focusVisible': {
+            boxShadow: 'var(--mui-customShadows-xs)'
+          },
+          '&:active': {
+            boxShadow: 'none'
+          }
+        })
+      }),
+      sizeSmall: ({ theme }) => ({
+        lineHeight: 1.38462,
+        fontSize: theme.typography.body2.fontSize,
+        borderRadius: 'var(--mui-shape-customBorderRadius-md)'
+      }),
+      sizeLarge: {
+        fontSize: '1.0625rem',
+        lineHeight: 1.529412,
+        borderRadius: 'var(--mui-shape-customBorderRadius-xl)'
+      },
+      startIcon: ({ theme, ownerState }) => ({
+        ...(ownerState.size === 'small'
+          ? {
+              marginInlineEnd: theme.spacing(1.5)
+            }
+          : {
+              ...(ownerState.size === 'medium'
+                ? {
+                    marginInlineEnd: theme.spacing(2)
+                  }
+                : {
+                    marginInlineEnd: theme.spacing(2.5)
+                  })
+            }),
+        ...iconStyles(ownerState.size)
+      }),
+      endIcon: ({ theme, ownerState }) => ({
+        ...(ownerState.size === 'small'
+          ? {
+              marginInlineStart: theme.spacing(1.5)
+            }
+          : {
+              ...(ownerState.size === 'medium'
+                ? {
+                    marginInlineStart: theme.spacing(2)
+                  }
+                : {
+                    marginInlineStart: theme.spacing(2.5)
+                  })
+            }),
+        ...iconStyles(ownerState.size)
+      })
+    },
+    variants: [
+      {
+        props: { variant: 'text', color: 'primary' },
+        style: {
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-primary-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-primary-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'text', color: 'secondary' },
+        style: {
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-secondary-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-secondary-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'text', color: 'error' },
+        style: {
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-error-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-error-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'text', color: 'warning' },
+        style: {
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-warning-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-warning-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'text', color: 'info' },
+        style: {
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-info-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-info-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'text', color: 'success' },
+        style: {
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-success-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-success-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'outlined', color: 'primary' },
+        style: {
+          borderColor: 'var(--mui-palette-primary-main)',
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-primary-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-primary-main)',
+            borderColor: 'var(--mui-palette-primary-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'outlined', color: 'secondary' },
+        style: {
+          borderColor: 'var(--mui-palette-secondary-main)',
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-secondary-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-secondary-main)',
+            borderColor: 'var(--mui-palette-secondary-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'outlined', color: 'error' },
+        style: {
+          borderColor: 'var(--mui-palette-error-main)',
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-error-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-error-main)',
+            borderColor: 'var(--mui-palette-error-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'outlined', color: 'warning' },
+        style: {
+          borderColor: 'var(--mui-palette-warning-main)',
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-warning-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-warning-main)',
+            borderColor: 'var(--mui-palette-warning-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'outlined', color: 'info' },
+        style: {
+          borderColor: 'var(--mui-palette-info-main)',
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-info-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-info-main)',
+            borderColor: 'var(--mui-palette-info-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'outlined', color: 'success' },
+        style: {
+          borderColor: 'var(--mui-palette-success-main)',
+          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+            {
+              backgroundColor: 'var(--mui-palette-success-lighterOpacity)'
+            },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-success-main)',
+            borderColor: 'var(--mui-palette-success-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'contained', color: 'primary' },
+        style: {
+          '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+            backgroundColor: 'var(--mui-palette-primary-dark)'
+          },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-primary-contrastText)',
+            backgroundColor: 'var(--mui-palette-primary-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'contained', color: 'secondary' },
+        style: {
+          '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+            backgroundColor: 'var(--mui-palette-secondary-dark)'
+          },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-secondary-contrastText)',
+            backgroundColor: 'var(--mui-palette-secondary-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'contained', color: 'error' },
+        style: {
+          '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+            backgroundColor: 'var(--mui-palette-error-dark)'
+          },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-error-contrastText)',
+            backgroundColor: 'var(--mui-palette-error-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'contained', color: 'warning' },
+        style: {
+          '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+            backgroundColor: 'var(--mui-palette-warning-dark)'
+          },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-warning-contrastText)',
+            backgroundColor: 'var(--mui-palette-warning-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'contained', color: 'info' },
+        style: {
+          '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+            backgroundColor: 'var(--mui-palette-info-dark)'
+          },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-info-contrastText)',
+            backgroundColor: 'var(--mui-palette-info-main)'
+          }
+        }
+      },
+      {
+        props: { variant: 'contained', color: 'success' },
+        style: {
+          '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+            backgroundColor: 'var(--mui-palette-success-dark)'
+          },
+          '&.Mui-disabled': {
+            color: 'var(--mui-palette-success-contrastText)',
+            backgroundColor: 'var(--mui-palette-success-main)'
+          }
+        }
+      }
+    ]
   }
 }
 
-export default Button
+export default button
