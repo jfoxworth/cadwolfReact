@@ -3,7 +3,6 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import Card from '@mui/material/Card'
 import Box from '@mui/material/Box'
-import { Paper } from '@mui/material'
 
 type WorkspaceOptionsProps = {
   workspaceId: string
@@ -11,14 +10,14 @@ type WorkspaceOptionsProps = {
 
 const WorkspaceOptions = ({ workspaceId }: WorkspaceOptionsProps) => {
   return (
-    <Card variant='outlined' sx={{ minWidth: 200 }}>
+    <Card variant='outlined'>
       <Box sx={{ p: 3 }} className='flex' alignItems='center' justifyContent='center'>
         <Typography variant='h4' component='div'>
           Workspace Options
         </Typography>
       </Box>
       <Divider />
-      <Box sx={{ p: 3, cursor: 'pointer' }} className='flex '>
+      <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
         <i className='ri-folder-add-fill mx-2' />
         <Typography variant='h5' component='div'>
           Add Workspace

@@ -6,7 +6,6 @@ import { getServerMode } from '@core/utils/serverHelpers'
 
 const WorkspacePage = () => {
   const mode = getServerMode()
-  console.log(mode)
   return <WorkspacesPageWrapper mode={mode} />
 }
 

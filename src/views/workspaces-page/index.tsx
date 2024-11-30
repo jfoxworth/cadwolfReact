@@ -5,18 +5,21 @@ import { useEffect } from 'react'
 import { useParams } from 'next/navigation'
 
 import { Grid } from '@mui/material'
+import Card from '@mui/material/Card'
 
 // Type Imports
 import type { Mode } from '@core/types'
-import { WorkspaceType } from '@/types/pages/workspaceTypes'
 
 // Component Imports
 import { useSettings } from '@core/hooks/useSettings'
 import WorkspaceTitle from './workspaceTitle'
 import WorkspaceOptions from './workspaceOptions'
+import WorkspaceItems from './workspaceItems'
+import WorkspaceHeirarchy from './workspaceHeirarchy'
 
 // Data Imports
-import { db } from '@/fake-db/pages/workspaces'
+import { WorkspaceContents } from '@/fake-db/pages/workspaces'
+import { HeirarchyData } from '@/fake-db/pages/workspaces'
 
 type WorkspacesPageWrapperProps = {
   mode: Mode
@@ -36,15 +39,22 @@ const WorkspacesPageWrapper = ({ mode }: WorkspacesPageWrapperProps) => {
   }, [])
 
   return (
-    <Grid container spacing={2} columns={12}>
-      <Grid item xs={12}>
-        <WorkspaceTitle title={'This is the title'} />
+    <Grid container spacing={2} columns={12} sx={{ py: 6 }}>
+      <Grid item xs={2} />
+      <Grid item xs={8}>
+        <WorkspaceHeirarchy heirarchyData={HeirarchyData} />
       </Grid>
+      <Grid item xs={2} />
       <Grid item xs={2} />
       <Grid item xs={2}>
         <WorkspaceOptions workspaceId={workspaceId.toString()} />
       </Grid>
-      <Grid item xs={6}></Grid>
+      <Grid item xs={6}>
+        <Card variant='outlined' sx={{ minWidth: 600 }}>
+          <WorkspaceTitle title={'This is the title'} />
+          <WorkspaceItems workspaceContents={WorkspaceContents} />
+        </Card>
+      </Grid>
       <Grid item xs={2} />
     </Grid>
   )
