@@ -20,3 +20,18 @@ export type HeirarchyType = {
   type: string
   data: FileData
 }
+
+// The data object within document items - equation, text, chart, etc
+export type DocumentItemData = {
+  text: string
+  dateCreated: string
+  dateLastUpdated: string
+}
+
+// Document items - equation, text, chart, etc
+export type DocumentItemType = {
+  pk: string
+  sk: string
+  type: string
+  data: DocumentItemData
+}
