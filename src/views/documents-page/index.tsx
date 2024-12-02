@@ -15,6 +15,7 @@ import { useSettings } from '@core/hooks/useSettings'
 import DocumentHeirarchy from './documentHeirarchy'
 import DocumentOptions from './documentOptions'
 import DocumentTitle from './documentTitle'
+import DocumentBody from './documentBody'
 
 // Data Imports
 import { DocumentFile } from '@/fake-db/pages/documents'
@@ -53,6 +54,7 @@ const DocumentsPageWrapper = ({ mode }: DocumentPageWrapperProps) => {
       <Grid item xs={6}>
         <Card variant='outlined' sx={{ minWidth: 600 }}>
           <DocumentTitle title={'This is the title'} />
+          <DocumentBody documentData={DocumentData} documentFile={DocumentFile} />
         </Card>
       </Grid>
       <Grid item xs={2} />
