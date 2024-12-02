@@ -52,7 +52,7 @@ const DocumentsPageWrapper = ({ mode }: DocumentPageWrapperProps) => {
         <DocumentOptions documentId={documentId.toString()} />
       </Grid>
       <Grid item xs={6}>
-        <Card variant='outlined' sx={{ minWidth: 600 }}>
+        <Card variant='outlined' sx={{ minWidth: 600, minHeight: 800 }}>
           <DocumentTitle title={'This is the title'} />
           <DocumentBody documentData={DocumentData} documentFile={DocumentFile} />
         </Card>

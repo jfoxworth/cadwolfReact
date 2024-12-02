@@ -6,6 +6,7 @@ import type { DocumentItemType } from '@/types/pages/platformTypes'
 
 // Component Imports
 import TextItem from './items/Text'
+import HeaderItem from './items/Header'
 import EquationItem from './items/Equation'
 
 type DocumentBodyProps = {
@@ -18,6 +19,8 @@ const DocumentBody = ({ documentFile, documentData }: DocumentBodyProps) => {
     switch (item.type) {
       case 'text':
         return <TextItem item={item} />
+      case 'header':
+        return <HeaderItem item={item} />
       case 'equation':
         return <EquationItem item={item} />
     }

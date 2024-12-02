@@ -24,6 +24,8 @@ export type HeirarchyType = {
 // The data object within document items - equation, text, chart, etc
 export type DocumentItemData = {
   text: string
+  headerLevel?: number
+  width: number | null
   dateCreated: string
   dateLastUpdated: string
 }
