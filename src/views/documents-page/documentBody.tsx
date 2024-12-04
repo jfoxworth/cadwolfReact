@@ -12,15 +12,25 @@ import EquationItem from './items/Equation'
 type DocumentBodyProps = {
   documentFile: AllFileType
   documentData: DocumentItemType[]
+  currentItem: DocumentItemType | null
+  setCurrentItem: (type: DocumentItemType | null) => void
 }
 
-const DocumentBody = ({ documentFile, documentData }: DocumentBodyProps) => {
+const DocumentBody = ({ documentFile, documentData, currentItem, setCurrentItem }: DocumentBodyProps) => {
   return documentData.map(item => {
     switch (item.type) {
       case 'text':
-        return <TextItem item={item} />
+        return (
+          <span onDoubleClick={() => setCurrentItem(item)}>
+            <TextItem item={item} />
+          </span>
+        )
       case 'header':
-        return <HeaderItem item={item} />
+        return (
+          <span onDoubleClick={() => setCurrentItem(item)}>
+            <HeaderItem item={item} current={item.pk === currentItem?.pk} />
+          </span>
+        )
       case 'equation':
         return <EquationItem item={item} />
     }

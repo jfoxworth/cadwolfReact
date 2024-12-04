@@ -1,4 +1,5 @@
 'use client'
+import { Dispatch, SetStateAction } from 'react'
 import Link from 'next/link'
 import type { AllFileType } from '@/types/pages/platformTypes'
 import { styled } from '@mui/material/styles'
@@ -9,11 +10,15 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 
+// Types
+import type { DocumentItemType } from '@/types/pages/platformTypes'
+
 type WorkspaceOptionsProps = {
   workspaceContents: AllFileType[]
+  setCurrentItem: Dispatch<SetStateAction<AllFileType | null>>
 }
 
-const WorkspaceItems = ({ workspaceContents }: WorkspaceOptionsProps) => {
+const WorkspaceItems = ({ workspaceContents, setCurrentItem }: WorkspaceOptionsProps) => {
   const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
       fontSize: 18
@@ -71,7 +76,9 @@ const WorkspaceItems = ({ workspaceContents }: WorkspaceOptionsProps) => {
                   </Link>
                 )}
               </StyledTableCell>
-              <StyledTableCell align='center'>{item.data.title}</StyledTableCell>
+              <StyledTableCell align='center' onClick={() => setCurrentItem(item)}>
+                {item.data.title}
+              </StyledTableCell>
               <StyledTableCell align='center'>{TimeDisplay(item.data.dateCreated)}</StyledTableCell>
               <StyledTableCell align='center'>{TimeDisplay(item.data.dateLastUpdated)}</StyledTableCell>
             </StyledTableRow>

@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
 import { Grid } from '@mui/material'
@@ -9,13 +9,16 @@ import Card from '@mui/material/Card'
 
 // Type Imports
 import type { Mode } from '@core/types'
+import type { AllFileType } from '@/types/pages/platformTypes'
 
 // Component Imports
 import { useSettings } from '@core/hooks/useSettings'
 import WorkspaceTitle from './workspaceTitle'
-import WorkspaceOptions from './workspaceOptions'
 import WorkspaceItems from './workspaceItems'
 import WorkspaceHeirarchy from './workspaceHeirarchy'
+import WorkspaceHexagons from './workspaceHexagons'
+import MenuAdd from './menuAdd'
+import MenuItem from './menuItem'
 
 // Data Imports
 import { WorkspaceContents } from '@/fake-db/pages/workspaces'
@@ -29,6 +32,10 @@ const WorkspacesPageWrapper = ({ mode }: WorkspacesPageWrapperProps) => {
   const { workspaceId } = useParams()
   // Hooks
   const { updatePageSettings } = useSettings()
+
+  // State parameters
+  const [mainOption, setMainOption] = useState<string | null>(null)
+  const [currentItem, setCurrentItem] = useState<AllFileType | null>(null)
 
   // For Page specific settings
   useEffect(() => {
@@ -45,14 +52,16 @@ const WorkspacesPageWrapper = ({ mode }: WorkspacesPageWrapperProps) => {
         <WorkspaceHeirarchy heirarchyData={HeirarchyData} />
       </Grid>
       <Grid item xs={2} />
-      <Grid item xs={2} />
-      <Grid item xs={2}>
-        <WorkspaceOptions workspaceId={workspaceId.toString()} />
-      </Grid>
+      <WorkspaceHexagons workspaceId={workspaceId.toString()} setMainOption={setMainOption} mainOption={mainOption}>
+        {mainOption === 'add' && <MenuAdd workspaceId={workspaceId.toString()} />}
+        {mainOption === 'info' && <MenuItem workspaceId={workspaceId.toString()} currentItem={currentItem} />}
+      </WorkspaceHexagons>
+
+      <Grid item xs={4} />
       <Grid item xs={6}>
-        <Card variant='outlined' sx={{ minWidth: 600 }}>
+        <Card variant='outlined' sx={{ minWidth: 600, minHeight: 1000 }}>
           <WorkspaceTitle title={'This is the title'} />
-          <WorkspaceItems workspaceContents={WorkspaceContents} />
+          <WorkspaceItems workspaceContents={WorkspaceContents} setCurrentItem={setCurrentItem} />
         </Card>
       </Grid>
       <Grid item xs={2} />
