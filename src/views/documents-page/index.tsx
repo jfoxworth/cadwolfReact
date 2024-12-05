@@ -62,7 +62,16 @@ const DocumentsPageWrapper = ({ mode }: DocumentPageWrapperProps) => {
       </DocumentHexagons>
       <Grid item xs={2} />
       <Grid item xs={8}>
-        <Card variant='outlined' sx={{ minWidth: 600, minHeight: 800 }}>
+        <Card
+          variant='outlined'
+          sx={{
+            minWidth: 600,
+            minHeight: 800,
+            width: DocumentFile.data.width,
+            px: 5,
+            margin: 'auto'
+          }}
+        >
           <DocumentTitle title={'This is the title'} />
           <DocumentBody
             documentData={DocumentData}

@@ -8,7 +8,8 @@ export const DocumentFile: AllFileType = {
   data: {
     title: 'This is a document',
     dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
-    dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
+    dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+    width: '850px'
   }
 }
 
@@ -22,7 +23,9 @@ export const DocumentData: DocumentItemType[] = [
       headerLevel: 1,
       width: null,
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
-      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
+      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      xMargin: '0',
+      yMargin: '1em'
     }
   },
   {
@@ -33,7 +36,9 @@ export const DocumentData: DocumentItemType[] = [
       text: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>',
       width: null,
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
-      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
+      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      xMargin: '0',
+      yMargin: '1em'
     }
   },
   {
@@ -44,7 +49,22 @@ export const DocumentData: DocumentItemType[] = [
       text: '1+1',
       width: null,
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
-      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
+      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      xMargin: '0',
+      yMargin: '1em'
+    }
+  },
+  {
+    pk: 'Document0003CCC',
+    sk: 'SymbolicEquation1',
+    type: 'symbolicequation',
+    data: {
+      text: '\\frac{3}{2}',
+      width: null,
+      dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      xMargin: '0',
+      yMargin: '1em'
     }
   }
 ]

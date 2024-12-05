@@ -8,6 +8,7 @@ import type { DocumentItemType } from '@/types/pages/platformTypes'
 import TextItem from './items/Text'
 import HeaderItem from './items/Header'
 import EquationItem from './items/Equation'
+import SymbolicEquationItem from './items/Symbolic'
 
 type DocumentBodyProps = {
   documentFile: AllFileType
@@ -17,23 +18,30 @@ type DocumentBodyProps = {
 }
 
 const DocumentBody = ({ documentFile, documentData, currentItem, setCurrentItem }: DocumentBodyProps) => {
+  let ReturnItem = TextItem
   return documentData.map(item => {
     switch (item.type) {
       case 'text':
-        return (
-          <span onDoubleClick={() => setCurrentItem(item)}>
-            <TextItem item={item} />
-          </span>
-        )
+        ReturnItem = TextItem
+        break
       case 'header':
-        return (
-          <span onDoubleClick={() => setCurrentItem(item)}>
-            <HeaderItem item={item} current={item.pk === currentItem?.pk} />
-          </span>
-        )
+        ReturnItem = HeaderItem
+        break
       case 'equation':
-        return <EquationItem item={item} />
+        ReturnItem = EquationItem
+        break
+      case 'symbolicequation':
+        ReturnItem = SymbolicEquationItem
+        break
     }
+    return (
+      <div
+        onDoubleClick={() => setCurrentItem(item)}
+        style={{ width: item.data.width || '100%', margin: item.data.yMargin + ' ' + item.data.xMargin }}
+      >
+        <ReturnItem item={item} current={item.sk === currentItem?.sk} setCurrentItem={setCurrentItem} />
+      </div>
+    )
   })
 }
 

@@ -2,6 +2,7 @@
 
 // Type Imports
 import type { DocumentItemType } from '@/types/pages/platformTypes'
+import { SelectChangeEvent } from '@mui/material'
 
 // MUI Imports
 import { Typography } from '@mui/material'
@@ -12,9 +13,10 @@ import TextField from '@mui/material/TextField'
 type HeaderProps = {
   item: DocumentItemType
   current: boolean
+  setCurrentItem: (type: DocumentItemType | null) => void
 }
 
-const HeaderItem = ({ item, current }: HeaderProps) => {
+const HeaderItem = ({ item, current, setCurrentItem }: HeaderProps) => {
   // If this item isn't being edited, show it like normal
   const ShowHeader = ({ text, level }: { text: string; level: number }) => {
     let textItem = <Typography variant='h5'>{text}</Typography>
@@ -36,23 +38,39 @@ const HeaderItem = ({ item, current }: HeaderProps) => {
     return textItem
   }
 
-  if (!current) {
-    return <ShowHeader text={item.data.text} level={item.data.headerLevel || 0} />
-  }
-
   // If this item is being edited, show it in a text box with the header select
 
-  if (current) {
+  const onOptionChange = (event: SelectChangeEvent<unknown>) => {
+    const value = event.target.value as number
+    item.data.headerLevel = value
+  }
+  const handleEnterPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      const target = event.target as HTMLTextAreaElement
+      item.data.text = target.value || ''
+      setCurrentItem(null)
+    }
+  }
+
+  if (!current) {
+    return <ShowHeader text={item.data.text} level={item.data.headerLevel || 0} />
+  } else {
     return (
       <div className='flex'>
-        <Select variant='standard' value={item.data.headerLevel}>
+        <Select variant='standard' value={item.data.headerLevel} sx={{ width: '55px' }} onChange={onOptionChange}>
           <MenuItem value={1}>H1</MenuItem>
           <MenuItem value={2}>H2</MenuItem>
           <MenuItem value={3}>H3</MenuItem>
           <MenuItem value={4}>H4</MenuItem>
           <MenuItem value={5}>H5</MenuItem>
         </Select>
-        <TextField fullWidth label='Header Text' variant='standard' defaultValue={item.data.text} />
+        <TextField
+          fullWidth
+          label='Header Text'
+          variant='standard'
+          defaultValue={item.data.text}
+          onKeyDown={handleEnterPress}
+        />
       </div>
     )
   }

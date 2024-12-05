@@ -1,6 +1,7 @@
 // The data object within files - workspaces, documents, datasets, part trees
 export type FileData = {
   title: string
+  width: string
   dateCreated: string
   dateLastUpdated: string
 }
@@ -26,6 +27,8 @@ export type DocumentItemData = {
   text: string
   headerLevel?: number
   width: number | null
+  xMargin: string
+  yMargin: string
   dateCreated: string
   dateLastUpdated: string
 }
