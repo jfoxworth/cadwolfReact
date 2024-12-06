@@ -66,5 +66,29 @@ export const DocumentData: DocumentItemType[] = [
       xMargin: '0',
       yMargin: '1em'
     }
+  },
+  {
+    pk: 'Document0003CCC',
+    sk: 'Slider1',
+    type: 'slider',
+    data: {
+      text: '',
+      width: null,
+      dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
+      xMargin: '0',
+      yMargin: '1em',
+      slider: {
+        minValue: 0,
+        maxValue: 20,
+        value: 10,
+        discrete: true,
+        stepIncrement: 1,
+        labels: true,
+        orientation: 'horizontal',
+        track: false,
+        customMarks: []
+      }
+    }
   }
 ]

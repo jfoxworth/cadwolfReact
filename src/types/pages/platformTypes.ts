@@ -22,6 +22,18 @@ export type HeirarchyType = {
   data: FileData
 }
 
+export type SliderObjectType = {
+  minValue: number
+  maxValue: number
+  value: number
+  discrete: boolean
+  stepIncrement: number
+  labels: boolean
+  orientation: string
+  track: boolean
+  customMarks: []
+}
+
 // The data object within document items - equation, text, chart, etc
 export type DocumentItemData = {
   text: string
@@ -31,6 +43,7 @@ export type DocumentItemData = {
   yMargin: string
   dateCreated: string
   dateLastUpdated: string
+  slider?: SliderObjectType
 }
 
 // Document items - equation, text, chart, etc

@@ -9,6 +9,7 @@ import TextItem from './items/Text'
 import HeaderItem from './items/Header'
 import EquationItem from './items/Equation'
 import SymbolicEquationItem from './items/Symbolic'
+import SliderItem from './items/Slider'
 
 type DocumentBodyProps = {
   documentFile: AllFileType
@@ -32,6 +33,9 @@ const DocumentBody = ({ documentFile, documentData, currentItem, setCurrentItem 
         break
       case 'symbolicequation':
         ReturnItem = SymbolicEquationItem
+        break
+      case 'slider':
+        ReturnItem = SliderItem
         break
     }
     return (

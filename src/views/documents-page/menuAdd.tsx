@@ -75,6 +75,48 @@ const MenuAdd = ({ documentId }: MenuAddProps) => {
         <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
           <i className='ri-node-tree mx-2' />
           <Typography variant='h5' component='div'>
+            Slider
+          </Typography>
+        </Box>
+        <Divider variant='middle' />
+        <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
+          <i className='ri-node-tree mx-2' />
+          <Typography variant='h5' component='div'>
+            Radio Select
+          </Typography>
+        </Box>
+        <Divider variant='middle' />
+        <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
+          <i className='ri-node-tree mx-2' />
+          <Typography variant='h5' component='div'>
+            Dropdown Select
+          </Typography>
+        </Box>
+        <Divider variant='middle' />
+        <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
+          <i className='ri-node-tree mx-2' />
+          <Typography variant='h5' component='div'>
+            If/Else Statement
+          </Typography>
+        </Box>
+        <Divider variant='middle' />
+        <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
+          <i className='ri-node-tree mx-2' />
+          <Typography variant='h5' component='div'>
+            For Loop
+          </Typography>
+        </Box>
+        <Divider variant='middle' />
+        <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
+          <i className='ri-node-tree mx-2' />
+          <Typography variant='h5' component='div'>
+            While Loop
+          </Typography>
+        </Box>
+        <Divider variant='middle' />
+        <Box sx={{ p: 3, cursor: 'pointer' }} className='flex'>
+          <i className='ri-node-tree mx-2' />
+          <Typography variant='h5' component='div'>
             Chart
           </Typography>
         </Box>
