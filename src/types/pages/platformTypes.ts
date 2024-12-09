@@ -1,9 +1,10 @@
 // The data object within files - workspaces, documents, datasets, part trees
 export type FileData = {
   title: string
-  width: string
+  description: string
   dateCreated: string
   dateLastUpdated: string
+  width?: string // Documents have an overall width
 }
 
 // The type for all platform files - workspaces, documents, datasets, part trees

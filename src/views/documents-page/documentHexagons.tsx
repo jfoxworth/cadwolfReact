@@ -10,21 +10,21 @@ type DocumentHexagonsProps = {
 
 const DocumentHexagons = ({ documentId, setMainOption, children, mainOption }: DocumentHexagonsProps) => {
   return (
-    <div style={{ position: 'absolute', left: '5%', top: '40%' }}>
+    <div style={{ position: 'absolute', left: '2%', top: '40%' }}>
       <div onClick={() => setMainOption(mainOption === 'view' ? null : 'view')}>
-        <Hexagon icon='ri-eye-line' />
+        <Hexagon icon='ri-eye-line' text={'View'} />
       </div>
       <div
         style={{ position: 'relative', left: '36px', bottom: '23px' }}
         onClick={() => setMainOption(mainOption === 'add' ? null : 'add')}
       >
-        <Hexagon icon='ri-add-circle-line' />
+        <Hexagon icon='ri-add-circle-line' text={'Add'} />
       </div>
       <div
-        style={{ position: 'relative', left: '0px', bottom: '46px' }}
+        style={{ position: 'relative', left: '-1px', bottom: '44px' }}
         onClick={() => setMainOption(mainOption === 'info' ? null : 'info')}
       >
-        <Hexagon icon='ri-information-line' />
+        <Hexagon icon='ri-information-line' text={'Info'} />
       </div>
       {children}
     </div>

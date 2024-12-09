@@ -45,8 +45,11 @@ const WorkspaceItems = ({ workspaceContents, setCurrentItem }: WorkspaceOptionsP
       <Table aria-label='customized table'>
         <TableHead>
           <TableRow>
-            <StyledTableCell align='center'>Type</StyledTableCell>
-            <StyledTableCell align='center'>Title</StyledTableCell>
+            <StyledTableCell align='center' colSpan={2}>
+              File Title
+            </StyledTableCell>
+            <StyledTableCell align='center'>Info</StyledTableCell>
+            <StyledTableCell align='center'>Status</StyledTableCell>
             <StyledTableCell align='center'>Date Created</StyledTableCell>
             <StyledTableCell align='center'>Last Modified</StyledTableCell>
           </TableRow>
@@ -78,6 +81,12 @@ const WorkspaceItems = ({ workspaceContents, setCurrentItem }: WorkspaceOptionsP
               </StyledTableCell>
               <StyledTableCell align='center' onClick={() => setCurrentItem(item)}>
                 {item.data.title}
+              </StyledTableCell>
+              <StyledTableCell align='center'>
+                <i className='ri-information-line' style={{ cursor: 'pointer' }} />
+              </StyledTableCell>
+              <StyledTableCell align='center'>
+                <i className='ri-lock-2-line' />
               </StyledTableCell>
               <StyledTableCell align='center'>{TimeDisplay(item.data.dateCreated)}</StyledTableCell>
               <StyledTableCell align='center'>{TimeDisplay(item.data.dateLastUpdated)}</StyledTableCell>

@@ -18,6 +18,7 @@ import WorkspaceItems from './workspaceItems'
 import WorkspaceHeirarchy from './workspaceHeirarchy'
 import WorkspaceHexagons from './workspaceHexagons'
 import MenuAdd from './menuAdd'
+import MenuEdit from './menuEdit'
 import MenuItem from './menuItem'
 
 // Data Imports
@@ -54,11 +55,12 @@ const WorkspacesPageWrapper = ({ mode }: WorkspacesPageWrapperProps) => {
       <Grid item xs={2} />
       <WorkspaceHexagons workspaceId={workspaceId.toString()} setMainOption={setMainOption} mainOption={mainOption}>
         {mainOption === 'add' && <MenuAdd workspaceId={workspaceId.toString()} />}
+        {mainOption === 'edit' && <MenuEdit workspaceId={workspaceId.toString()} currentItem={currentItem} />}
         {mainOption === 'info' && <MenuItem workspaceId={workspaceId.toString()} currentItem={currentItem} />}
       </WorkspaceHexagons>
 
-      <Grid item xs={4} />
-      <Grid item xs={6}>
+      <Grid item xs={2} />
+      <Grid item xs={8}>
         <Card variant='outlined' sx={{ minWidth: 600, minHeight: 1000 }}>
           <WorkspaceTitle title={'This is the title'} />
           <WorkspaceItems workspaceContents={WorkspaceContents} setCurrentItem={setCurrentItem} />

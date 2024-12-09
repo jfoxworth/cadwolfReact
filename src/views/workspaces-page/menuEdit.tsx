@@ -14,15 +14,15 @@ type MenuEditProps = {
   currentItem: AllFileType | null
 }
 
-const MenuItem = ({ workspaceId, currentItem }: MenuEditProps) => {
+const MenuEdit = ({ workspaceId, currentItem }: MenuEditProps) => {
   const [addType, setAddType] = useState('')
   return (
     <>
       <div
         style={{
           position: 'absolute',
-          bottom: '-70px',
-          left: '10px',
+          bottom: '220px',
+          left: '45px',
           textAlign: 'center',
           width: '200px'
         }}
@@ -32,49 +32,38 @@ const MenuItem = ({ workspaceId, currentItem }: MenuEditProps) => {
       <div
         style={{
           position: 'absolute',
-          bottom: '46px',
-          left: '78px'
+          bottom: '156px',
+          left: '88px'
         }}
-        onMouseEnter={() => setAddType('Move Item')}
+        onMouseEnter={() => setAddType('Edit Title')}
         onMouseLeave={() => setAddType('')}
       >
-        <HexagonSmall icon='ri-file-transfer-line' />
+        <HexagonSmall icon='ri-text' />
       </div>
       <div
         style={{
           position: 'absolute',
-          bottom: '6px',
-          left: '52px'
+          bottom: '117px',
+          left: '114px'
         }}
-        onMouseEnter={() => setAddType('Copy Item')}
+        onMouseEnter={() => setAddType('Edit Description')}
         onMouseLeave={() => setAddType('')}
       >
-        <HexagonSmall icon='ri-file-copy-2-line' />
+        <HexagonSmall icon='ri-text-snippet' />
       </div>
       <div
         style={{
           position: 'absolute',
-          bottom: '6px',
-          left: '105px'
+          bottom: '156px',
+          left: '140px'
         }}
-        onMouseEnter={() => setAddType('View Item Log')}
+        onMouseEnter={() => setAddType('Edit Permissions')}
         onMouseLeave={() => setAddType('')}
       >
-        <HexagonSmall icon='ri-database-line' />
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '-34px',
-          left: '78px'
-        }}
-        onMouseEnter={() => setAddType('Delete Item')}
-        onMouseLeave={() => setAddType('')}
-      >
-        <HexagonSmall icon='ri-delete-bin-5-line' />
+        <HexagonSmall icon='ri-key-2-line' />
       </div>
     </>
   )
 }
 
-export default MenuItem
+export default MenuEdit

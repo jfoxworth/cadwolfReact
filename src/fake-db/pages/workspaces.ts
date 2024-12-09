@@ -9,6 +9,7 @@ export const HeirarchyData: HeirarchyType[] = [
     type: 'Workspace',
     data: {
       title: 'Third Workspace',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -19,6 +20,7 @@ export const HeirarchyData: HeirarchyType[] = [
     type: 'Workspace',
     data: {
       title: 'Top Workspace',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -29,6 +31,7 @@ export const HeirarchyData: HeirarchyType[] = [
     type: 'Workspace',
     data: {
       title: 'Second Workspace',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -42,6 +45,7 @@ export const WorkspaceContents: AllFileType[] = [
     type: 'Document',
     data: {
       title: 'Fancy Document 1',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -52,6 +56,7 @@ export const WorkspaceContents: AllFileType[] = [
     type: 'Document',
     data: {
       title: 'Fancy Document 2',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -62,6 +67,7 @@ export const WorkspaceContents: AllFileType[] = [
     type: 'Document',
     data: {
       title: 'Fancy Document 3',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -72,6 +78,7 @@ export const WorkspaceContents: AllFileType[] = [
     type: 'Workspace',
     data: {
       title: 'Fancy Workspace 1',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -82,6 +89,7 @@ export const WorkspaceContents: AllFileType[] = [
     type: 'Dataset',
     data: {
       title: 'Fancy Dataset 1',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }
@@ -92,6 +100,7 @@ export const WorkspaceContents: AllFileType[] = [
     type: 'PartTree',
     data: {
       title: 'Fancy Part Tree 1',
+      description: 'This is the description',
       dateCreated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)',
       dateLastUpdated: 'Sat Nov 30 2024 10:39:56 GMT-0600 (Central Standard Time)'
     }

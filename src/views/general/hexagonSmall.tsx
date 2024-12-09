@@ -3,11 +3,10 @@ import { styled } from '@mui/material/styles'
 
 type HexagonProps = {
   icon: string
-  text: string
 }
 
 type HexagonBlockProps = {}
-const size = '75px'
+const size = '55px'
 const HexagonBlock = styled('div')<HexagonBlockProps>({
   position: 'relative',
   height: size,
@@ -19,10 +18,10 @@ const HexagonBlock = styled('div')<HexagonBlockProps>({
   '&:before': {
     position: 'absolute',
     content: '""',
-    top: '3px' /* border width */,
-    left: '3px' /* border width */,
-    height: 'calc(100% - 6px)' /* 100% - (2 * border width) */,
-    width: 'calc(100% - 6px)' /* 100% - (2 * border width) */,
+    top: '2px' /* border width */,
+    left: '2px' /* border width */,
+    height: 'calc(100% - 4px)' /* 100% - (2 * border width) */,
+    width: 'calc(100% - 4px)' /* 100% - (2 * border width) */,
     background: '#FFF',
     webkitClipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
     clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
@@ -36,24 +35,17 @@ const HexagonBlock = styled('div')<HexagonBlockProps>({
   }
 })
 
-const Hexagon = ({ icon, text }: HexagonProps) => {
+const HexagonSmall = ({ icon }: HexagonProps) => {
   return (
-    <HexagonBlock>
-      <i className={icon} style={{ width: '75px', height: '50px', position: 'relative', top: '10px' }} />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '10px',
-          left: '12px',
-          fontSize: '0.65em',
-          rotate: '28deg',
-          textTransform: 'uppercase'
-        }}
-      >
-        {text}
-      </div>
-    </HexagonBlock>
+    <>
+      <HexagonBlock>
+        <i
+          className={icon}
+          style={{ width: '35px', height: '35px', position: 'relative', top: '10px', left: '10px' }}
+        />
+      </HexagonBlock>
+    </>
   )
 }
 
-export default Hexagon
+export default HexagonSmall
