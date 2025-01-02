@@ -1,0 +1,3099 @@
+[
+  {
+    "ID": "1",
+    "unit": "nm",
+    "conv_unit": "m",
+    "conv_factor": "0.000000001",
+    "quantity": "length",
+    "name": "nanometer",
+    "Class": "SI"
+  },
+  {
+    "ID": "2",
+    "unit": "um",
+    "conv_unit": "m",
+    "conv_factor": "0.000001",
+    "quantity": "length",
+    "name": "micrometer",
+    "Class": "SI"
+  },
+  {
+    "ID": "3",
+    "unit": "mm",
+    "conv_unit": "m",
+    "conv_factor": "0.001",
+    "quantity": "length",
+    "name": "millimeter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "4",
+    "unit": "cm",
+    "conv_unit": "m",
+    "conv_factor": "0.01",
+    "quantity": "length",
+    "name": "centimeter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "5",
+    "unit": "dm",
+    "conv_unit": "m",
+    "conv_factor": "0.1",
+    "quantity": "length",
+    "name": "decimeter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "6",
+    "unit": "m",
+    "conv_unit": "m",
+    "conv_factor": "1",
+    "quantity": "length",
+    "name": "meter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "7",
+    "unit": "hm",
+    "conv_unit": "m",
+    "conv_factor": "100",
+    "quantity": "length",
+    "name": "hectometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "8",
+    "unit": "km",
+    "conv_unit": "m",
+    "conv_factor": "1000",
+    "quantity": "length",
+    "name": "kilometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "9",
+    "unit": "Mm",
+    "conv_unit": "m",
+    "conv_factor": "1000000",
+    "quantity": "length",
+    "name": "megameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "10",
+    "unit": "Gm",
+    "conv_unit": "m",
+    "conv_factor": "1000000000",
+    "quantity": "length",
+    "name": "gigameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "11",
+    "unit": "Tm",
+    "conv_unit": "m",
+    "conv_factor": "1000000000000",
+    "quantity": "length",
+    "name": "terameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "12",
+    "unit": "s",
+    "conv_unit": "s",
+    "conv_factor": "1",
+    "quantity": "time",
+    "name": "second",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "13",
+    "unit": "minute",
+    "conv_unit": "s",
+    "conv_factor": "60",
+    "quantity": "time",
+    "name": "minute",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "14",
+    "unit": "hour",
+    "conv_unit": "s",
+    "conv_factor": "3600",
+    "quantity": "time",
+    "name": "hour",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "15",
+    "unit": "day",
+    "conv_unit": "s",
+    "conv_factor": "216000",
+    "quantity": "time",
+    "name": "days",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "16",
+    "unit": "miles",
+    "conv_unit": "m",
+    "conv_factor": "1609.3399658203125",
+    "quantity": "length",
+    "name": "miles",
+    "Class": "British",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "17",
+    "unit": "yards",
+    "conv_unit": "m",
+    "conv_factor": "0.9143999814987183",
+    "quantity": "length",
+    "name": "yards",
+    "Class": "British",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "18",
+    "unit": "foot",
+    "conv_unit": "m",
+    "conv_factor": "0.3048",
+    "quantity": "length",
+    "name": "foot",
+    "Class": "British",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "19",
+    "unit": "in",
+    "conv_unit": "m",
+    "conv_factor": "0.0254",
+    "quantity": "length",
+    "name": "inch",
+    "Class": "British",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "20",
+    "unit": "nmile",
+    "conv_unit": "m",
+    "conv_factor": "1852",
+    "quantity": "length",
+    "name": "nautical mile",
+    "Class": "British",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "21",
+    "unit": "lb",
+    "conv_unit": "kg",
+    "conv_factor": "0.45359237",
+    "quantity": "mass",
+    "name": "pound",
+    "Class": "English",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "22",
+    "unit": "N",
+    "conv_unit": "N",
+    "conv_factor": "1",
+    "quantity": "force",
+    "name": "Newton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "23",
+    "unit": "lbf",
+    "conv_unit": "N",
+    "conv_factor": "4.44822",
+    "quantity": "force",
+    "name": "Pound Force",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "24",
+    "unit": "kip",
+    "conv_unit": "N",
+    "conv_factor": "4448.2216",
+    "quantity": "force",
+    "name": "Kips",
+    "Class": "British",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "25",
+    "unit": "dyn",
+    "conv_unit": "N",
+    "conv_factor": "0.0001",
+    "quantity": "force",
+    "name": "Dyne",
+    "Class": "British",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "26",
+    "unit": "Pa",
+    "conv_unit": "Pa",
+    "conv_factor": "1",
+    "quantity": "pressure",
+    "name": "Pascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "27",
+    "unit": "psi",
+    "conv_unit": "Pa",
+    "conv_factor": "6894.7568359375",
+    "quantity": "pressure",
+    "name": "Pounds per Square Inch",
+    "Class": "British",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "28",
+    "unit": "atm",
+    "conv_unit": "Pa",
+    "conv_factor": "101325",
+    "quantity": "pressure",
+    "name": "Atmosphere (standard)",
+    "Class": "British",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "29",
+    "unit": "bar",
+    "conv_unit": "Pa",
+    "conv_factor": "1000000",
+    "quantity": "pressure",
+    "name": "Bar",
+    "Class": "British",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "30",
+    "unit": "ksi",
+    "conv_unit": "Pa",
+    "conv_factor": "6894757.28",
+    "quantity": "pressure",
+    "name": "Kips per Square Inch",
+    "Class": "British",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "31",
+    "unit": "psf",
+    "conv_unit": "Pa",
+    "conv_factor": "47.8802604675293",
+    "quantity": "pressure",
+    "name": "Pounds per Square Foot",
+    "Class": "British",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "32",
+    "unit": "torr",
+    "conv_unit": "Pa",
+    "conv_factor": "133.32240295410156",
+    "quantity": "pressure",
+    "name": "Torr",
+    "Class": "British",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "33",
+    "unit": "N*m",
+    "conv_unit": "N*m",
+    "conv_factor": "1",
+    "quantity": "torque",
+    "name": "Newton-Meter",
+    "Class": "SI",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "34",
+    "unit": "ft*lbf",
+    "conv_unit": "N*m",
+    "conv_factor": "1.3558179140090942",
+    "quantity": "torque",
+    "name": "Foot-Pound Force",
+    "Class": "British",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "35",
+    "unit": "in*lbf",
+    "conv_unit": "N*m",
+    "conv_factor": "0.11298482865095139",
+    "quantity": "torque",
+    "name": "Inch-Pound Force",
+    "Class": "British",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "36",
+    "unit": "m*kg",
+    "conv_unit": "N*m",
+    "conv_factor": "0.10197161883115768",
+    "quantity": "torque",
+    "name": "Meter-Kilogram",
+    "Class": "SI",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "37",
+    "unit": "dam",
+    "conv_unit": "m",
+    "conv_factor": "10",
+    "quantity": "length",
+    "name": "decameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "38",
+    "unit": "Pm",
+    "conv_unit": "m",
+    "conv_factor": "1e15",
+    "quantity": "length",
+    "name": "petameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "39",
+    "unit": "Em",
+    "conv_unit": "m",
+    "conv_factor": "1e18",
+    "quantity": "length",
+    "name": "Exameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "40",
+    "unit": "Zm",
+    "conv_unit": "m",
+    "conv_factor": "1e21",
+    "quantity": "length",
+    "name": "Zettameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "41",
+    "unit": "Ym",
+    "conv_unit": "m",
+    "conv_factor": "1e24",
+    "quantity": "length",
+    "name": "yottameter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "42",
+    "unit": "pm",
+    "conv_unit": "m",
+    "conv_factor": "1e-12",
+    "quantity": "length",
+    "name": "picometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "43",
+    "unit": "fm",
+    "conv_unit": "m",
+    "conv_factor": "1e-15",
+    "quantity": "length",
+    "name": "femtometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "44",
+    "unit": "am",
+    "conv_unit": "m",
+    "conv_factor": "1e-18",
+    "quantity": "length",
+    "name": "attometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "45",
+    "unit": "zm",
+    "conv_unit": "m",
+    "conv_factor": "1e-21",
+    "quantity": "length",
+    "name": "zeptometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "46",
+    "unit": "ym",
+    "conv_unit": "m",
+    "conv_factor": "1e-24",
+    "quantity": "length",
+    "name": "yoctometer",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "47",
+    "unit": "daPa",
+    "conv_unit": "Pa",
+    "conv_factor": "10",
+    "quantity": "pressure",
+    "name": "decaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "48",
+    "unit": "hPa",
+    "conv_unit": "Pa",
+    "conv_factor": "100",
+    "quantity": "pressure",
+    "name": "hectoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "49",
+    "unit": "kPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1000",
+    "quantity": "pressure",
+    "name": "kiloPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "50",
+    "unit": "MPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1000000",
+    "quantity": "pressure",
+    "name": "MegaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "51",
+    "unit": "GPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1000000000",
+    "quantity": "pressure",
+    "name": "GigaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "52",
+    "unit": "TPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e12",
+    "quantity": "pressure",
+    "name": "TeraPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "53",
+    "unit": "PPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e15",
+    "quantity": "pressure",
+    "name": "petaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "54",
+    "unit": "EPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e18",
+    "quantity": "pressure",
+    "name": "ExaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "55",
+    "unit": "ZPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e21",
+    "quantity": "pressure",
+    "name": "zettaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "56",
+    "unit": "YPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e24",
+    "quantity": "pressure",
+    "name": "yottaPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "57",
+    "unit": "dPa",
+    "conv_unit": "Pa",
+    "conv_factor": "0.1",
+    "quantity": "pressure",
+    "name": "deciPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "58",
+    "unit": "cPa",
+    "conv_unit": "Pa",
+    "conv_factor": "0.01",
+    "quantity": "pressure",
+    "name": "centiPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "59",
+    "unit": "mPa",
+    "conv_unit": "Pa",
+    "conv_factor": "0.001",
+    "quantity": "pressure",
+    "name": "milliPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "60",
+    "unit": "uPa",
+    "conv_unit": "Pa",
+    "conv_factor": "0.000001",
+    "quantity": "pressure",
+    "name": "microPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "61",
+    "unit": "nPa",
+    "conv_unit": "Pa",
+    "conv_factor": "0.00000001",
+    "quantity": "pressure",
+    "name": "nanoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "62",
+    "unit": "pPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e-12",
+    "quantity": "pressure",
+    "name": "picoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "63",
+    "unit": "fPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e-15",
+    "quantity": "pressure",
+    "name": "femtoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "64",
+    "unit": "aPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e-18",
+    "quantity": "pressure",
+    "name": "attoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "65",
+    "unit": "zPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e-21",
+    "quantity": "pressure",
+    "name": "zeptoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "66",
+    "unit": "yPa",
+    "conv_unit": "Pa",
+    "conv_factor": "1e-24",
+    "quantity": "pressure",
+    "name": "yoctoPascal",
+    "Class": "SI",
+    "basestring": "00-2-11000"
+  },
+  {
+    "ID": "67",
+    "unit": "kg",
+    "conv_unit": "kg",
+    "conv_factor": "1",
+    "quantity": "mass",
+    "name": "kilogram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "68",
+    "unit": "ft",
+    "conv_unit": "m",
+    "conv_factor": "0.3048",
+    "quantity": "length",
+    "name": "foot",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "69",
+    "unit": "ng",
+    "conv_unit": "kg",
+    "conv_factor": "1e-12",
+    "quantity": "mass",
+    "name": "nanogram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "70",
+    "unit": "ug",
+    "conv_unit": "kg",
+    "conv_factor": "1e-9",
+    "quantity": "mass",
+    "name": "microgram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "71",
+    "unit": "mg",
+    "conv_unit": "kg",
+    "conv_factor": "0.000001",
+    "quantity": "mass",
+    "name": "milligram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "72",
+    "unit": "cg",
+    "conv_unit": "kg",
+    "conv_factor": "0.00001",
+    "quantity": "mass",
+    "name": "centigram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "73",
+    "unit": "dg",
+    "conv_unit": "kg",
+    "conv_factor": "0.0001",
+    "quantity": "mass",
+    "name": "decigram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "74",
+    "unit": "g",
+    "conv_unit": "kg",
+    "conv_factor": "0.001",
+    "quantity": "mass",
+    "name": "gram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "75",
+    "unit": "hg",
+    "conv_unit": "kg",
+    "conv_factor": "10",
+    "quantity": "mass",
+    "name": "hectogram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "76",
+    "unit": "Mg",
+    "conv_unit": "kg",
+    "conv_factor": "1000",
+    "quantity": "mass",
+    "name": "megagram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "77",
+    "unit": "Gg",
+    "conv_unit": "kg",
+    "conv_factor": "1000000",
+    "quantity": "mass",
+    "name": "gigagram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "78",
+    "unit": "Tg",
+    "conv_unit": "kg",
+    "conv_factor": "1000000000",
+    "quantity": "mass",
+    "name": "teragram",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "79",
+    "unit": "mph",
+    "conv_unit": "m/s",
+    "conv_factor": "0.44703999161720276",
+    "quantity": "velocity",
+    "name": "miles per hour",
+    "Class": "English"
+  },
+  {
+    "ID": "80",
+    "unit": "cc",
+    "conv_unit": "m^3",
+    "conv_factor": "0.001",
+    "quantity": "volume",
+    "name": "cubic centimeter",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "81",
+    "unit": "cycles2",
+    "conv_unit": "cycles",
+    "conv_fac": "1",
+    "quantity": "cycles2",
+    "name": "cycles",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "82",
+    "unit": "V",
+    "conv_unit": "V",
+    "conv_factor": "1",
+    "quantity": "Voltage",
+    "name": "Volt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "83",
+    "unit": "Coulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1",
+    "quantity": "Electric Charge",
+    "name": "Coulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "84",
+    "unit": "Ohm",
+    "conv_unit": "Ohm",
+    "conv_factor": "1",
+    "quantity": "Resistance",
+    "name": "Ohm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "85",
+    "unit": "W",
+    "conv_unit": "W",
+    "conv_factor": "1",
+    "quantity": "Electric Power",
+    "name": "Watt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "86",
+    "unit": "Farad",
+    "conv_unit": "Farad",
+    "conv_factor": "1",
+    "quantity": "Capacitance",
+    "name": "Farad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "87",
+    "unit": "H",
+    "conv_unit": "H",
+    "conv_factor": "1",
+    "quantity": "Inductance",
+    "name": "Henry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "88",
+    "unit": "S",
+    "conv_unit": "S",
+    "conv_factor": "1",
+    "quantity": "Conductance",
+    "name": "Siemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "89",
+    "unit": "T",
+    "conv_unit": "T",
+    "conv_factor": "1",
+    "quantity": "Magnetic Field",
+    "name": "Tesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "90",
+    "unit": "Wb",
+    "conv_unit": "Wb",
+    "conv_factor": "1",
+    "quantity": "Magnetic Flux",
+    "name": "Weber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "91",
+    "unit": "kWh",
+    "conv_unit": "J",
+    "conv_factor": "3600000",
+    "quantity": "energy",
+    "name": "Kilowatt Hour",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "92",
+    "unit": "nFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e-9",
+    "quantity": "Capacitance",
+    "name": "nanoFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "93",
+    "unit": "uFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "0.000001",
+    "quantity": "Capacitance",
+    "name": "microFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "94",
+    "unit": "mFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "0.001",
+    "quantity": "Capacitance",
+    "name": "milliFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "95",
+    "unit": "cFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "0.01",
+    "quantity": "Capacitance",
+    "name": "centiFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "96",
+    "unit": "dFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "0.1",
+    "quantity": "Capacitance",
+    "name": "deciFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "97",
+    "unit": "hFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "100",
+    "quantity": "Capacitance",
+    "name": "hectoFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "98",
+    "unit": "kFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1000",
+    "quantity": "Capacitance",
+    "name": "kiloFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "99",
+    "unit": "MFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1000000",
+    "quantity": "Capacitance",
+    "name": "MegaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "100",
+    "unit": "GFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1000000000",
+    "quantity": "Capacitance",
+    "name": "GigaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "101",
+    "unit": "TFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e12",
+    "quantity": "Capacitance",
+    "name": "TeraFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "102",
+    "unit": "daFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "10",
+    "quantity": "Capacitance",
+    "name": "decaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "103",
+    "unit": "PFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e15",
+    "quantity": "Capacitance",
+    "name": "PetaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "104",
+    "unit": "EFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e18",
+    "quantity": "Capacitance",
+    "name": "ExaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "105",
+    "unit": "ZFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e21",
+    "quantity": "Capacitance",
+    "name": "ZettaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "106",
+    "unit": "YFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e24",
+    "quantity": "Capacitance",
+    "name": "YottaFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "107",
+    "unit": "Ah",
+    "conv_unit": "Coulomb",
+    "conv_factor": "3600",
+    "quantity": "Electric Charge",
+    "name": "Ampere-Hour",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "108",
+    "unit": "nCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1e-9",
+    "quantity": "Electric Charge",
+    "name": "nanoCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "109",
+    "unit": "uCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "0.000001",
+    "quantity": "Electric Charge",
+    "name": "microCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "110",
+    "unit": "mCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "0.001",
+    "quantity": "Electric Charge",
+    "name": "milliCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "111",
+    "unit": "cCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "0.01",
+    "quantity": "Electric Charge",
+    "name": "centiCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "112",
+    "unit": "dCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "0.1",
+    "quantity": "Electric Charge",
+    "name": "deciCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "113",
+    "unit": "hCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "100",
+    "quantity": "Electric Charge",
+    "name": "hectoCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "114",
+    "unit": "kCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1000",
+    "quantity": "Electric Charge",
+    "name": "killoCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "115",
+    "unit": "GCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1000000000",
+    "quantity": "Electric Charge",
+    "name": "GigaCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "116",
+    "unit": "TCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1e12",
+    "quantity": "Electric Charge",
+    "name": "TeraCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "117",
+    "unit": "MCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1000000",
+    "quantity": "Electric Charge",
+    "name": "MegaCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "118",
+    "unit": "daCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "10",
+    "quantity": "Electric Charge",
+    "name": "decaCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "119",
+    "unit": "PCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1e-12",
+    "quantity": "Electric Charge",
+    "name": "PicoCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "120",
+    "unit": "ECoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1e18",
+    "quantity": "Electric Charge",
+    "name": "ExaCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "121",
+    "unit": "ZCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1e21",
+    "quantity": "Electric Charge",
+    "name": "ZettaCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "122",
+    "unit": "YCoulomb",
+    "conv_unit": "Coulomb",
+    "conv_factor": "1e24",
+    "quantity": "Electric Charge",
+    "name": "YottaCoulomb",
+    "Class": "SI",
+    "basestring": "10100000"
+  },
+  {
+    "ID": "123",
+    "unit": "nH",
+    "conv_unit": "H",
+    "conv_factor": "1e-9",
+    "quantity": "Inductance",
+    "name": "nanoHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "124",
+    "unit": "uH",
+    "conv_unit": "H",
+    "conv_factor": "0.000001",
+    "quantity": "Inductance",
+    "name": "microHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "125",
+    "unit": "mH",
+    "conv_unit": "H",
+    "conv_factor": "0.001",
+    "quantity": "Inductance",
+    "name": "milliHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "126",
+    "unit": "cH",
+    "conv_unit": "H",
+    "conv_factor": "0.01",
+    "quantity": "Inductance",
+    "name": "centiHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "127",
+    "unit": "dH",
+    "conv_unit": "H",
+    "conv_factor": "0.1",
+    "quantity": "Inductance",
+    "name": "deciHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "128",
+    "unit": "hH",
+    "conv_unit": "H",
+    "conv_factor": "100",
+    "quantity": "Inductance",
+    "name": "hectoHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "129",
+    "unit": "kH",
+    "conv_unit": "H",
+    "conv_factor": "1000",
+    "quantity": "Inductance",
+    "name": "kiloHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "130",
+    "unit": "MH",
+    "conv_unit": "H",
+    "conv_factor": "1000000",
+    "quantity": "Inductance",
+    "name": "MegaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "131",
+    "unit": "GH",
+    "conv_unit": "H",
+    "conv_factor": "1000000000",
+    "quantity": "Inductance",
+    "name": "GigaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "132",
+    "unit": "TH",
+    "conv_unit": "H",
+    "conv_factor": "1e12",
+    "quantity": "Inductance",
+    "name": "TeraHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "133",
+    "unit": "daH",
+    "conv_unit": "H",
+    "conv_factor": "10",
+    "quantity": "Inductance",
+    "name": "decaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "134",
+    "unit": "PH",
+    "conv_unit": "H",
+    "conv_factor": "1e15",
+    "quantity": "Inductance",
+    "name": "PetaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "135",
+    "unit": "EH",
+    "conv_unit": "H",
+    "conv_factor": "1e18",
+    "quantity": "Inductance",
+    "name": "ExaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "136",
+    "unit": "ZH",
+    "conv_unit": "H",
+    "conv_factor": "1e21",
+    "quantity": "Inductance",
+    "name": "ZettaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "137",
+    "unit": "YH",
+    "conv_unit": "H",
+    "conv_factor": "1e24",
+    "quantity": "Electric Charge",
+    "name": "YottaHenry",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "138",
+    "unit": "nOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "1e-9",
+    "quantity": "Resistance",
+    "name": "nanoOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "139",
+    "unit": "uOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "0.000001",
+    "quantity": "Resistance",
+    "name": "microOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "140",
+    "unit": "mOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "0.001",
+    "quantity": "Resistance",
+    "name": "milliOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "141",
+    "unit": "cOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "0.01",
+    "quantity": "Resistance",
+    "name": "centiOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "142",
+    "unit": "dOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "0.1",
+    "quantity": "Resistance",
+    "name": "deciOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "143",
+    "unit": "hOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "100",
+    "quantity": "Resistance",
+    "name": "hectoOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "144",
+    "unit": "kOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "1000",
+    "quantity": "Resistance",
+    "name": "killoOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "145",
+    "unit": "MOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "1000000",
+    "quantity": "Resistance",
+    "name": "MegaOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "146",
+    "unit": "GOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "1000000000",
+    "quantity": "Resistance",
+    "name": "GigaOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "147",
+    "unit": "TOhm",
+    "conv_unit": "Ohm",
+    "conv_factor": "1e12",
+    "quantity": "Resistance",
+    "name": "TeraOhm",
+    "Class": "SI",
+    "basestring": "-20-321000"
+  },
+  {
+    "ID": "148",
+    "unit": "nV",
+    "conv_unit": "V",
+    "conv_factor": "1e-9",
+    "quantity": "Voltage",
+    "name": "nanoVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "149",
+    "unit": "uV",
+    "conv_unit": "V",
+    "conv_factor": "0.000001",
+    "quantity": "Voltage",
+    "name": "microVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "150",
+    "unit": "mV",
+    "conv_unit": "V",
+    "conv_factor": "0.001",
+    "quantity": "Voltage",
+    "name": "milliVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "151",
+    "unit": "cV",
+    "conv_unit": "V",
+    "conv_factor": "0.01",
+    "quantity": "Voltage",
+    "name": "centiVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "152",
+    "unit": "dV",
+    "conv_unit": "V",
+    "conv_factor": "0.1",
+    "quantity": "Voltage",
+    "name": "deciVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "153",
+    "unit": "hV",
+    "conv_unit": "V",
+    "conv_factor": "100",
+    "quantity": "Voltage",
+    "name": "hectoVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "154",
+    "unit": "kV",
+    "conv_unit": "V",
+    "conv_factor": "1000",
+    "quantity": "Voltage",
+    "name": "kiloVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "155",
+    "unit": "MV",
+    "conv_unit": "V",
+    "conv_factor": "1000000",
+    "quantity": "Voltage",
+    "name": "MegaVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "156",
+    "unit": "GV",
+    "conv_unit": "V",
+    "conv_factor": "1000000000",
+    "quantity": "Voltage",
+    "name": "TeraVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "157",
+    "unit": "TV",
+    "conv_unit": "V",
+    "conv_factor": "1e12",
+    "quantity": "Voltage",
+    "name": "TeraVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "158",
+    "unit": "daV",
+    "conv_unit": "V",
+    "conv_factor": "10",
+    "quantity": "Voltage",
+    "name": "decaVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "159",
+    "unit": "ZV",
+    "conv_unit": "V",
+    "conv_factor": "1e21",
+    "quantity": "Voltage",
+    "name": "ZettaVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "160",
+    "unit": "YZ",
+    "conv_unit": "V",
+    "conv_factor": "1e24",
+    "quantity": "Voltage",
+    "name": "YottaVolt",
+    "Class": "SI",
+    "basestring": "-10-321000"
+  },
+  {
+    "ID": "161",
+    "unit": "nWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1e-9",
+    "quantity": "Magnetic Flux",
+    "name": "nanoWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "162",
+    "unit": "uWb",
+    "conv_unit": "Wb",
+    "conv_factor": "0.000001",
+    "quantity": "Magnetic Flux",
+    "name": "microWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "163",
+    "unit": "mWb",
+    "conv_unit": "Wb",
+    "conv_factor": "0.001",
+    "quantity": "Magnetic Flux",
+    "name": "milliWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "164",
+    "unit": "cWb",
+    "conv_unit": "Wb",
+    "conv_factor": "0.01",
+    "quantity": "Magnetic Flux",
+    "name": "centiWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "165",
+    "unit": "dWb",
+    "conv_unit": "Wb",
+    "conv_factor": "0.1",
+    "quantity": "Magnetic Flux",
+    "name": "deciWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "166",
+    "unit": "hWb",
+    "conv_unit": "Wb",
+    "conv_factor": "100",
+    "quantity": "Magnetic Flux",
+    "name": "hectoWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "167",
+    "unit": "kWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1000",
+    "quantity": "Magnetic Flux",
+    "name": "kiloWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "168",
+    "unit": "MWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1000000",
+    "quantity": "Magnetic Flux",
+    "name": "MegaWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "169",
+    "unit": "GWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1000000000",
+    "quantity": "Magnetic Flux",
+    "name": "GigaWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "170",
+    "unit": "TWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1e12",
+    "quantity": "Magnetic Flux",
+    "name": "TeraWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "171",
+    "unit": "daWb",
+    "conv_unit": "Wb",
+    "conv_factor": "10",
+    "quantity": "Magnetic Flux",
+    "name": "decaWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "172",
+    "unit": "ZWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1e21",
+    "quantity": "Magnetic Flux",
+    "name": "ZettaWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "173",
+    "unit": "YWb",
+    "conv_unit": "Wb",
+    "conv_factor": "1e24",
+    "quantity": "Magnetic Flux",
+    "name": "ZettaWeber",
+    "Class": "SI",
+    "basestring": "-10-221000"
+  },
+  {
+    "ID": "174",
+    "unit": "ns",
+    "conv_unit": "s",
+    "conv_factor": "1e-9",
+    "quantity": "time",
+    "name": "nanosecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "175",
+    "unit": "us",
+    "conv_unit": "s",
+    "conv_factor": "0.000001",
+    "quantity": "time",
+    "name": "microsecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "176",
+    "unit": "ms",
+    "conv_unit": "s",
+    "conv_factor": "0.001",
+    "quantity": "time",
+    "name": "millisecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "177",
+    "unit": "cs",
+    "conv_unit": "s",
+    "conv_factor": "0.01",
+    "quantity": "time",
+    "name": "centisecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "178",
+    "unit": "ds",
+    "conv_unit": "s",
+    "conv_factor": "0.1",
+    "quantity": "time",
+    "name": "decisecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "179",
+    "unit": "hs",
+    "conv_unit": "s",
+    "conv_factor": "100",
+    "quantity": "time",
+    "name": "hectosecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "180",
+    "unit": "ks",
+    "conv_unit": "s",
+    "conv_factor": "1000",
+    "quantity": "time",
+    "name": "kilosecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "181",
+    "unit": "Ms",
+    "conv_unit": "s",
+    "conv_factor": "1000000",
+    "quantity": "time",
+    "name": "Megasecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "182",
+    "unit": "Gs",
+    "conv_unit": "s",
+    "conv_factor": "1000000000",
+    "quantity": "time",
+    "name": "Gigasecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "183",
+    "unit": "Ts",
+    "conv_unit": "s",
+    "conv_factor": "1e12",
+    "quantity": "time",
+    "name": "Terasecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "184",
+    "unit": "das",
+    "conv_unit": "s",
+    "conv_factor": "10",
+    "quantity": "time",
+    "name": "decasecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "185",
+    "unit": "Zs",
+    "conv_unit": "s",
+    "conv_factor": "1e21",
+    "quantity": "time",
+    "name": "Zettasecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "186",
+    "unit": "Ys",
+    "conv_unit": "s",
+    "conv_factor": "1e24",
+    "quantity": "time",
+    "name": "Yottasecond",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "187",
+    "unit": "nT",
+    "conv_unit": "T",
+    "conv_factor": "1e-9",
+    "quantity": "Magnetic Field",
+    "name": "nanoTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "188",
+    "unit": "uT",
+    "conv_unit": "T",
+    "conv_factor": "0.000001",
+    "quantity": "Magnetic Field",
+    "name": "microTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "189",
+    "unit": "mT",
+    "conv_unit": "T",
+    "conv_factor": "0.001",
+    "quantity": "Magnetic Field",
+    "name": "milliTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "190",
+    "unit": "cT",
+    "conv_unit": "T",
+    "conv_factor": "0.01",
+    "quantity": "Magnetic Field",
+    "name": "centiTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "191",
+    "unit": "dT",
+    "conv_unit": "T",
+    "conv_factor": "0.1",
+    "quantity": "Magnetic Field",
+    "name": "deciTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "192",
+    "unit": "hT",
+    "conv_unit": "T",
+    "conv_factor": "100",
+    "quantity": "Magnetic Field",
+    "name": "hectoTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "193",
+    "unit": "kT",
+    "conv_unit": "T",
+    "conv_factor": "1000",
+    "quantity": "Magnetic Field",
+    "name": "kiloTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "194",
+    "unit": "MT",
+    "conv_unit": "T",
+    "conv_factor": "1000000",
+    "quantity": "Magnetic Field",
+    "name": "MegaTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "195",
+    "unit": "GT",
+    "conv_unit": "T",
+    "conv_factor": "1000000000",
+    "quantity": "Magnetic Field",
+    "name": "GigaTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "196",
+    "unit": "TT",
+    "conv_unit": "T",
+    "conv_factor": "1e12",
+    "quantity": "Magnetic Field",
+    "name": "TeraTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "197",
+    "unit": "daT",
+    "conv_unit": "T",
+    "conv_factor": "10",
+    "quantity": "Magnetic Field",
+    "name": "decaTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "198",
+    "unit": "ZT",
+    "conv_unit": "T",
+    "conv_factor": "1e21",
+    "quantity": "Magnetic Field",
+    "name": "ZettaTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "199",
+    "unit": "YT",
+    "conv_unit": "T",
+    "conv_factor": "1e24",
+    "quantity": "Magnetic Field",
+    "name": "YottaTesla",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "200",
+    "unit": "nW",
+    "conv_unit": "W",
+    "conv_factor": "1e-9",
+    "quantity": "Electric Power",
+    "name": "nanoWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "201",
+    "unit": "uW",
+    "conv_unit": "W",
+    "conv_factor": "0.000001",
+    "quantity": "Electric Power",
+    "name": "microWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "202",
+    "unit": "mW",
+    "conv_unit": "W",
+    "conv_factor": "0.001",
+    "quantity": "Electric Power",
+    "name": "milliWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "203",
+    "unit": "cW",
+    "conv_unit": "W",
+    "conv_factor": "0.01",
+    "quantity": "Electric Power",
+    "name": "centiWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "204",
+    "unit": "dW",
+    "conv_unit": "W",
+    "conv_factor": "0.1",
+    "quantity": "Electric Power",
+    "name": "deciWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "205",
+    "unit": "hW",
+    "conv_unit": "W",
+    "conv_factor": "100",
+    "quantity": "Electric Power",
+    "name": "hectoWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "206",
+    "unit": "kW",
+    "conv_unit": "W",
+    "conv_factor": "1000",
+    "quantity": "Electric Power",
+    "name": "kiloWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "207",
+    "unit": "MW",
+    "conv_unit": "W",
+    "conv_factor": "1000000",
+    "quantity": "Electric Power",
+    "name": "MegaWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "208",
+    "unit": "GW",
+    "conv_unit": "W",
+    "conv_factor": "1000000000",
+    "quantity": "Electric Power",
+    "name": "GigaWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "209",
+    "unit": "TW",
+    "conv_unit": "W",
+    "conv_factor": "1e12",
+    "quantity": "Electric Power",
+    "name": "TeraWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "210",
+    "unit": "daW",
+    "conv_unit": "W",
+    "conv_factor": "10",
+    "quantity": "Electric Power",
+    "name": "decaWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "211",
+    "unit": "ZW",
+    "conv_unit": "W",
+    "conv_factor": "1e21",
+    "quantity": "Electric Power",
+    "name": "ZettaWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "212",
+    "unit": "YW",
+    "conv_unit": "W",
+    "conv_factor": "1e24",
+    "quantity": "Electric Power",
+    "name": "YottaWatt",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "213",
+    "unit": "nS",
+    "conv_unit": "S",
+    "conv_factor": "1e-9",
+    "quantity": "Conductance",
+    "name": "nanoSeimens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "214",
+    "unit": "uS",
+    "conv_unit": "S",
+    "conv_factor": "0.000001",
+    "quantity": "Conductance",
+    "name": "microSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "215",
+    "unit": "mS",
+    "conv_unit": "S",
+    "conv_factor": "0.001",
+    "quantity": "Conductance",
+    "name": "milliSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "216",
+    "unit": "cS",
+    "conv_unit": "S",
+    "conv_factor": "0.01",
+    "quantity": "Conductance",
+    "name": "centiSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "217",
+    "unit": "dS",
+    "conv_unit": "S",
+    "conv_factor": "0.1",
+    "quantity": "Conductance",
+    "name": "deciSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "218",
+    "unit": "hS",
+    "conv_unit": "S",
+    "conv_factor": "100",
+    "quantity": "Conductance",
+    "name": "hectoSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "219",
+    "unit": "kS",
+    "conv_unit": "S",
+    "conv_factor": "1000",
+    "quantity": "Conductance",
+    "name": "kiloSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "220",
+    "unit": "MS",
+    "conv_unit": "S",
+    "conv_factor": "1000000",
+    "quantity": "Conductance",
+    "name": "MegaSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "221",
+    "unit": "GS",
+    "conv_unit": "S",
+    "conv_factor": "1000000000",
+    "quantity": "Conductance",
+    "name": "GigaSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "222",
+    "unit": "TS",
+    "conv_unit": "S",
+    "conv_factor": "1e12",
+    "quantity": "Conductance",
+    "name": "TeraSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "223",
+    "unit": "daS",
+    "conv_unit": "S",
+    "conv_factor": "10",
+    "quantity": "Conductance",
+    "name": "decaSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "224",
+    "unit": "ZS",
+    "conv_unit": "S",
+    "conv_factor": "1e21",
+    "quantity": "Conductance",
+    "name": "ZettaSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "225",
+    "unit": "YS",
+    "conv_unit": "S",
+    "conv_factor": "1e24",
+    "quantity": "Conductance",
+    "name": "YottaSiemens",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "226",
+    "unit": "revolutions",
+    "conv_unit": "rad",
+    "conv_factor": "6.28318530718",
+    "quantity": "Angle",
+    "name": "Revolutions",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "227",
+    "unit": "cycles",
+    "conv_unit": "rad",
+    "conv_factor": "6.28318530718",
+    "quantity": "Angle",
+    "name": "Cycles",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "228",
+    "unit": "degrees",
+    "conv_unit": "rad",
+    "conv_factor": "0.0174532925",
+    "quantity": "Angle",
+    "name": "degrees",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "229",
+    "unit": "degree",
+    "conv_unit": "rad",
+    "conv_factor": "0.0174532925",
+    "quantity": "Angle",
+    "name": "degrees",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "230",
+    "unit": "deg",
+    "conv_unit": "rad",
+    "conv_factor": "0.0174532925",
+    "quantity": "Angle",
+    "name": "degrees",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "231",
+    "unit": "rad",
+    "conv_unit": "rad",
+    "conv_factor": "1",
+    "quantity": "Angle",
+    "name": "radians",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "233",
+    "unit": "acre",
+    "conv_unit": "acre",
+    "conv_factor": "4046.8564224",
+    "quantity": "area",
+    "name": "acre",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "234",
+    "unit": "hectare",
+    "conv_unit": "acre",
+    "conv_factor": "10000",
+    "quantity": "area",
+    "name": "hectare",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "242",
+    "unit": "twp",
+    "conv_unit": "twp",
+    "conv_factor": "93239571.9721",
+    "quantity": "area",
+    "name": "township",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "243",
+    "unit": "J",
+    "conv_unit": "J",
+    "conv_factor": "1",
+    "quantity": "Moment",
+    "name": "Joule",
+    "Class": "SI",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "244",
+    "unit": "N*m",
+    "conv_unit": "J",
+    "conv_factor": "1",
+    "quantity": "energy",
+    "name": "Newton-meter",
+    "Class": "SI",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "248",
+    "unit": "mol",
+    "conv_unit": "mol",
+    "conv_factor": "1",
+    "quantity": "mol",
+    "name": "mole",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "246",
+    "unit": "ft-lbf",
+    "conv_unit": "J",
+    "conv_factor": "1.355817948",
+    "quantity": "energy",
+    "name": "foot-pound",
+    "Class": "SI",
+    "basestring": "00-221000"
+  },
+  {
+    "ID": "247",
+    "unit": "years",
+    "conv_unit": "s",
+    "conv_factor": "31536000",
+    "quantity": "time",
+    "name": "Year",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "249",
+    "unit": "AU",
+    "conv_unit": "m",
+    "conv_factor": "149597871000",
+    "quantity": "length",
+    "name": "Astronomical Unit",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "250",
+    "unit": "K",
+    "conv_unit": "K",
+    "conv_factor": "1",
+    "quantity": "Temperature",
+    "name": "Kelvin",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "251",
+    "unit": "C",
+    "conv_unit": "K",
+    "conv_factor": "X",
+    "quantity": "Temperature",
+    "name": "Degrees Celsius",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "252",
+    "unit": "R",
+    "conv_unit": "K",
+    "conv_factor": "X",
+    "quantity": "Temperature",
+    "name": "Rankine",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "253",
+    "unit": "F",
+    "conv_unit": "K",
+    "conv_factor": "X",
+    "quantity": "Temperature",
+    "name": "Degrees Fahrenheit",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "254",
+    "unit": "kN",
+    "conv_unit": "N",
+    "conv_factor": "1000",
+    "quantity": "Force",
+    "name": "kiloNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "255",
+    "unit": "minutes",
+    "conv_unit": "s",
+    "conv_factor": "60",
+    "quantity": "time",
+    "name": "Minute",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "256",
+    "unit": "days",
+    "conv_unit": "s",
+    "conv_factor": "86400",
+    "quantity": "time",
+    "name": "Day",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "257",
+    "unit": "A",
+    "conv_unit": "A",
+    "conv_factor": "1",
+    "quantity": "Electric Current",
+    "name": "Ampere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "258",
+    "unit": "nA",
+    "conv_unit": "A",
+    "conv_factor": "1e-9",
+    "quantity": "Electric Current",
+    "name": "nanoAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "259",
+    "unit": "uA",
+    "conv_unit": "A",
+    "conv_factor": "0.000001",
+    "quantity": "Electric Current",
+    "name": "microAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "260",
+    "unit": "mA",
+    "conv_unit": "A",
+    "conv_factor": "0.001",
+    "quantity": "Electric Current",
+    "name": "milliAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "261",
+    "unit": "cA",
+    "conv_unit": "A",
+    "conv_factor": "0.01",
+    "quantity": "Electric Current",
+    "name": "centiAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "262",
+    "unit": "dA",
+    "conv_unit": "A",
+    "conv_factor": "0.1",
+    "quantity": "Electric Current",
+    "name": "deciAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "263",
+    "unit": "hA",
+    "conv_unit": "A",
+    "conv_factor": "100",
+    "quantity": "Electric Current",
+    "name": "hectoAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "264",
+    "unit": "kA",
+    "conv_unit": "A",
+    "conv_factor": "1000",
+    "quantity": "Electric Current",
+    "name": "kiloAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "265",
+    "unit": "MA",
+    "conv_unit": "A",
+    "conv_factor": "1000000",
+    "quantity": "Electric Current",
+    "name": "MegaAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "266",
+    "unit": "GA",
+    "conv_unit": "A",
+    "conv_factor": "1000000000",
+    "quantity": "Electric Current",
+    "name": "GigaAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "267",
+    "unit": "TA",
+    "conv_unit": "A",
+    "conv_factor": "1e12",
+    "quantity": "Electric Current",
+    "name": "TeraAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "268",
+    "unit": "daA",
+    "conv_unit": "A",
+    "conv_factor": "10",
+    "quantity": "Electric Current",
+    "name": "decaAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "269",
+    "unit": "ZA",
+    "conv_unit": "A",
+    "conv_factor": "1e21",
+    "quantity": "Electric Current",
+    "name": "ZettaAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "270",
+    "unit": "YA",
+    "conv_unit": "A",
+    "conv_factor": "1e24",
+    "quantity": "Electric Current",
+    "name": "YottaAmpere",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "271",
+    "unit": "pFarad",
+    "conv_unit": "Farad",
+    "conv_factor": "1e-12",
+    "quantity": "Capacitance",
+    "name": "picoFarad",
+    "Class": "SI",
+    "basestring": "204-2-1000"
+  },
+  {
+    "ID": "272",
+    "unit": "molecules",
+    "conv_unit": "molecules",
+    "conv_factor": "1",
+    "quantity": "molecules",
+    "name": "molecules",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "273",
+    "unit": "Gallons",
+    "conv_unit": "Gallons",
+    "conv_factor": "0.00378541",
+    "quantity": "volume",
+    "name": "Gallons",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "274",
+    "unit": "UK Gallons",
+    "conv_unit": "UK Gallons",
+    "conv_factor": "0.0045",
+    "quantity": "volume",
+    "name": "UK Gallons",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "275",
+    "unit": "Liters",
+    "conv_unit": "Liters",
+    "conv_factor": "0.001",
+    "quantity": "volume",
+    "name": "Liters",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "276",
+    "unit": "Hz",
+    "conv_unit": "Hz",
+    "conv_factor": "1",
+    "quantity": "angular velocity",
+    "name": "Hertz",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "277",
+    "unit": "slug",
+    "conv_unit": "kg",
+    "conv_factor": "14.5939",
+    "quantity": "mass",
+    "name": "slug",
+    "Class": "SI",
+    "basestring": "00000000"
+  },
+  {
+    "ID": "278",
+    "unit": "daN",
+    "conv_unit": "N",
+    "conv_factor": "10",
+    "quantity": "force",
+    "name": "decaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "279",
+    "unit": "hN",
+    "conv_unit": "N",
+    "conv_factor": "100",
+    "quantity": "force",
+    "name": "hectoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "280",
+    "unit": "MN",
+    "conv_unit": "N",
+    "conv_factor": "1000000",
+    "quantity": "force",
+    "name": "MegaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "281",
+    "unit": "GN",
+    "conv_unit": "N",
+    "conv_factor": "1000000000",
+    "quantity": "force",
+    "name": "GigaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "282",
+    "unit": "TN",
+    "conv_unit": "N",
+    "conv_factor": "1e12",
+    "quantity": "force",
+    "name": "TeraNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "283",
+    "unit": "PN",
+    "conv_unit": "N",
+    "conv_factor": "1e15",
+    "quantity": "force",
+    "name": "petaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "284",
+    "unit": "EN",
+    "conv_unit": "N",
+    "conv_factor": "1e18",
+    "quantity": "force",
+    "name": "ExaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "285",
+    "unit": "ZN",
+    "conv_unit": "N",
+    "conv_factor": "1e21",
+    "quantity": "force",
+    "name": "zettaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "286",
+    "unit": "YN",
+    "conv_unit": "N",
+    "conv_factor": "1e24",
+    "quantity": "force",
+    "name": "yottaNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "287",
+    "unit": "dN",
+    "conv_unit": "N",
+    "conv_factor": "0.1",
+    "quantity": "force",
+    "name": "deciNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "288",
+    "unit": "cN",
+    "conv_unit": "N",
+    "conv_factor": "0.01",
+    "quantity": "force",
+    "name": "centiNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "289",
+    "unit": "mN",
+    "conv_unit": "N",
+    "conv_factor": "0.001",
+    "quantity": "force",
+    "name": "milliNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "290",
+    "unit": "uN",
+    "conv_unit": "N",
+    "conv_factor": "0.000001",
+    "quantity": "force",
+    "name": "microNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "291",
+    "unit": "nN",
+    "conv_unit": "N",
+    "conv_factor": "0.00000001",
+    "quantity": "force",
+    "name": "nanoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "292",
+    "unit": "pN",
+    "conv_unit": "N",
+    "conv_factor": "1e-12",
+    "quantity": "force",
+    "name": "picoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "293",
+    "unit": "fN",
+    "conv_unit": "N",
+    "conv_factor": "1e-15",
+    "quantity": "force",
+    "name": "femtoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "294",
+    "unit": "aN",
+    "conv_unit": "N",
+    "conv_factor": "1e-18",
+    "quantity": "force",
+    "name": "attoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "295",
+    "unit": "zN",
+    "conv_unit": "N",
+    "conv_factor": "1e-21",
+    "quantity": "force",
+    "name": "zeptoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "296",
+    "unit": "yN",
+    "conv_unit": "N",
+    "conv_factor": "1e-24",
+    "quantity": "force",
+    "name": "yoctoNewton",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "297",
+    "unit": "hp",
+    "conv_unit": "W",
+    "conv_factor": "745.7",
+    "quantity": "Power",
+    "name": "Horse Power",
+    "Class": "SI",
+    "basestring": "00-321000"
+  },
+  {
+    "ID": "298",
+    "unit": "rpm",
+    "conv_unit": "rpm",
+    "conv_factor": "0.104719755",
+    "quantity": "Angular Velocity",
+    "name": "Revolutions per Minute",
+    "Class": "SI",
+    "basestring": "00-100000"
+  },
+  {
+    "ID": "299",
+    "unit": "St",
+    "conv_unit": "St",
+    "conv_factor": "0.0001",
+    "quantity": "Kinematic Viscocity",
+    "name": "Stokes",
+    "Class": "SI",
+    "basestring": "00-12000"
+  },
+  {
+    "ID": "300",
+    "unit": "daSt",
+    "conv_unit": "St",
+    "conv_factor": "10",
+    "quantity": "Kinematic Viscocity",
+    "name": "decaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "301",
+    "unit": "hSt",
+    "conv_unit": "St",
+    "conv_factor": "100",
+    "quantity": "Kinematic Viscocity",
+    "name": "hectoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "302",
+    "unit": "MSt",
+    "conv_unit": "St",
+    "conv_factor": "1000000",
+    "quantity": "Kinematic Viscocity",
+    "name": "MegaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "303",
+    "unit": "GSt",
+    "conv_unit": "St",
+    "conv_factor": "1000000000",
+    "quantity": "Kinematic Viscocity",
+    "name": "GigaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "304",
+    "unit": "TSt",
+    "conv_unit": "St",
+    "conv_factor": "1e12",
+    "quantity": "Kinematic Viscocity",
+    "name": "TeraStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "305",
+    "unit": "PSt",
+    "conv_unit": "St",
+    "conv_factor": "1e15",
+    "quantity": "Kinematic Viscocity",
+    "name": "petaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "306",
+    "unit": "ESt",
+    "conv_unit": "St",
+    "conv_factor": "1e18",
+    "quantity": "Kinematic Viscocity",
+    "name": "ExaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "307",
+    "unit": "ZSt",
+    "conv_unit": "St",
+    "conv_factor": "1e21",
+    "quantity": "Kinematic Viscocity",
+    "name": "zettaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "308",
+    "unit": "YSt",
+    "conv_unit": "St",
+    "conv_factor": "1e24",
+    "quantity": "Kinematic Viscocity",
+    "name": "yottaStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "309",
+    "unit": "dSt",
+    "conv_unit": "St",
+    "conv_factor": "0.1",
+    "quantity": "Kinematic Viscocity",
+    "name": "deciStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "310",
+    "unit": "cSt",
+    "conv_unit": "St",
+    "conv_factor": "0.01",
+    "quantity": "Kinematic Viscocity",
+    "name": "centiStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "311",
+    "unit": "mSt",
+    "conv_unit": "St",
+    "conv_factor": "0.001",
+    "quantity": "Kinematic Viscocity",
+    "name": "milliStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "312",
+    "unit": "uSt",
+    "conv_unit": "St",
+    "conv_factor": "0.000001",
+    "quantity": "Kinematic Viscocity",
+    "name": "microStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "313",
+    "unit": "nSt",
+    "conv_unit": "St",
+    "conv_factor": "0.00000001",
+    "quantity": "Kinematic Viscocity",
+    "name": "nanoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "314",
+    "unit": "pSt",
+    "conv_unit": "St",
+    "conv_factor": "1e-12",
+    "quantity": "Kinematic Viscocity",
+    "name": "picoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "315",
+    "unit": "fSt",
+    "conv_unit": "St",
+    "conv_factor": "1e-15",
+    "quantity": "Kinematic Viscocity",
+    "name": "femtoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "316",
+    "unit": "aSt",
+    "conv_unit": "St",
+    "conv_factor": "1e-18",
+    "quantity": "Kinematic Viscocity",
+    "name": "attoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "317",
+    "unit": "zSt",
+    "conv_unit": "St",
+    "conv_factor": "1e-21",
+    "quantity": "Kinematic Viscocity",
+    "name": "zeptoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "318",
+    "unit": "ySt",
+    "conv_unit": "St",
+    "conv_factor": "1e-24",
+    "quantity": "Kinematic Viscocity",
+    "name": "yoctoStokes",
+    "Class": "SI",
+    "basestring": "00-211000"
+  },
+  {
+    "ID": "319",
+    "unit": "Btu",
+    "conv_unit": "J",
+    "conv_factor": "1055.06",
+    "quantity": "Moment",
+    "name": "Joule",
+    "Class": "SI",
+    "basestring": "00-221000"
+  }
+]

@@ -56,14 +56,18 @@ const WorkspacesPageWrapper = ({ mode }: WorkspacesPageWrapperProps) => {
       <WorkspaceHexagons workspaceId={workspaceId.toString()} setMainOption={setMainOption} mainOption={mainOption}>
         {mainOption === 'add' && <MenuAdd workspaceId={workspaceId.toString()} />}
         {mainOption === 'edit' && <MenuEdit workspaceId={workspaceId.toString()} currentItem={currentItem} />}
-        {mainOption === 'info' && <MenuItem workspaceId={workspaceId.toString()} currentItem={currentItem} />}
+        {mainOption === 'item' && <MenuItem workspaceId={workspaceId.toString()} currentItem={currentItem} />}
       </WorkspaceHexagons>
 
       <Grid item xs={2} />
       <Grid item xs={8}>
         <Card variant='outlined' sx={{ minWidth: 600, minHeight: 1000 }}>
           <WorkspaceTitle title={'This is the title'} />
-          <WorkspaceItems workspaceContents={WorkspaceContents} setCurrentItem={setCurrentItem} />
+          <WorkspaceItems
+            workspaceContents={WorkspaceContents}
+            currentItem={currentItem}
+            setCurrentItem={setCurrentItem}
+          />
         </Card>
       </Grid>
       <Grid item xs={2} />

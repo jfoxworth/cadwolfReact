@@ -1,0 +1,83 @@
+[
+  {
+    "name": "pi",
+    "value": "3.141592653589793",
+    "units": "",
+    "measurement": "NA",
+    "showvalue": "\\\\pi",
+    "Description": "The normal value of pi",
+    "Base": { "A": 0, "K": 0, "s": 0, "m": 0, "kg": 0, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "grav",
+    "value": "9.81",
+    "units": "m/s^2",
+    "measurement": "acceleration",
+    "showvalue": "grav",
+    "Description": "Gravitational constant",
+    "Base": { "A": 0, "K": 0, "s": -2, "m": 1, "kg": 0, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "N_A",
+    "value": "6.0221409e23",
+    "units": "molecules/mol",
+    "measurement": "molecules/mol",
+    "showvalue": "N_A",
+    "Description": "Avogadro's Number",
+    "Base": { "A": 0, "K": 0, "s": 0, "m": 0, "kg": 0, "cd": 0, "mol": -1, "rad": 0, "molecules": 1 }
+  },
+  {
+    "name": "c_O",
+    "value": "299792458",
+    "units": "m/s",
+    "measurement": "velocity",
+    "showvalue": "c_0",
+    "Description": "Speed of Light",
+    "Base": { "A": 0, "K": 0, "s": -1, "m": 1, "kg": 0, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "atm",
+    "value": "101325",
+    "units": "N/m^2",
+    "measurement": "pressure",
+    "showvalue": "atm",
+    "Description": "Atmospheric Pressure",
+    "Base": { "A": 0, "K": 0, "s": -2, "m": -1, "kg": 1, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "e",
+    "value": "2.71828",
+    "units": "",
+    "measurement": "",
+    "showvalue": "e",
+    "Description": "",
+    "Base": { "A": 0, "K": 0, "s": 0, "m": 0, "kg": 0, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "R",
+    "value": "8.3144621",
+    "units": "J/(K*mol)",
+    "measurement": "",
+    "showvalue": "R",
+    "Description": "The universal gas constant",
+    "Base": { "A": 0, "K": 0, "s": -2, "m": 2, "kg": 1, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "k_e",
+    "value": "8987500000",
+    "units": "N*m^2/Coulomb^2",
+    "measurement": "",
+    "showvalue": "k_e",
+    "Description": "Coulombs constant",
+    "Base": { "A": -2, "K": 0, "s": -4, "m": 3, "kg": 1, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  },
+  {
+    "name": "epsilon_0",
+    "value": "0.0000000000088542",
+    "units": "Coulomb^2/(N*m^2)",
+    "measurement": "",
+    "showvalue": "\\\\epsilon_0",
+    "Description": "Permittivity of free space",
+    "Base": { "A": 2, "K": 0, "s": 4, "m": -3, "kg": -1, "cd": 0, "mol": 0, "rad": 0, "molecules": 0 }
+  }
+]

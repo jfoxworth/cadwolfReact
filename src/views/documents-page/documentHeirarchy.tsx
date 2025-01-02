@@ -30,8 +30,8 @@ const DocumentHeirarchy = ({ heirarchyData }: DocumentOptionsProps) => {
       </Box>
       <Box className='flex' alignItems='left' justifyContent='left' sx={{ pb: 4 }}>
         <Typography component='div' className='flex'>
-          {sortedHeirarchy.map(hD => (
-            <Box className='flex'>
+          {sortedHeirarchy.map((hD, index) => (
+            <Box className='flex' key={`hierarchy${index}`}>
               <Link href={`/document/${hD.sk}`}>{hD.data.title}</Link>
               <i className='ri-arrow-right-s-line mx-2' />
             </Box>

@@ -15,10 +15,11 @@ import type { DocumentItemType } from '@/types/pages/platformTypes'
 
 type WorkspaceOptionsProps = {
   workspaceContents: AllFileType[]
+  currentItem: AllFileType | null
   setCurrentItem: Dispatch<SetStateAction<AllFileType | null>>
 }
 
-const WorkspaceItems = ({ workspaceContents, setCurrentItem }: WorkspaceOptionsProps) => {
+const WorkspaceItems = ({ workspaceContents, currentItem, setCurrentItem }: WorkspaceOptionsProps) => {
   const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
       fontSize: 18
@@ -40,6 +41,10 @@ const WorkspaceItems = ({ workspaceContents, setCurrentItem }: WorkspaceOptionsP
     return new Date(dateString).toDateString()
   }
 
+  const styleObject = {
+    backgroundColor: '#ccc'
+  }
+
   return (
     <TableContainer sx={{ p: 4 }}>
       <Table aria-label='customized table'>
@@ -56,7 +61,12 @@ const WorkspaceItems = ({ workspaceContents, setCurrentItem }: WorkspaceOptionsP
         </TableHead>
         <TableBody>
           {workspaceContents.map(item => (
-            <StyledTableRow hover key={item.data.title}>
+            <StyledTableRow
+              hover
+              key={item.data.title}
+              onClick={() => setCurrentItem(item)}
+              sx={{ backgroundColor: currentItem?.sk === item.sk ? '#ccc' : '' }}
+            >
               <StyledTableCell align='center'>
                 {item.type === 'Workspace' && (
                   <Link href={`/workspace/${item.sk}`}>

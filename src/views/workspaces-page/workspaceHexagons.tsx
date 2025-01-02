@@ -1,5 +1,6 @@
 'use client'
 import Hexagon from '../general/hexagon'
+import CurrentHexagon from '../general/currenthexagon'
 
 type WorkspaceHexagonsProps = {
   workspaceId: string
@@ -12,19 +13,22 @@ const WorkspaceHexagons = ({ workspaceId, setMainOption, mainOption, children }:
   return (
     <div style={{ position: 'absolute', left: '2%', top: '40%' }}>
       <div onClick={() => setMainOption(mainOption === 'add' ? null : 'add')}>
-        <Hexagon icon='ri-add-circle-line' text={'Add'} />
+        {mainOption === 'add' && <CurrentHexagon icon='ri-add-circle-line' text={'Add'} />}
+        {mainOption !== 'add' && <Hexagon icon='ri-add-circle-line' text={'Add'} />}
       </div>
       <div
         style={{ position: 'relative', left: '36px', bottom: '23px' }}
         onClick={() => setMainOption(mainOption === 'edit' ? null : 'edit')}
       >
-        <Hexagon icon='ri-information-line' text={'Edit'} />
+        {mainOption === 'edit' && <CurrentHexagon icon='ri-add-circle-line' text={'Edit'} />}
+        {mainOption !== 'edit' && <Hexagon icon='ri-add-circle-line' text={'Edit'} />}
       </div>
       <div
         style={{ position: 'relative', left: '0px', bottom: '44px' }}
-        onClick={() => setMainOption(mainOption === 'info' ? null : 'info')}
+        onClick={() => setMainOption(mainOption === 'item' ? null : 'item')}
       >
-        <Hexagon icon='ri-information-line' text={'Item'} />
+        {mainOption === 'item' && <CurrentHexagon icon='ri-add-circle-line' text={'Item'} />}
+        {mainOption !== 'item' && <Hexagon icon='ri-add-circle-line' text={'Item'} />}
       </div>
       {children}
     </div>
