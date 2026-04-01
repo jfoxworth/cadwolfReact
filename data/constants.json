@@ -1,0 +1,65 @@
+[
+  {
+    "name": "pi",
+    "value": 3.141592653589793,
+    "units": "",
+    "showValue": "$$\\pi$$",
+    "description": "The normal value of pi"
+  },
+  {
+    "name": "grav",
+    "value": 9.81,
+    "units": "m/s^2",
+    "showValue": "$$grav$$",
+    "description": "Gravitational constant"
+  },
+  {
+    "name": "N_A",
+    "value": 6.0221409e+23,
+    "units": "molecules/mol",
+    "showValue": "$$N_A$$",
+    "description": "Avogadro's Number"
+  },
+  {
+    "name": "c_O",
+    "value": 299792458,
+    "units": "m/s",
+    "showValue": "$$c_0$$",
+    "description": "Speed of Light"
+  },
+  {
+    "name": "atm",
+    "value": 101325,
+    "units": "N/m^2",
+    "showValue": "$$atm$$",
+    "description": "Atmospheric Pressure"
+  },
+  {
+    "name": "e",
+    "value": 2.71828,
+    "units": "",
+    "showValue": "$$e$$",
+    "description": ""
+  },
+  {
+    "name": "R",
+    "value": 8.3144621,
+    "units": "J/(K*mol)",
+    "showValue": "$$R$$",
+    "description": "The universal gas constant"
+  },
+  {
+    "name": "k_e",
+    "value": 8987500000,
+    "units": "N*m^2/Coulomb^2",
+    "showValue": "$$k_e$$",
+    "description": "Coulombs constant"
+  },
+  {
+    "name": "epsilon_0",
+    "value": 8.8542e-12,
+    "units": "Coulomb^2/(N*m^2)",
+    "showValue": "$$\\epsilon_0$$",
+    "description": "Permittivity of free space"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "partTree": {
+    "id": "parttree-1",
+    "type": "PART_TREE",
+    "name": "Bridge Truss",
+    "parentId": "workspace-1",
+    "updatedAt": "2026-03-03T16:20:00Z"
+  },
+  "items": [
+    {
+      "id": "folder-pt-1",
+      "type": "FOLDER",
+      "name": "Top Chord",
+      "parentId": "parttree-1",
+      "updatedAt": "2026-03-03T16:20:00Z"
+    },
+    {
+      "id": "folder-pt-2",
+      "type": "FOLDER",
+      "name": "Bottom Chord",
+      "parentId": "parttree-1",
+      "updatedAt": "2026-03-03T16:20:00Z"
+    },
+    {
+      "id": "folder-pt-3",
+      "type": "FOLDER",
+      "name": "Connections",
+      "parentId": "parttree-1",
+      "updatedAt": "2026-03-03T16:20:00Z"
+    }
+  ]
+}

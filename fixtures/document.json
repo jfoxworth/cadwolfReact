@@ -1,0 +1,148 @@
+{
+  "id": "doc-1",
+  "type": "DOCUMENT",
+  "name": "Beam Deflection",
+  "parentId": "workspace-1",
+  "version": 3,
+  "updatedAt": "2026-03-06T09:15:00Z",
+  "blocks": [
+    {
+      "id": "block-0",
+      "refId": "hdr1",
+      "type": "HEADER",
+      "order": 0,
+      "definition": {
+        "text": "Simply Supported Beam",
+        "level": 2
+      }
+    },
+    {
+      "id": "block-1",
+      "refId": "txt1",
+      "type": "TEXT",
+      "order": 1,
+      "definition": {
+        "text": "<h2>Simply Supported Beam — Midpoint Deflection</h2><p>This document calculates the maximum deflection at the midpoint of a simply supported beam under a uniform distributed load.</p>"
+      }
+    },
+    {
+      "id": "block-2",
+      "refId": "eq1",
+      "name": "Span",
+      "type": "EQUATION",
+      "order": 2,
+      "definition": {
+        "raw": "L = 6",
+        "variableName": "L",
+        "unit": "m"
+      },
+      "solution": {
+        "value": 6,
+        "unit": "m",
+        "display": "L = 6 \\text{ m}",
+        "error": null
+      }
+    },
+    {
+      "id": "block-3",
+      "refId": "eq2",
+      "name": "Distributed Load",
+      "type": "EQUATION",
+      "order": 3,
+      "definition": {
+        "raw": "w = 12",
+        "variableName": "w",
+        "unit": "kN/m"
+      },
+      "solution": {
+        "value": 12,
+        "unit": "kN/m",
+        "display": "w = 12 \\text{ kN/m}",
+        "error": null
+      }
+    },
+    {
+      "id": "block-4",
+      "refId": "eq3",
+      "name": "Modulus of Elasticity",
+      "type": "EQUATION",
+      "order": 4,
+      "definition": {
+        "raw": "E = 200000",
+        "variableName": "E",
+        "unit": "MPa"
+      },
+      "solution": {
+        "value": 200000,
+        "unit": "MPa",
+        "display": "E = 200{,}000 \\text{ MPa}",
+        "error": null
+      }
+    },
+    {
+      "id": "block-5",
+      "refId": "eq4",
+      "name": "Moment of Inertia",
+      "type": "EQUATION",
+      "order": 5,
+      "definition": {
+        "raw": "I = 85600000",
+        "variableName": "I",
+        "unit": "mm^4"
+      },
+      "solution": {
+        "value": 85600000,
+        "unit": "mm^4",
+        "display": "I = 85.6 \\times 10^6 \\text{ mm}^4",
+        "error": null
+      }
+    },
+    {
+      "id": "block-6",
+      "refId": "txt2",
+      "type": "TEXT",
+      "order": 6,
+      "definition": {
+        "text": "<p>The maximum deflection for a simply supported beam with UDL is given by:</p>"
+      }
+    },
+    {
+      "id": "block-7",
+      "refId": "eq5",
+      "name": "Max Deflection",
+      "type": "EQUATION",
+      "order": 7,
+      "definition": {
+        "raw": "delta = (5 * w * L^4) / (384 * E * I)",
+        "variableName": "delta",
+        "unit": "mm"
+      },
+      "solution": {
+        "value": 19.84,
+        "unit": "mm",
+        "display": "\\delta = 19.84 \\text{ mm}",
+        "error": null
+      }
+    },
+    {
+      "id": "block-8",
+      "refId": "vid1",
+      "type": "VIDEO",
+      "order": 8,
+      "definition": {
+        "src": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "caption": "Beam deflection explained"
+      }
+    },
+    {
+      "id": "block-9",
+      "refId": "img1",
+      "type": "IMAGE",
+      "order": 9,
+      "definition": {
+        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Beam_deflection.svg/1200px-Beam_deflection.svg.png",
+        "caption": "Deflection curve of a simply supported beam under UDL"
+      }
+    }
+  ]
+}

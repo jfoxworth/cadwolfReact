@@ -1,0 +1,14 @@
+{
+  "id": "dataset-1",
+  "type": "DATASET",
+  "name": "Steel Section Properties",
+  "parentId": "workspace-1",
+  "updatedAt": "2026-03-04T08:00:00Z",
+  "datapoints": [
+    { "id": "dp-1", "refId": "d1", "type": "TEXT",   "order": 1, "content": { "label": "Section", "value": "W200x46" } },
+    { "id": "dp-2", "refId": "d2", "type": "NUMBER", "order": 2, "content": { "label": "Depth d", "value": 203, "unit": "mm" } },
+    { "id": "dp-3", "refId": "d3", "type": "NUMBER", "order": 3, "content": { "label": "Flange width bf", "value": 203, "unit": "mm" } },
+    { "id": "dp-4", "refId": "d4", "type": "NUMBER", "order": 4, "content": { "label": "Moment of Inertia Ix", "value": 45500000, "unit": "mm^4" } },
+    { "id": "dp-5", "refId": "d5", "type": "NUMBER", "order": 5, "content": { "label": "Section Modulus Sx", "value": 448000, "unit": "mm^3" } }
+  ]
+}

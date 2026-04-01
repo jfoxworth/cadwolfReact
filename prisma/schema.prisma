@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model File {
+  id           Int         @id @default(autoincrement())
+  userId       Int         @map("user_id")
+  teamId       Int?        @map("team_id")
+  fileTypeId   String      @map("file_type_id")
+  name         String
+  itemData     String      @map("item_data")
+  order        Int         @default(0)
+  version      Int         @default(1)
+  oid          Int         @default(0)
+  revision     Int         @default(1)
+  parentId     Int?        @map("parent_id")
+  lft          Int         @map("_lft")
+  rgt          Int         @map("_rgt")
+  slug         String      @unique @default("")
+  needsUpdate  Boolean     @default(false) @map("needs_update")
+  storageBytes BigInt      @default(0) @map("storage_bytes")
+  lockedBy     Int?        @map("locked_by")
+  lockedAt     DateTime?   @map("locked_at")
+  deletedAt    DateTime?   @map("deleted_at")
+  createdAt    DateTime?   @map("created_at")
+  updatedAt    DateTime?   @map("updated_at")
+  components      Component[]
+  bibliographies  Bibliography[]
+  fileImports     FileImport[]
+  datasetImports  DatasetImport[]
+  versions        FileVersion[]
+
+  @@map("files")
+}
+
+model FileVersion {
+  id           Int      @id @default(autoincrement())
+  fileId       Int      @map("file_id")
+  partTreeId   Int?     @map("part_tree_id")   // set when this snapshot is part of a part tree snapshot; null for individual doc checkins
+  version      Int                              // the version number at time of snapshot
+  snapshotData String   @map("snapshot_data")  // JSON array of block content objects
+  createdBy    Int      @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  file         File     @relation(fields: [fileId], references: [id])
+
+  @@map("file_versions")
+}
+
+
+model Component {
+  id              Int       @id @default(autoincrement())
+  itemid          String?
+  name            String?
+  fileId          Int       @map("file_id")
+  componentTypeId Int       @map("component_type_id")
+  content         String?
+  dependentId     String?   @map("dependent_id")
+  dependentFile   String?   @map("dependent_file")
+  order           Int       @default(999999)
+  inEdit          Int       @default(1)
+  version         Int       @default(1)
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime? @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+  file            File      @relation(fields: [fileId], references: [id])
+
+  @@map("components")
+}
+
+model Bibliography {
+  id        Int       @id @default(autoincrement())
+  fileId    Int       @map("file_id")
+  authors   String    @default("")
+  title     String    @default("")
+  year      Int?
+  source    String?
+  url       String?
+  doi       String?
+  note      String?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  file      File      @relation(fields: [fileId], references: [id])
+
+  @@map("bibliographies")
+}
+
+model FileImport {
+  id                 Int       @id @default(autoincrement())
+  fileId             Int       @map("file_id")
+  sourceFileId       Int       @map("source_file_id")
+  sourceFileName     String    @default("") @map("source_file_name")
+  sourceVariableName String    @default("") @map("source_variable_name")
+  localAlias         String    @default("") @map("local_alias")
+  value              String?
+  units              String?
+  needsUpdate        Boolean   @default(false) @map("needs_update")
+  order              Int       @default(0)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  file               File      @relation(fields: [fileId], references: [id])
+
+  @@map("file_imports")
+}
+
+model DatasetImport {
+  id             Int       @id @default(autoincrement())
+  fileId         Int       @map("file_id")
+  datasetId      Int       @map("dataset_id")
+  datasetName    String    @default("") @map("dataset_name")
+  localAlias     String    @default("") @map("local_alias")
+  cachedValues   String?   @map("cached_values")   // JSON array string e.g. "[1,2,3]"
+  datapointCount Int       @default(0) @map("datapoint_count")
+  matrixSize     String?   @map("matrix_size")     // e.g. "4x354"
+  needsUpdate    Boolean   @default(false) @map("needs_update")
+  order          Int       @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  file           File      @relation(fields: [fileId], references: [id])
+
+  @@map("dataset_imports")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String
+  email          String    @unique
+  password       String?
+  username       String?   @unique
+  currentTeamId  Int?      @map("current_team_id")
+  photoUrl       String?   @map("photo_url")
+  title          String?
+  bio            String?
+  organization   String?
+  location       String?
+  website        String?
+  phone          String?
+  // Tier: "free" | "pro"
+  tier           String    @default("free")
+  storageUsed    BigInt    @default(0) @map("storage_used")
+  storageQuota   BigInt    @default(524288000) @map("storage_quota")  // 500 MB default
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("users")
+}
+
+model CadConnection {
+  id          Int       @id @default(autoincrement())
+  documentId  String    @map("document_id")   // stored as string in DB (e.g. "24")
+  cadId       String?   @map("cad_id")        // legacy cadids.id reference (unused in new flow)
+  cadType     String    @default("onshape") @map("cad_type")  // "onshape" | "fusion"
+  info        String    @default("{}")        // JSON: { workspace, document, element, equations[] }
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime? @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  @@map("connects")
+}
+
+model Team {
+  id             Int          @id @default(autoincrement())
+  name           String
+  description    String       @default("")
+  ownerId        Int          @map("owner_id")
+  // Tier: "free" | "business"
+  tier           String       @default("free")
+  // Number of seats purchased (0 = no org license)
+  seatCount      Int          @default(0) @map("seat_count")
+  storageUsed    BigInt       @default(0) @map("storage_used")
+  storageQuota   BigInt       @default(0) @map("storage_quota")  // set on upgrade
+  billingEmail   String?      @map("billing_email")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  members        TeamMember[]
+  invites        OrgInvite[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId Int    @map("team_id")
+  userId Int    @map("user_id")
+  // role: "owner" | "admin" | "member"
+  role   String @default("member")
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@map("team_members")
+}
+
+model OrgInvite {
+  id          Int       @id @default(autoincrement())
+  teamId      Int       @map("team_id")
+  email       String
+  // role to grant on acceptance: "admin" | "member"
+  role        String    @default("member")
+  token       String    @unique @default("")
+  expiresAt   DateTime  @map("expires_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("org_invites")
+}
+
+model FilePermission {
+  id          Int      @id @default(autoincrement())
+  fileId      Int      @map("file_id")
+  subjectId   Int      @map("subject_id")
+  subjectType String   @map("subject_type")
+  level       String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("file_permissions")
+}
+
+model OAuthAccount {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  provider          String    // "google" | "facebook" | "onshape" | "fusion"
+  providerAccountId String?   @map("provider_account_id")
+  accessToken       String    @map("access_token")
+  refreshToken      String?   @map("refresh_token")
+  expiresAt         DateTime? @map("expires_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, provider])
+  @@map("oauth_accounts")
+}
+
+model Dataset {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  teamId      Int?        @map("team_id")
+  name        String
+  description String
+  order       Int         @default(999999)
+  parentId    Int?        @map("parent_id")
+  lft         Int         @map("_lft")
+  rgt         Int         @map("_rgt")
+  deletedAt   DateTime?   @map("deleted_at")
+  createdAt   DateTime?   @map("created_at")
+  updatedAt   DateTime?   @map("updated_at")
+  datapoints  Datapoint[]
+
+  @@map("datasets")
+}
+
+model Datapoint {
+  id              Int       @id @default(autoincrement())
+  datasetId       Int       @map("dataset_id")
+  datapointTypeId Int       @map("datapoint_type_id")
+  content         String
+  order           Int       @default(999999)
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime? @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+  dataset         Dataset   @relation(fields: [datasetId], references: [id])
+
+  @@map("datapoints")
+}

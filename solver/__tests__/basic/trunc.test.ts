@@ -1,0 +1,42 @@
+import { describe, it, expect } from "vitest";
+import { trunc } from "../../functions/basic/trunc";
+import { runPipeline } from "../../pipeline";
+import { ctx } from "../helpers";
+
+describe("trunc — direct call", () => {
+  it("trunc(3.9) = 3", async () => {
+    expect((await trunc([{ "0-0": 3.9 }], ctx("x=0")))["0-0"]).toBe(3);
+  });
+  it("trunc(-3.9) = -3 (toward zero, not floor)", async () => {
+    expect((await trunc([{ "0-0": -3.9 }], ctx("x=0")))["0-0"]).toBe(-3);
+  });
+  it("trunc(0.1) = 0", async () => {
+    expect((await trunc([{ "0-0": 0.1 }], ctx("x=0")))["0-0"]).toBe(0);
+  });
+  it("trunc(-0.1) = 0 (toward zero)", async () => {
+    // Math.trunc(-0.1) returns -0; test numerically
+    expect((await trunc([{ "0-0": -0.1 }], ctx("x=0")))["0-0"]).toBeCloseTo(0, 10);
+  });
+  it("trunc(5) = 5", async () => {
+    expect((await trunc([{ "0-0": 5 }], ctx("x=0")))["0-0"]).toBe(5);
+  });
+  it("row vector element-wise", async () => {
+    const r = await trunc([{ "0-0": 1.9, "0-1": -2.1, "0-2": 0.5 }], ctx("x=0"));
+    expect(r["0-0"]).toBe(1);
+    expect(r["0-1"]).toBe(-2);
+    expect(r["0-2"]).toBe(0);
+  });
+});
+
+describe("trunc — pipeline", () => {
+  it("x = trunc(3.9) → 3", async () => {
+    const r = await runPipeline(ctx("x = trunc(3.9)"));
+    expect(r.errors).toHaveLength(0);
+    expect(r.solution.real["0-0"]).toBe(3);
+  });
+  it("x = trunc(-3.9) → -3", async () => {
+    const r = await runPipeline(ctx("x = trunc(-3.9)"));
+    expect(r.errors).toHaveLength(0);
+    expect(r.solution.real["0-0"]).toBe(-3);
+  });
+});
