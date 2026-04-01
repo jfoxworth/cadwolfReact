@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CadWolf
 
-## Getting Started
+CadWolf is a web-based engineering calculation platform that lets engineers write, solve, and share structured calculation documents. Calculations are organized into workspaces containing documents made up of blocks — equations, sliders, datasets, plots, loops, and more — that solve in sequence with full unit awareness and symbolic math support. Documents can be linked to CAD assemblies (Onshape, Autodesk Fusion) so that parameter changes in the model flow directly into the calculation.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Technology
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Framework**: [Next.js 15](https://nextjs.org) (App Router, React Server Components)
+- **Language**: TypeScript
+- **Database**: PostgreSQL via [Prisma](https://www.prisma.io)
+- **Auth**: Custom session-based auth with iron-session; OAuth for Google, Facebook, Onshape, and Fusion 360
+- **Styling**: [Tailwind CSS](https://tailwindcss.com)
+- **Math rendering**: [KaTeX](https://katex.org)
+- **Solver**: Custom Web Worker-based equation solver with unit propagation (runs entirely in the browser)
+- **Package manager**: [pnpm](https://pnpm.io)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running Locally
 
-## Learn More
+**Prerequisites**: Node.js 20+, pnpm, a running PostgreSQL instance.
 
-To learn more about Next.js, take a look at the following resources:
+1. **Clone the repo and install dependencies**
+   ```bash
+   git clone <repo-url>
+   cd cadwolf
+   pnpm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Set up environment variables**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   Copy the example env file and fill in your values:
+   ```bash
+   cp .env.example .env.local
+   ```
 
-## Deploy on Vercel
+   Required variables:
+   ```
+   DATABASE_URL=postgresql://user:password@localhost:5432/cadwolf
+   SESSION_SECRET=<a long random string>
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Optional (for OAuth / CAD integrations):
+   ```
+   GOOGLE_CLIENT_ID=
+   GOOGLE_CLIENT_SECRET=
+   FACEBOOK_CLIENT_ID=
+   FACEBOOK_CLIENT_SECRET=
+   ONSHAPE_CLIENT_ID=
+   ONSHAPE_CLIENT_SECRET=
+   FUSION_CLIENT_ID=
+   FUSION_CLIENT_SECRET=
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Run database migrations**
+   ```bash
+   pnpm prisma migrate deploy
+   ```
+
+4. **Start the development server**
+   ```bash
+   pnpm dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## Additional READMEs (coming soon)
+
+- **Solver** — how the equation solver works, step pipeline, unit system, and Web Worker architecture
+- **Document blocks** — reference for all block types (equation, slider, dataset, plot, for loop, while loop, if/else, etc.)
+- **CAD integrations** — connecting Onshape and Autodesk Fusion 360 to a document
+- **API** — REST endpoints, auth flow, and permission model
+- **Deployment** — environment setup, database migrations, and production configuration
