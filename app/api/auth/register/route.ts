@@ -6,10 +6,13 @@ import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
 import { sendVerificationEmail } from "@/utils/email";
+import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
 
 const VALID_USERNAME = /^[a-zA-Z0-9_-]+$/;
 
 export async function POST(req: NextRequest) {
+  const { limited } = checkRateLimit(`register:${getClientIp(req)}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (limited) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   const { name, email, password, username } = await req.json() as {
     name: string;
     email: string;

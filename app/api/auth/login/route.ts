@@ -4,8 +4,12 @@ import { getIronSession } from "iron-session";
 import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
+import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const { limited } = checkRateLimit(`login:${getClientIp(req)}`, { limit: 5, windowMs: 15 * 60 * 1000 });
+  if (limited) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
+
   try {
     const { email, password } = await req.json() as { email: string; password: string };
 

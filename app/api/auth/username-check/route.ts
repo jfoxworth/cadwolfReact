@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/utils/db";
+import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
 
 const VALID_USERNAME = /^[a-zA-Z0-9_-]+$/;
 
 export async function GET(req: NextRequest) {
+  const { limited } = checkRateLimit(`username-check:${getClientIp(req)}`, { limit: 30, windowMs: 60 * 1000 });
+  if (limited) return NextResponse.json({ available: false, error: "Too many requests." }, { status: 429 });
   const username = req.nextUrl.searchParams.get("username")?.trim() ?? "";
 
   if (!username) {

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
+import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const { limited } = checkRateLimit(`reset-password:${getClientIp(req)}`, { limit: 10, windowMs: 15 * 60 * 1000 });
+  if (limited) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   const { token, password } = await req.json() as { token?: string; password?: string };
 
   if (!token || !password) {
