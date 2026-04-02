@@ -140,12 +140,14 @@ model User {
   website        String?
   phone          String?
   // Tier: "free" | "pro"
-  tier              String    @default("free")
-  storageUsed       BigInt    @default(0) @map("storage_used")
-  storageQuota      BigInt    @default(524288000) @map("storage_quota")  // 500 MB default
-  emailVerifiedAt   DateTime? @map("email_verified_at")
-  createdAt         DateTime? @map("created_at")
-  updatedAt         DateTime? @map("updated_at")
+  tier                 String    @default("free")
+  storageUsed          BigInt    @default(0) @map("storage_used")
+  storageQuota         BigInt    @default(524288000) @map("storage_quota")  // 500 MB default
+  emailVerifiedAt      DateTime? @map("email_verified_at")
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  createdAt            DateTime? @map("created_at")
+  updatedAt            DateTime? @map("updated_at")
 
   @@map("users")
 }
@@ -174,11 +176,13 @@ model Team {
   seatCount      Int          @default(0) @map("seat_count")
   storageUsed    BigInt       @default(0) @map("storage_used")
   storageQuota   BigInt       @default(0) @map("storage_quota")  // set on upgrade
-  billingEmail   String?      @map("billing_email")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-  members        TeamMember[]
-  invites        OrgInvite[]
+  billingEmail         String?      @map("billing_email")
+  stripeCustomerId     String?      @map("stripe_customer_id")
+  stripeSubscriptionId String?      @map("stripe_subscription_id")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  members              TeamMember[]
+  invites              OrgInvite[]
 
   @@map("teams")
 }

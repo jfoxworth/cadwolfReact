@@ -440,9 +440,9 @@ function renderBlock({
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSettings?.(block.id); }}
             title="Block settings"
-            className="p-0.5 rounded text-gray-300 hover:text-gray-600 hover:bg-gray-100 opacity-0 group-hover/block:opacity-100 transition-opacity"
+            className="p-1 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 opacity-0 group-hover/block:opacity-100 transition-opacity"
           >
-            <Settings size={12} />
+            <Settings size={16} />
           </button>
           {settingsOpen && onDefinitionChange && onMoveBlock && onDeleteBlock && (
             <BlockSettingsModal

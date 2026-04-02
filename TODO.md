@@ -13,22 +13,23 @@
 ## Priority 2: Core Missing Features
 
 ### Payments / Billing
-- [ ] Install Stripe SDK
-- [ ] Add `stripeCustomerId` + `stripeSubscriptionId` to User and Team DB models
-- [ ] Create `/api/stripe/checkout-session` route
-- [ ] Create `/api/stripe/portal` route (manage subscription)
-- [ ] Create `/api/webhook` route for Stripe events
+- [x] Install Stripe SDK
+- [x] Add `stripeCustomerId` + `stripeSubscriptionId` to User and Team DB models
+- [x] Create `/api/stripe/checkout` route
+- [x] Create `/api/stripe/portal` route (manage subscription)
+- [x] Create `/api/webhook` route for Stripe events
+- [x] Create `/api/stripe/seats` route (adjust business seat count)
+- [x] Build pricing / upgrade UI page (`/pricing`)
+- [x] Build billing management page (`/billing`)
 - [ ] Enforce storage quota in file upload endpoints (quota fields exist but nothing checks them)
 - [ ] Enforce tier-based feature gates in API (tier field exists but is never read)
-- [ ] Build pricing / upgrade UI page
-- [ ] Build billing management page
 
 ### User Account
-- [ ] Email change flow (currently read-only with no mechanism)
-- [ ] Account deletion (no UI or API endpoint)
+- [x] Email change flow — inline form on profile page; sends confirmation email to new address; `/confirm-email-change` page processes token
+- [x] Account deletion — "Delete Account" section on profile page; requires password + typing DELETE; wipes all user data
 - [x] Email verification on registration — sends link on register; banner shown in app layout until verified; OAuth users auto-verified
 - [ ] Unlink Google / Facebook OAuth accounts (Onshape + Fusion have disconnect; Google/Facebook don't)
-- [ ] Team invitations — DB model (`OrgInvite`) exists, no send/accept API or UI
+- [x] Team invitations — token-based invite email flow; pending invites shown on teams page; accept/decline/revoke all implemented
 
 ---
 

@@ -20,9 +20,15 @@ export default async function TeamsRoute() {
   // Filter out the auto-created personal team that shares the user's name
   const teams = allTeams.filter((t) => t.name !== userName);
 
+  const serializable = teams.map((t) => ({
+    ...t,
+    storageUsed: Number(t.storageUsed),
+    storageQuota: Number(t.storageQuota),
+  }));
+
   return (
     <TeamsPage
-      initialTeams={JSON.parse(JSON.stringify(teams))}
+      initialTeams={serializable}
       userId={userId}
     />
   );

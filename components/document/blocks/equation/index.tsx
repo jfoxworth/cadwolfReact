@@ -323,9 +323,9 @@ export default function EquationBlock({
         <button
           onClick={(e) => { e.stopPropagation(); onResolve(block.id); }}
           title="Re-solve this equation"
-          className="absolute top-1 right-6 p-0.5 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1 right-8 p-1 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <RefreshCw size={12} />
+          <RefreshCw size={16} />
         </button>
       )}
       {errors.length > 0 ? (

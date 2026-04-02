@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 function GoogleIcon() {
   return (
@@ -120,6 +121,9 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white rounded-xl shadow-md w-full max-w-sm p-8">
         <div className="mb-6 text-center">
+          <Link href="/" className="inline-block mb-4">
+            <Image src="/logobigblack.png" alt="CadWolf" width={130} height={55} />
+          </Link>
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
           <p className="text-sm text-gray-500 mt-1">Get started with CadWolf</p>
         </div>

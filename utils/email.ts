@@ -25,6 +25,31 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
   });
 }
 
+export async function sendTeamInviteEmail(to: string, inviteUrl: string, teamName: string, role: string) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `You've been invited to join ${teamName} on CadWolf`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;">
+        <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Team invitation</h2>
+        <p style="color:#555;margin:0 0 24px;">
+          You've been invited to join <strong>${teamName}</strong> as a <strong>${role}</strong>.
+          Click below to accept. This link expires in 7 days.
+        </p>
+        <a href="${inviteUrl}"
+           style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;">
+          Accept Invitation
+        </a>
+        <p style="color:#888;font-size:13px;margin:24px 0 0;">
+          If you didn't expect this, you can safely ignore this email.<br>
+          <a href="${inviteUrl}" style="color:#888;">${inviteUrl}</a>
+        </p>
+      </div>
+    `,
+  });
+}
+
 export async function sendEmailChangeEmail(to: string, confirmUrl: string) {
   await resend.emails.send({
     from: FROM,

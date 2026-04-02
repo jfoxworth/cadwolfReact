@@ -1,5 +1,6 @@
 import Nav from "@/components/landing/Nav";
 import Footer from "@/components/landing/Footer";
+import PricingCards from "@/components/landing/PricingCards";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -54,14 +55,14 @@ export default function AccountsPage() {
             </p>
           </Section>
 
-          <Section title="Paid accounts">
+          <Section title="Pricing">
             <p>
-              Paid accounts unlock direct image uploads. When you upgrade, you are allocated a
-              storage quota that you can use to upload images directly into your calculation
-              documents. The exact storage amount and pricing for paid accounts will be listed
-              on this page once billing is live.
+              Choose the plan that fits how you work. All plans include the full equation
+              solver, unlimited documents and workspaces, CAD integrations, and dataset imports.
+              Upgrade or cancel at any time — your documents are always yours.
             </p>
-            <p>
+            <PricingCards />
+            <p className="mt-6">
               Your storage usage is visible in your account settings. If you cancel a paid
               plan, your documents remain intact. Existing uploaded images will continue to
               display, but new uploads will be disabled until you re-subscribe or remove
