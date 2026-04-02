@@ -9,7 +9,7 @@ export default function Hero() {
         backgroundPosition: "center",
       }}
     >
-      <div className="absolute inset-0 bg-black/60" />
+
       <div className="relative z-10 max-w-3xl px-6">
         <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
           Collaborative Mathematics and Engineering Platform

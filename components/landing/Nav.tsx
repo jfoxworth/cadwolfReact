@@ -11,6 +11,7 @@ export default function Nav() {
           <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
           <a href="#community" className="hover:text-white transition-colors">Community</a>
           <a href="#demos" className="hover:text-white transition-colors">Demos</a>
+          <a href="/modules" className="hover:text-white transition-colors">Modules</a>
           <a href="/accounts" className="hover:text-white transition-colors">Pricing</a>
           <a href="/login" className="hover:text-white transition-colors">Log In</a>
           <a

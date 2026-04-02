@@ -14,7 +14,7 @@ import Footer from "./Footer";
 
 export default function Landing() {
   return (
-    <div className="flex flex-col min-h-screen font-sans">
+    <div className="flex flex-col min-h-screen font-sans bg-white">
       <Nav />
       <Hero />
       <IntroVideos />

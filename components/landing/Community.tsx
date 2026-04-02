@@ -1,41 +1,40 @@
-import { FileText, BookOpen, Star, MessageSquare, Mail, Rocket } from "lucide-react";
+import {
+  FileText,
+  BookOpen,
+  Star,
+  MessageSquare,
+  Mail,
+  Rocket,
+} from "lucide-react";
 
 const items = [
   {
     Icon: FileText,
+    link: "https://www.cadwolf.com/workspace/documentation",
     title: "Documentation",
     description:
       "Our documentation workspace provides a users guide that walks users through all facets of CADWOLF.",
   },
   {
     Icon: BookOpen,
+    link: "https://www.cadwolf.com/workspace/homework",
     title: "Homework",
     description:
       "The homework workspace provides hundreds of examples in subjects such as physics, statics, dynamics, and mechanics of materials.",
   },
   {
     Icon: Star,
+    link: "https://www.cadwolf.com/workspace/examples",
     title: "Examples",
     description:
       "The examples workspace provides a few examples designed to get the user started working with CADWOLF and using part trees.",
   },
   {
     Icon: MessageSquare,
+    link: "https://www.reddit.com/r/CADWOLF/",
     title: "Reddit",
     description:
       "Visit our subreddit to ask general questions, address bugs, or suggest an improvement.",
-  },
-  {
-    Icon: Mail,
-    title: "Email Us",
-    description:
-      "Drop us a line with questions at jfoxworth at cadwolf dot com. We can do Google Hangouts to help get you started.",
-  },
-  {
-    Icon: Rocket,
-    title: "Open Source Projects",
-    description:
-      "After walking through examples and documentation, take a look at some of our open source projects or start your own.",
   },
 ];
 
@@ -50,16 +49,18 @@ export default function Community() {
           <p className="text-gray-500">How to get help and work with others</p>
         </div>
         <div className="grid md:grid-cols-3 gap-10">
-          {items.map(({ Icon, title, description }) => (
-            <div key={title} className="flex gap-4">
+          {items.map(({ Icon, link, title, description }) => (
+            <a key={title} href={link} target="_blank" rel="noopener noreferrer" className="flex gap-4 group">
               <div className="flex-shrink-0">
-                <Icon className="text-blue-600 mt-1" size={22} />
+                <Icon className="text-blue-600 mt-1 group-hover:text-blue-700 transition-colors" size={22} />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{description}</p>
+                <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  {description}
+                </p>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </div>
