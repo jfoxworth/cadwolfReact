@@ -34,18 +34,30 @@ export interface OnshapeElement {
   };
 }
 
+// Onshape API v6 returns features flat (no type/typeName/message envelope)
+export interface OnshapeFeatureParam {
+  btType: string; // e.g. "BTMParameterString-149", "BTMParameterQuantity-147", "BTMParameterEnum-145"
+  parameterId: string;
+  nodeId?: string;
+  value?: string | number;
+  expression?: string;
+  units?: string;
+  isInteger?: boolean;
+  enumName?: string;
+}
+
 export interface OnshapeFeature {
+  btType: string; // "BTMFeature-134"
   featureId: string;
+  featureType: string; // "assignVariable"
   name: string;
-  featureType: string;
-  parameters: Array<{
-    parameterId: string;
-    message?: {
-      value?: string;
-      expression?: string;
-      units?: string;
-    };
-  }>;
+  namespace: string;
+  nodeId: string;
+  parameters: OnshapeFeatureParam[];
+  suppressed: boolean;
+  returnAfterSubfeatures: boolean;
+  subFeatures: unknown[];
+  suppressionState: unknown;
 }
 
 export async function listDocuments(search?: string): Promise<OnshapeDocument[]> {
@@ -64,30 +76,25 @@ export async function listElements(
   return onshapeFetch(`/documents/d/${documentId}/w/${workspaceId}/elements${qs}`);
 }
 
-export async function getFeatures(
+interface OnshapeFeatureList {
+  features: OnshapeFeature[];
+  serializationVersion: string;
+  sourceMicroversion: string;
+}
+
+async function getFeatures(
   documentId: string,
   workspaceId: string,
   elementId: string,
-): Promise<OnshapeFeature[]> {
+): Promise<OnshapeFeatureList> {
   const data = await onshapeFetch(
     `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`,
   );
-  return data.features ?? [];
-}
-
-export async function updateFeatures(
-  documentId: string,
-  workspaceId: string,
-  elementId: string,
-  features: OnshapeFeature[],
-): Promise<void> {
-  await onshapeFetch(
-    `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`,
-    {
-      method: "POST",
-      body: JSON.stringify({ features }),
-    },
-  );
+  return {
+    features: data.features ?? [],
+    serializationVersion: data.serializationVersion ?? "",
+    sourceMicroversion: data.sourceMicroversion ?? "",
+  };
 }
 
 export interface OnshapePart {
@@ -172,7 +179,9 @@ export async function getMassProperties(
   return result;
 }
 
-/** Find `assignVariable` features and update their values from solverResults. */
+/** Push equation values to Onshape assignVariable features.
+ *  Mirrors SetCADVariables.php + PushCADVariables.php from the old Laravel system.
+ */
 export async function pushVariablesToOnshape(
   documentId: string,
   workspaceId: string,
@@ -180,33 +189,64 @@ export async function pushVariablesToOnshape(
   equations: Array<{ varName: string; cadParamName: string }>,
   solverResults: Record<string, { value: number | string; units?: string }>,
 ): Promise<void> {
-  const features = await getFeatures(documentId, workspaceId, elementId);
+  const { features, serializationVersion, sourceMicroversion } =
+    await getFeatures(documentId, workspaceId, elementId);
 
-  // Build a map: cadParamName → feature (looking for "assignVariable" features)
-  const toUpdate: OnshapeFeature[] = [];
+  // Collect features to update
+  const sendFeatures: OnshapeFeature[] = [];
 
   for (const eq of equations) {
-    const result = solverResults[eq.varName.toLowerCase()];
-    if (result === undefined) continue;
+    const resultEntry = Object.entries(solverResults).find(
+      ([k]) => k.toLowerCase() === eq.varName.toLowerCase(),
+    );
+    const result = resultEntry?.[1];
+    if (!result) continue;
 
+    const val   = typeof result.value === "number" ? result.value : Number(result.value);
+    const units = result.units ?? "";
+
+    // Find the assignVariable feature whose BTMParameterString-149 value matches cadParamName
     const feat = features.find(
       (f) =>
         f.featureType === "assignVariable" &&
-        f.parameters.some(
-          (p) => p.parameterId === "variableName" && p.message?.value === eq.cadParamName,
+        f.parameters?.some(
+          (p) =>
+            p.btType.startsWith("BTMParameterString") &&
+            String(p.value).toLowerCase() === eq.cadParamName.toLowerCase(),
         ),
     );
     if (!feat) continue;
 
-    // Clone feature and update BTMParameterQuantity value
+    // Clone and update parameters
     const updated = structuredClone(feat);
-    const valueParam = updated.parameters.find((p) => p.parameterId === "value");
-    if (valueParam?.message) {
-      valueParam.message.expression = String(result.value);
+    for (const param of updated.parameters) {
+      if (param.btType.startsWith("BTMParameterQuantity")) {
+        param.value      = val;
+        param.units      = units;
+        param.expression = units ? `${val} ${units}` : String(val);
+        param.parameterId = "anyValue";
+        param.isInteger  = !units;
+      }
+      if (param.btType.startsWith("BTMParameterEnum") && param.enumName === "VariableType") {
+        param.value      = "ANY";
+        param.parameterId = "variableType";
+      }
     }
-    toUpdate.push(updated);
+    sendFeatures.push(updated);
   }
 
-  if (toUpdate.length === 0) return;
-  await updateFeatures(documentId, workspaceId, elementId, toUpdate);
+  // POST each feature individually
+  for (const feat of sendFeatures) {
+    const body = {
+      serializationVersion,
+      sourceMicroversion,
+      rejectMicroversionSkew: false,
+      feature: feat,
+    };
+
+    await onshapeFetch(
+      `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features/featureid/${feat.featureId}`,
+      { method: "POST", body: JSON.stringify(body) },
+    );
+  }
 }

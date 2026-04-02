@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getIronSession } from "iron-session";
+import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
+import { sendVerificationEmail } from "@/utils/email";
 
 const VALID_USERNAME = /^[a-zA-Z0-9_-]+$/;
 
@@ -62,6 +64,15 @@ export async function POST(req: NextRequest) {
   session.userEmail = user.email;
   session.userUsername = user.username ?? null;
   await session.save();
+
+  // Send verification email (fire-and-forget; don't block registration on email failure)
+  try {
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await db.emailVerificationToken.create({ data: { userId: user.id, token, expiresAt } });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    await sendVerificationEmail(user.email, `${appUrl}/verify-email?token=${token}`);
+  } catch { /* non-fatal */ }
 
   return NextResponse.json({ id: user.id, name: user.name, email: user.email, username: user.username }, { status: 201 });
 }

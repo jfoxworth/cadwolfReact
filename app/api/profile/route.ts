@@ -111,3 +111,75 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSession();
+  if (!session.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { password } = await req.json() as { password?: string };
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, password: true },
+  });
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  // If user has a password, require it
+  if (user.password) {
+    if (!password) {
+      return NextResponse.json({ error: "Password is required to delete your account" }, { status: 400 });
+    }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return NextResponse.json({ error: "Incorrect password" }, { status: 400 });
+  }
+
+  const userId = user.id;
+
+  // Delete all user data
+  await db.$transaction(async (tx) => {
+    // Tokens
+    await tx.emailVerificationToken.deleteMany({ where: { userId } });
+    await tx.passwordResetToken.deleteMany({ where: { userId } });
+    await tx.emailChangeToken.deleteMany({ where: { userId } });
+
+    // OAuth accounts
+    await tx.oAuthAccount.deleteMany({ where: { userId } });
+
+    // Team memberships (leave teams; owned teams persist with no owner)
+    await tx.teamMember.deleteMany({ where: { userId } });
+
+    // Files and their dependents
+    const files = await tx.file.findMany({
+      where: { userId, deletedAt: null },
+      select: { id: true },
+    });
+    const fileIds = files.map((f) => f.id);
+    if (fileIds.length > 0) {
+      await tx.fileImport.deleteMany({ where: { fileId: { in: fileIds } } });
+      await tx.datasetImport.deleteMany({ where: { fileId: { in: fileIds } } });
+      await tx.bibliography.deleteMany({ where: { fileId: { in: fileIds } } });
+      await tx.component.deleteMany({ where: { fileId: { in: fileIds } } });
+      await tx.fileVersion.deleteMany({ where: { fileId: { in: fileIds } } });
+      await tx.file.deleteMany({ where: { id: { in: fileIds } } });
+    }
+
+    // Datasets and datapoints
+    const datasets = await tx.dataset.findMany({
+      where: { userId, deletedAt: null },
+      select: { id: true },
+    });
+    const datasetIds = datasets.map((d) => d.id);
+    if (datasetIds.length > 0) {
+      await tx.datapoint.deleteMany({ where: { datasetId: { in: datasetIds } } });
+      await tx.dataset.deleteMany({ where: { id: { in: datasetIds } } });
+    }
+
+    // Finally, delete the user
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  // Clear the session
+  session.destroy();
+
+  return NextResponse.json({ ok: true });
+}

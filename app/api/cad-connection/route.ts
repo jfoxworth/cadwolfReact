@@ -18,8 +18,8 @@ function normalizeInfo(raw: Record<string, unknown>): Record<string, unknown> {
   const equations = ((raw.equations as Array<Record<string, unknown>>) ?? [])
     .filter((e) => e.eq_name)
     .map((e) => ({
-      varName: String(e.eq_name),
-      cadParamName: String(e.conn_id ?? e.eq_name),
+      varName:      String(e.eq_name),
+      cadParamName: String(e.eq_name), // conn_id is a numeric DB record ID, eq_name is the Onshape variable name
     }));
 
   return {

@@ -241,11 +241,22 @@ function EmailIcon() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function isAdminEmail(email: string): boolean {
+  const raw = process.env.ADMIN_EMAILS ?? "";
+  const allowed = raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return allowed.includes(email.toLowerCase());
+}
+
 export default async function AdminPage() {
+  let session;
   try {
-    await getSessionUser();
+    session = await getSessionUser();
   } catch {
     redirect("/login");
+  }
+
+  if (!isAdminEmail(session.userEmail)) {
+    redirect("/");
   }
 
   const s = await getStats();

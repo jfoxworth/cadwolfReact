@@ -28,6 +28,16 @@ export async function upsertOAuthAccount(
   });
 }
 
+function makeReauthError(provider: string): Error {
+  const err = new Error(`${provider}_REAUTH_REQUIRED`) as Error & { reauth: boolean };
+  err.reauth = true;
+  return err;
+}
+
+export function isReauthError(err: unknown): boolean {
+  return err instanceof Error && (err as Error & { reauth?: boolean }).reauth === true;
+}
+
 async function refreshOnshapeToken(refreshToken: string) {
   const params = new URLSearchParams({
     grant_type: "refresh_token",
@@ -40,7 +50,10 @@ async function refreshOnshapeToken(refreshToken: string) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: params.toString(),
   });
-  if (!res.ok) throw new Error(`Onshape refresh failed: ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 400 || res.status === 401) throw makeReauthError("onshape");
+    throw new Error(`Onshape refresh failed: ${res.status}`);
+  }
   return res.json() as Promise<{ access_token: string; refresh_token?: string; expires_in?: number }>;
 }
 
@@ -56,7 +69,10 @@ async function refreshFusionToken(refreshToken: string) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: params.toString(),
   });
-  if (!res.ok) throw new Error(`Fusion refresh failed: ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 400 || res.status === 401) throw makeReauthError("fusion");
+    throw new Error(`Fusion refresh failed: ${res.status}`);
+  }
   return res.json() as Promise<{ access_token: string; refresh_token?: string; expires_in?: number }>;
 }
 

@@ -61,6 +61,7 @@ export async function findOrCreateOAuthUser(opts: {
           email: email.toLowerCase(),
           password: null,
           photoUrl: photoUrl ?? null,
+          emailVerifiedAt: new Date(), // OAuth provider already verified the email
         },
       });
       isNewUser = true;
@@ -92,7 +93,11 @@ export async function findOrCreateOAuthUser(opts: {
   }
 
   // Step 3: load the final user record and set the session
+  // Backfill emailVerifiedAt for existing OAuth users who predate the field
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  if (!user.emailVerifiedAt) {
+    await db.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } });
+  }
 
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   session.userId = user.id;

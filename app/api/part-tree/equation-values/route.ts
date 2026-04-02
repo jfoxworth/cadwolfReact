@@ -13,7 +13,11 @@ export async function POST(req: NextRequest) {
     variableName: string;
   };
 
-  if (!Array.isArray(fileIds) || fileIds.length === 0 || !variableName?.trim()) {
+  if (
+    !Array.isArray(fileIds) ||
+    fileIds.length === 0 ||
+    !variableName?.trim()
+  ) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
@@ -30,7 +34,10 @@ export async function POST(req: NextRequest) {
     orderBy: { order: "asc" },
   });
 
-  const byFile = new Map<number, { value: number | null; unit: string | null }>();
+  const byFile = new Map<
+    number,
+    { value: number | null; unit: string | null }
+  >();
 
   for (const comp of components) {
     let value: number | null = null;
@@ -39,16 +46,18 @@ export async function POST(req: NextRequest) {
     try {
       const parsed = JSON.parse(comp.content ?? "{}");
       const eq = parsed.Equation as Record<string, unknown> | undefined;
-      const solutionReal = eq?.Solution_real as Record<string, number> | undefined;
-      value = typeof solutionReal?.["0-0"] === "number" ? solutionReal["0-0"] : null;
+      const solutionReal = eq?.Solution_real as
+        | Record<string, number>
+        | undefined;
+      value =
+        typeof solutionReal?.["0-0"] === "number" ? solutionReal["0-0"] : null;
       unit = (eq?.Units_units as string | undefined) ?? null;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     byFile.set(comp.fileId, { value, unit });
   }
-
-  console.log("[eq-values] matches:", [...byFile.entries()]);
-  console.log("[eq-values] full content:", components[0]?.content);
 
   const results = fileIds.map((id) => ({
     fileId: id,

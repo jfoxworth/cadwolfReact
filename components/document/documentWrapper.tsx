@@ -783,41 +783,6 @@ export default function DocumentWrapper({
     });
   }, [solverResults]);
 
-  // Push solved variables to CAD on every solve; capture per-connection status
-  useEffect(() => {
-    if (solverResults.size === 0 || cadConnections.length === 0) return;
-    // Build results map: variableName (lowercase) → { value, units }
-    const results: Record<string, { value: number | string; units?: string }> = {};
-    solverResults.forEach((r) => {
-      if (r?.solution?.real && r.variableName) {
-        const scalar = r.solution.real["0-0"];
-        if (scalar !== undefined) {
-          results[r.variableName.toLowerCase()] = {
-            value: scalar,
-            units: r.solution.units,
-          };
-        }
-      }
-    });
-    if (Object.keys(results).length === 0) return;
-    cadConnections.forEach((conn) => {
-      fetch(`/api/cad-connection/${conn.id}/push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ results }),
-      })
-        .then(async (res) => {
-          const data = await res.json().catch(() => ({})) as { pushed?: number; error?: string };
-          setPushStatus((prev) => ({
-            ...prev,
-            [conn.id]: res.ok ? { pushed: data.pushed ?? 0 } : { error: data.error ?? "Failed" },
-          }));
-        })
-        .catch(() => {
-          setPushStatus((prev) => ({ ...prev, [conn.id]: { error: "Network error" } }));
-        });
-    });
-  }, [solverResults, cadConnections]);
 
   // Legacy importedCAD cadParts are seeded into useSolver via initialCadParts at construction
   // time — no solve needed here.
@@ -1254,7 +1219,13 @@ export default function DocumentWrapper({
   const [saveStatus, setSaveStatus] = useState<"saved" | "error" | null>(null);
   const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  type CadPushNotif = { connId: number; cadType: string; phase: "pushing" | "pushed" | "error" | "reauth"; detail?: string };
+  const [cadPushNotifs, setCadPushNotifs] = useState<CadPushNotif[]>([]);
+  const cadPushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handlePersist = useCallback(async () => {
+    if (saveInProgressRef.current) return;
+    saveInProgressRef.current = true;
     setSaving(true);
     setSaveStatus(null);
     try {
@@ -1302,14 +1273,94 @@ export default function DocumentWrapper({
           })),
       );
       setSaveStatus("saved");
+
+      // Push exported variables to connected CAD models after a successful save.
+      // Build a lookup of all solved equation blocks (original-case keys).
+      const allSolvedResults: Record<string, { value: number | string; units?: string }> = {};
+      for (const block of virtualBlocks) {
+        if (block._status === "deleted" || block.type !== "EQUATION") continue;
+        const varName = ((block.definition.raw as string) ?? "").split("=")[0].trim();
+        if (!varName) continue;
+        const sol = block.solution as { real?: Record<string, number>; units?: string } | undefined;
+        const scalar = sol?.real?.["0-0"];
+        if (scalar === undefined) continue;
+        allSolvedResults[varName] = { value: scalar, units: sol?.units };
+      }
+
+      // Deduplicate connections by id, only keep those with an equations mapping.
+      const seenIds = new Set<number>();
+      const pushableConns = cadConnections.filter((conn) => {
+        if (seenIds.has(conn.id)) return false;
+        seenIds.add(conn.id);
+        const eqs = conn.info.equations;
+        return Array.isArray(eqs) && (eqs as unknown[]).length > 0;
+      });
+
+      if (pushableConns.length > 0) {
+          if (cadPushTimerRef.current) clearTimeout(cadPushTimerRef.current);
+          setCadPushNotifs(pushableConns.map((conn) => ({ connId: conn.id, cadType: conn.cadType, phase: "pushing" as const })));
+
+          let completed = 0;
+          pushableConns.forEach((conn) => {
+            // Only send the variables this connection has mapped — nothing else.
+            const connEqs = (conn.info.equations as Array<{ varName: string }>) ?? [];
+            const connResults: Record<string, { value: number | string; units?: string }> = {};
+            for (const eq of connEqs) {
+              const key = Object.keys(allSolvedResults).find(
+                (k) => k.toLowerCase() === eq.varName.toLowerCase(),
+              );
+              if (key) connResults[key] = allSolvedResults[key];
+            }
+            fetch(`/api/cad-connection/${conn.id}/push`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ results: connResults }),
+            })
+              .then(async (res) => {
+                const data = await res.json().catch(() => ({})) as { pushed?: number; error?: string };
+                if (res.status === 401 && data.error === "reauth_required") {
+                  setPushStatus((prev) => ({ ...prev, [conn.id]: { error: "reauth_required" } }));
+                  setCadPushNotifs((prev) => prev.map((n) =>
+                    n.connId === conn.id ? { ...n, phase: "reauth" as const } : n,
+                  ));
+                  return;
+                }
+                setPushStatus((prev) => ({
+                  ...prev,
+                  [conn.id]: res.ok ? { pushed: data.pushed ?? 0 } : { error: data.error ?? "Failed" },
+                }));
+                setCadPushNotifs((prev) => prev.map((n) =>
+                  n.connId === conn.id
+                    ? { ...n, phase: res.ok ? "pushed" : "error", detail: res.ok ? undefined : (data.error ?? "Failed") }
+                    : n,
+                ));
+              })
+              .catch(() => {
+                setPushStatus((prev) => ({ ...prev, [conn.id]: { error: "Network error" } }));
+                setCadPushNotifs((prev) => prev.map((n) =>
+                  n.connId === conn.id ? { ...n, phase: "error", detail: "Network error" } : n,
+                ));
+              })
+              .finally(() => {
+                completed += 1;
+                if (completed === pushableConns.length) {
+                  cadPushTimerRef.current = setTimeout(
+                    () => setCadPushNotifs((prev) => prev.filter((n) => n.phase === "reauth")),
+                    4000,
+                  );
+                }
+              });
+          });
+      }
     } catch {
       setSaveStatus("error");
     } finally {
+      saveInProgressRef.current = false;
       setSaving(false);
       if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
       saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 3000);
     }
-  }, [virtualBlocks, document.id]);
+  }, [virtualBlocks, document.id, cadConnections]);
 
   // ── Add block ────────────────────────────────────────────────────────────
   const handleAddBlock = useCallback(
@@ -1413,6 +1464,7 @@ export default function DocumentWrapper({
   // Register save button in side menu
   const handlePersistRef = useRef(handlePersist);
   useEffect(() => { handlePersistRef.current = handlePersist; }, [handlePersist]);
+  const saveInProgressRef = useRef(false);
 
   useEffect(() => {
     if (!effectiveCanEdit) return;
@@ -1678,17 +1730,46 @@ export default function DocumentWrapper({
         />
       )}
 
-      {/* Save status toast */}
-      {saveStatus && (
-        <div className={[
-          "fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium transition-all",
-          saveStatus === "saved"
-            ? "bg-green-600 text-white"
-            : "bg-red-600 text-white",
-        ].join(" ")}>
-          {saveStatus === "saved" ? "Saved" : "Save failed — check your connection"}
-        </div>
-      )}
+      {/* Save + CAD push toasts */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
+        {saveStatus && (
+          <div className={[
+            "flex items-center gap-2 px-6 py-3 rounded-lg shadow-lg text-base font-semibold",
+            saveStatus === "saved" ? "bg-green-600 text-white" : "bg-red-600 text-white",
+          ].join(" ")}>
+            {saveStatus === "saved" ? "Saved" : "Save failed — check your connection"}
+          </div>
+        )}
+        {cadPushNotifs.map((n) => {
+          const platform = n.cadType === "fusion" ? "Fusion 360" : "Onshape";
+          let label: string;
+          let cls: string;
+          if (n.phase === "pushing") {
+            label = `Pushing to ${platform}…`;
+            cls = "bg-blue-600 text-white";
+          } else if (n.phase === "pushed") {
+            label = `Pushed to ${platform}`;
+            cls = "bg-green-600 text-white";
+          } else if (n.phase === "reauth") {
+            cls = "bg-yellow-600 text-white";
+            return (
+              <div key={n.connId} className={`flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg text-base font-semibold ${cls}`}>
+                {platform} session expired —{" "}
+                <a href="/cadConnect" className="underline">Reconnect</a>
+                <button onClick={() => setCadPushNotifs((prev) => prev.filter((x) => x.connId !== n.connId))} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+              </div>
+            );
+          } else {
+            label = `${platform} push failed${n.detail ? `: ${n.detail}` : ""}`;
+            cls = "bg-red-600 text-white";
+          }
+          return (
+            <div key={n.connId} className={`flex items-center gap-2 px-6 py-3 rounded-lg shadow-lg text-base font-semibold ${cls}`}>
+              {label}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

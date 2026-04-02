@@ -17,6 +17,7 @@ import { replaceVectors }          from "./steps/14-replace-vectors";
 import { replaceMatrices }         from "./steps/15-replace-matrices";
 import { replaceNumbers }          from "./steps/16-replace-numbers";
 import { replaceTables }           from "./steps/17-replace-tables";
+import { encodeUnitValues }        from "./steps/20b-encode-unit-values";
 import { checkImaginary }          from "./steps/18-check-imaginary";
 import { checkNegatives }          from "./steps/19-check-negatives";
 import { checkEquation }           from "./steps/20-check-equation";
@@ -55,6 +56,7 @@ const STEPS = [
   replaceMatrices,
   replaceNumbers,
   replaceTables,
+  encodeUnitValues,
   checkImaginary,
   checkNegatives,
   checkEquation,

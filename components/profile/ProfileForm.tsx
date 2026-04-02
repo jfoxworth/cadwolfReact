@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { User, Mail, AtSign, Briefcase, MapPin, Globe, Phone, FileText, Lock } from "lucide-react";
 
 type CheckState = "idle" | "checking" | "available" | "taken" | "invalid" | "unchanged";
@@ -48,6 +49,7 @@ interface UserProfile {
 }
 
 export default function ProfileForm({ user }: { user: UserProfile }) {
+  const router = useRouter();
   const [form, setForm] = useState({
     name: user.name ?? "",
     title: user.title ?? "",
@@ -72,6 +74,69 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
   const [savingPassword, setSavingPassword] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailForm, setEmailForm] = useState({ newEmail: "", currentPassword: "" });
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [showDeleteForm, setShowDeleteForm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function handleDeleteAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (deleteConfirm !== "DELETE") {
+      setDeleteError("Please type DELETE to confirm");
+      return;
+    }
+    setDeleteError("");
+    setDeletingAccount(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        setDeleteError(data.error ?? "Failed to delete account");
+      } else {
+        router.push("/login");
+      }
+    } catch {
+      setDeleteError("Network error");
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
+  async function handleEmailChange(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailMessage(null);
+    setSavingEmail(true);
+    try {
+      const res = await fetch("/api/auth/request-email-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(emailForm),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        setEmailMessage({ type: "error", text: data.error ?? "Failed to send confirmation" });
+      } else {
+        setEmailMessage({ type: "success", text: `Confirmation sent to ${emailForm.newEmail}. Check your inbox.` });
+        setEmailForm({ newEmail: "", currentPassword: "" });
+        setShowEmailForm(false);
+      }
+    } catch {
+      setEmailMessage({ type: "error", text: "Network error" });
+    } finally {
+      setSavingEmail(false);
+    }
+  }
 
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
@@ -239,7 +304,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
           )}
         </div>
 
-        {/* Email — read only */}
+        {/* Email — with change flow */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <div className="relative">
@@ -250,10 +315,53 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
               type="email"
               value={user.email}
               readOnly
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
+              className="w-full pl-10 pr-24 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
             />
+            <button
+              type="button"
+              onClick={() => { setShowEmailForm((v) => !v); setEmailMessage(null); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {showEmailForm ? "Cancel" : "Change"}
+            </button>
           </div>
-          <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+          {emailMessage && (
+            <p className={`text-xs mt-1 ${emailMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+              {emailMessage.text}
+            </p>
+          )}
+          {showEmailForm && (
+            <form onSubmit={handleEmailChange} className="mt-3 space-y-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">New email address</label>
+                <input
+                  type="email"
+                  required
+                  value={emailForm.newEmail}
+                  onChange={(e) => setEmailForm((f) => ({ ...f, newEmail: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="new@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Current password (to confirm)</label>
+                <input
+                  type="password"
+                  value={emailForm.currentPassword}
+                  onChange={(e) => setEmailForm((f) => ({ ...f, currentPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={savingEmail}
+                className="px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {savingEmail ? "Sending…" : "Send confirmation email"}
+              </button>
+            </form>
+          )}
         </div>
 
         {field("Title / Role", "title", <Briefcase size={16} />, { placeholder: "e.g. Senior Engineer" })}
@@ -355,6 +463,70 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
           </button>
         </div>
       </form>
+
+      {/* Delete account */}
+      <div className="relative z-10 bg-white rounded-xl border border-red-200 p-6">
+        <h2 className="text-lg font-semibold text-red-700 mb-1">Delete Account</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Permanently delete your account and all associated data. This cannot be undone.
+        </p>
+        {!showDeleteForm ? (
+          <button
+            type="button"
+            onClick={() => setShowDeleteForm(true)}
+            className="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete my account
+          </button>
+        ) : (
+          <form onSubmit={handleDeleteAccount} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type <strong>DELETE</strong> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                placeholder="DELETE"
+              />
+            </div>
+            {deleteError && (
+              <p className="text-sm text-red-600">{deleteError}</p>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={deletingAccount}
+                className="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deletingAccount ? "Deleting…" : "Permanently delete account"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowDeleteForm(false); setDeletePassword(""); setDeleteConfirm(""); setDeleteError(""); }}
+                className="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
