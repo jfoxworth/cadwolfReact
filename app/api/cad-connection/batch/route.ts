@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/utils/db";
-import { getSessionUser } from "@/utils/getSessionUser";
+// No auth required — caller is responsible for only passing accessible fileIds.
 
 // POST /api/cad-connection/batch
 // Body: { fileIds: number[] }
 // Returns all CAD connections for the given file IDs.
 export async function POST(req: NextRequest) {
-  await getSessionUser(); // Require authentication; caller is responsible for only passing accessible fileIds
   const body = await req.json() as { fileIds: number[] };
   const ids = (body.fileIds ?? []).map(String);
   if (ids.length === 0) return NextResponse.json([]);

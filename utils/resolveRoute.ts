@@ -69,7 +69,7 @@ export async function resolveFileRoute(
         name: { equals: segment, mode: "insensitive" },
         parentId,
         deletedAt: null,
-        ...(parentId === null ? { userId } : {}),
+        ...(parentId === null && userId ? { userId } : {}),
       },
       select: { id: true, fileTypeId: true },
     });

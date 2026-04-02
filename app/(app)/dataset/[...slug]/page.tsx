@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
-import { getSessionUser } from "@/utils/getSessionUser";
+import { notFound, redirect } from "next/navigation";
+import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { db } from "@/utils/db";
 import { checkPermission } from "@/utils/checkPermission";
 import DatasetWrapper from "@/components/dataset/DatasetWrapper";
@@ -66,7 +66,8 @@ export default async function DatasetPage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-  const { userId } = await getSessionUser();
+  const session = await getSessionUserOrNull();
+  const userId = session?.userId ?? 0;
   const single = slug.length === 1 ? slug[0] : null;
 
   let fileId: number | null = null;
@@ -93,7 +94,10 @@ export default async function DatasetPage({
     checkPermission(fileId!, userId, "edit"),
   ]);
 
-  if (!file || !canView) notFound();
+  if (!file || !canView) {
+    if (!userId) redirect("/login");
+    notFound();
+  }
 
   return (
     <DatasetWrapper

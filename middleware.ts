@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getIronSession } from "iron-session";
-import { sessionOptions, type SessionData } from "@/utils/session";
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  // iron-session v8: pass req + res for middleware context
-  const session = await getIronSession<SessionData>(req as unknown as Request, res as unknown as Response, sessionOptions);
-
-  if (!session.userId) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("from", req.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return res;
+// Auth is handled per-page using getSessionUserOrNull().
+// Content routes (/workspace, /document, /dataset, /part-tree) allow public
+// access when viewPerm = "everyone"; the page redirects to /login only when
+// the content is restricted and the visitor is not authenticated.
+export function middleware(_req: NextRequest) {
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/workspace/:path*", "/document/:path*", "/dataset/:path*", "/part-tree/:path*"],
+  matcher: [],
 };

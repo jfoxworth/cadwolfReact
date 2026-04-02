@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Trash2, UserMinus, Crown, Shield, User, ChevronDown, Mail, Clock } from "lucide-react";
+import { Users, Plus, Trash2, UserMinus, Crown, Shield, User, ChevronDown, Mail, Clock, Pencil } from "lucide-react";
 
 interface TeamMemberBase {
   teamId: number;
@@ -55,6 +55,12 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
   const [newDesc, setNewDesc] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Edit team form
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editing, setEditing] = useState(false);
+
   // Invite member
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
@@ -102,6 +108,7 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
   async function selectTeam(id: number) {
     setSelectedId(id);
     setDeleteConfirm(false);
+    setEditOpen(false);
     setInviteEmail("");
     setInviteError("");
     setInviteSuccess("");
@@ -128,9 +135,26 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
       setCreateOpen(false);
       setNewName("");
       setNewDesc("");
-      selectTeam(team.id);
+      await selectTeam(team.id);
     }
     setCreating(false);
+  }
+
+  async function handleEdit() {
+    if (!detail || !editName.trim()) return;
+    setEditing(true);
+    const res = await fetch(`/api/teams/${detail.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName.trim(), description: editDesc.trim() }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setTeams((prev) => prev.map((t) => t.id === detail.id ? { ...t, name: updated.name, description: updated.description } : t));
+      setDetail((prev) => prev ? { ...prev, name: updated.name, description: updated.description } : prev);
+      setEditOpen(false);
+    }
+    setEditing(false);
   }
 
   async function handleInvite() {
@@ -146,7 +170,6 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
     if (res.ok) {
       setInviteSuccess(`Invitation sent to ${inviteEmail.trim()}`);
       setInviteEmail("");
-      // Refresh pending invites list
       const invRes = await fetch(`/api/teams/${detail.id}/invites`);
       if (invRes.ok) setTeamInvites(await invRes.json());
     } else {
@@ -178,7 +201,7 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
       setDetail(null);
       setDeleteConfirm(false);
       if (remaining.length > 0) {
-        selectTeam(remaining[0].id);
+        await selectTeam(remaining[0].id);
       } else {
         setSelectedId(null);
       }
@@ -192,7 +215,6 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
     if (res.ok) {
       setMyInvites((prev) => prev.filter((i) => i.id !== invite.id));
       if (action === "accept") {
-        // Reload teams list so the new team shows up
         const teamsRes = await fetch("/api/teams");
         if (teamsRes.ok) {
           const updated: TeamBase[] = await teamsRes.json();
@@ -214,7 +236,7 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center pt-16 pb-16 px-4">
+    <div className="relative z-[1] min-h-screen flex items-start justify-center pt-16 pb-16 px-4">
       <div className="w-full max-w-xl flex flex-col gap-6">
 
         {/* Pending invitations to me */}
@@ -266,7 +288,7 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
               Teams
             </h1>
             <button
-              onClick={() => { setCreateOpen(true); setDeleteConfirm(false); }}
+              onClick={() => { setCreateOpen(true); setDeleteConfirm(false); setEditOpen(false); }}
               className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
               <Plus size={14} />
@@ -343,9 +365,57 @@ export default function TeamsPage({ initialTeams, userId }: Props) {
             {/* Team detail */}
             {detail && !detailLoading && (
               <>
-                {/* Description */}
-                {detail.description && (
-                  <p className="text-sm text-gray-500 -mt-2">{detail.description}</p>
+                {/* Edit team form */}
+                {editOpen && isOwner ? (
+                  <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Edit Team</p>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Team name"
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                    <input
+                      type="text"
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      placeholder="Description (optional)"
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => setEditOpen(false)}
+                        className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        disabled={!editName.trim() || editing}
+                        onClick={handleEdit}
+                        className="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
+                      >
+                        {editing ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2 -mt-2">
+                    <div className="min-w-0">
+                      {detail.description && (
+                        <p className="text-sm text-gray-500">{detail.description}</p>
+                      )}
+                    </div>
+                    {isOwner && (
+                      <button
+                        onClick={() => { setEditName(detail.name); setEditDesc(detail.description ?? ""); setEditOpen(true); }}
+                        className="shrink-0 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition"
+                      >
+                        <Pencil size={12} /> Edit
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Members list */}

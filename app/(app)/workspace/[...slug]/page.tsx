@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSessionUser } from "@/utils/getSessionUser";
+import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { resolveFileRoute, TYPE_ROUTE } from "@/utils/resolveRoute";
 import { db } from "@/utils/db";
 import { fileToItem } from "@/utils/transformers";
@@ -12,7 +12,8 @@ export default async function WorkspacePage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-  const { userId } = await getSessionUser();
+  const session = await getSessionUserOrNull();
+  const userId = session?.userId ?? 0;
 
   const resolved = await resolveFileRoute("workspace", slug, userId);
   if (!resolved) notFound();
@@ -32,10 +33,13 @@ export default async function WorkspacePage({
     checkPermission(resolved.id, userId, "view"),
     checkPermission(resolved.id, userId, "edit"),
     checkPermission(resolved.id, userId, "admin"),
-    db.user.findUnique({ where: { id: userId }, select: { tier: true } }),
+    userId ? db.user.findUnique({ where: { id: userId }, select: { tier: true } }) : Promise.resolve(null),
   ]);
 
-  if (!canView) notFound();
+  if (!canView) {
+    if (!userId) redirect("/login");
+    notFound();
+  }
 
   const canUpload = currentUser?.tier === "pro" || currentUser?.tier === "business";
 

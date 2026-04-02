@@ -13,6 +13,7 @@
 ## Priority 2: Core Missing Features
 
 ### Payments / Billing
+
 - [x] Install Stripe SDK
 - [x] Add `stripeCustomerId` + `stripeSubscriptionId` to User and Team DB models
 - [x] Create `/api/stripe/checkout` route
@@ -25,6 +26,7 @@
 - [ ] Enforce tier-based feature gates in API (tier field exists but is never read) — blocked on image upload above
 
 ### User Account
+
 - [x] Email change flow — inline form on profile page; sends confirmation email to new address; `/confirm-email-change` page processes token
 - [x] Account deletion — "Delete Account" section on profile page; requires password + typing DELETE; wipes all user data
 - [x] Email verification on registration — sends link on register; banner shown in app layout until verified; OAuth users auto-verified
@@ -36,20 +38,24 @@
 ## Priority 3: Platform Features
 
 ### Search
+
 - [ ] Global full-text search across workspaces and documents
 - [ ] Search by variable name across workspaces
 
 ### Export
+
 - [ ] PDF export of documents
 - [ ] CSV export of datasets
 - [ ] JSON export
 
 ### Document
+
 - [ ] Version history UI — API exists (`/api/file/[id]/versions`) but never surfaced in the UI
 - [ ] Public / shareable links — permissions work for named users/teams but no anonymous link sharing
 
 ### Part Tree
-- [ ] Part tree CRUD API — only `/api/part-tree/equation-values` exists; no create/update/delete/browse routes
+
+- [x] Part tree CRUD API — only `/api/part-tree/equation-values` exists; no create/update/delete/browse routes
 
 ---
 

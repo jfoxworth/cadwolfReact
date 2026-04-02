@@ -48,5 +48,24 @@ export async function POST(
     }),
   ]);
 
+  // Flag any documents that import variables from this file as stale
+  const dependentImports = await db.fileImport.findMany({
+    where: { sourceFileId: fileId },
+    select: { id: true, fileId: true },
+  });
+  if (dependentImports.length > 0) {
+    const dependentFileIds = [...new Set(dependentImports.map((i) => i.fileId))];
+    await db.$transaction([
+      db.fileImport.updateMany({
+        where: { sourceFileId: fileId },
+        data: { needsUpdate: true },
+      }),
+      db.file.updateMany({
+        where: { id: { in: dependentFileIds } },
+        data: { needsUpdate: true },
+      }),
+    ]);
+  }
+
   return NextResponse.json({ version: newVersion });
 }

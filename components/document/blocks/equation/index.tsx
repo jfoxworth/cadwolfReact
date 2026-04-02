@@ -9,7 +9,7 @@ import { RefreshCw } from "lucide-react";
 
 /** Returns parsed parts if `raw` is a plain numeric assignment like `a = 5` or `b = -3.14 kg`. */
 function parsePlainNumber(raw: string): { lhs: string; value: number; unit: string } | null {
-  const m = raw.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*(\S*)\s*$/);
+  const m = raw.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*([A-Za-z°%][A-Za-z0-9/°·*^._-]*)?\s*$/);
   if (!m) return null;
   return { lhs: m[1], value: parseFloat(m[2]), unit: m[3] };
 }
@@ -34,6 +34,8 @@ interface EquationBlockProps {
   isSolving?: boolean;
   /** Which model to display instead of the default equation (resets on page load). */
   modelView?: ModelView;
+  /** Variable names whose cached import values are stale; used to highlight affected equations. */
+  staleVarNames?: Set<string>;
 }
 
 type ShowMatrix = boolean | undefined; // true = always show, false = always hide, undefined = auto
@@ -58,6 +60,7 @@ export default function EquationBlock({
   onResolve,
   isSolving = false,
   modelView,
+  staleVarNames,
 }: EquationBlockProps) {
   const def = block.definition as {
     raw?: string;
@@ -307,6 +310,11 @@ export default function EquationBlock({
   const combinedTex = modelDisplay
     ?? (solutionTex ? `${displayEq} = ${solutionTex}` : (storedDisplay || displayEq));
 
+  const isStale = useMemo(() => {
+    if (!staleVarNames?.size) return false;
+    return [...staleVarNames].some((v) => new RegExp(`\\b${v}\\b`, "i").test(def.raw ?? ""));
+  }, [staleVarNames, def.raw]);
+
   return (
     <div
       onClick={handleClick}
@@ -314,6 +322,7 @@ export default function EquationBlock({
       className={[
         "relative flex flex-col items-center rounded px-2 py-2 group",
         isSelected ? "bg-blue-50 ring-1 ring-blue-300" : isSolving ? "bg-gray-100" : "hover:bg-gray-50",
+        isStale ? "border-l-2 border-orange-300 bg-orange-50/40" : "",
         canEdit ? "cursor-pointer" : "",
       ]
         .filter(Boolean)

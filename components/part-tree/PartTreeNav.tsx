@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, MoreHorizontal, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronRight, ChevronDown, MoreHorizontal, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
 import ItemIcon from "@/components/workspace/ItemIcon";
 import type { Item } from "@/types/item";
 
@@ -34,6 +34,8 @@ interface Props {
   onDeleteItem: (itemId: string) => Promise<void>;
   onLinkCad: (itemId: string) => void;
   canEdit: boolean;
+  resolvingId?: string | null;
+  onResolve?: (item: Item) => void;
 }
 
 interface TreeNodeProps {
@@ -55,6 +57,8 @@ interface TreeNodeProps {
   onDeleteItem: (itemId: string) => Promise<void>;
   onLinkCad: (itemId: string) => void;
   canEdit: boolean;
+  resolvingId?: string | null;
+  onResolve?: (item: Item) => void;
 }
 
 // ── Ellipsis menu ────────────────────────────────────────────────────────────
@@ -255,6 +259,8 @@ function TreeNode({
   onDeleteItem,
   onLinkCad,
   canEdit,
+  resolvingId,
+  onResolve,
 }: TreeNodeProps) {
   const children = childrenMap.get(item.id) ?? [];
   const hasChildren = children.length > 0;
@@ -370,10 +376,25 @@ function TreeNode({
 
         <QuantityInput item={item} onQuantityChange={onQuantityChange} />
 
-        {needsUpdateMap.get(item.id)
-          ? <XCircle size={16} className="shrink-0 text-red-500" />
-          : <CheckCircle2 size={16} className="shrink-0 text-green-500" />
-        }
+        {needsUpdateMap.get(item.id) ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <XCircle size={16} className="text-red-500" />
+            {onResolve && item.type === "DOCUMENT" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onResolve(item); }}
+                disabled={resolvingId === item.id}
+                title="Re-solve with latest imported values"
+                className="flex items-center gap-0.5 text-xs text-orange-600 hover:text-orange-800 disabled:opacity-50"
+              >
+                {resolvingId === item.id
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : <RefreshCw size={12} />}
+              </button>
+            )}
+          </div>
+        ) : (
+          <CheckCircle2 size={16} className="shrink-0 text-green-500" />
+        )}
 
         <EllipsisMenu
           item={item}

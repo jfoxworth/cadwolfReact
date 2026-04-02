@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { solveDocumentOnce } from "@/utils/solveDocumentOnce";
+import type { OrderedBlock } from "@/solver/types";
 import PartTreeNav from "./PartTreeNav";
 import PartTreeCadModal from "./PartTreeCadModal";
 import type { PartTreePageData } from "@/types/part-tree";
@@ -161,6 +163,7 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
   // Map from item ID → Onshape connection info used to build thumbnail URLs
   const [onshapeConns, setOnshapeConns] = useState<Map<string, OnshapeConnInfo>>(new Map());
   const [cadModalItemId, setCadModalItemId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   // Fetch Onshape CAD connections for all items in the tree.
   useEffect(() => {
@@ -299,10 +302,79 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
     setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, name: trimmed } : i));
   }
 
+  const handleResolve = useCallback(async (item: Item) => {
+    setResolvingId(item.id);
+    try {
+      const res = await fetch(`/api/file/${item.id}/solve-data`);
+      if (!res.ok) return;
+      const { blocks, fileImports } = await res.json();
+
+      // Synthetic blocks for imported variables (same pattern as documentWrapper importSolverBlocks)
+      const importBlocks: OrderedBlock[] = (fileImports as Array<{ id: number; localAlias: string; value: string | null; units: string | null }>)
+        .filter((fi) => fi.value != null)
+        .map((fi, i) => ({
+          id: `import-${fi.id}`,
+          order: -1000 + i,
+          type: "EQUATION" as const,
+          definition: { raw: `${fi.localAlias} = ${fi.value}${fi.units ? " " + fi.units : ""}` },
+        }));
+
+      const solverBlocks: OrderedBlock[] = [
+        ...importBlocks,
+        ...blocks
+          .filter((b: { type: string }) => ["EQUATION", "SLIDER", "DROPDOWN"].includes(b.type))
+          .map((b: { id: string; order: number; type: string; definition: Record<string, unknown> }) => ({
+            id: b.id, order: b.order, type: b.type, definition: b.definition,
+          })),
+      ];
+
+      const results = await solveDocumentOnce(solverBlocks);
+      const resultMap = new Map(results.map((r) => [r.blockId, r]));
+
+      // Persist solved solutions
+      await Promise.all(
+        blocks
+          .filter((b: { id: string; refId?: string }) => resultMap.has(b.id) && b.refId)
+          .map((b: { id: string; refId: string; definition: Record<string, unknown> }) => {
+            const r = resultMap.get(b.id)!;
+            const content = JSON.stringify({ _v2: true, ...b.definition, solution: { display: r.display } });
+            return fetch(`/api/component/${b.refId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content }),
+            });
+          })
+      );
+
+      // Clear needsUpdate flag on the file
+      await fetch(`/api/file/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ needsUpdate: false }),
+      });
+
+      setItems((prev) => prev.map((it) => it.id === item.id ? { ...it, needsUpdate: false } : it));
+    } catch (err) {
+      console.error("Resolve failed:", err);
+    } finally {
+      setResolvingId(null);
+    }
+  }, []);
+
   async function handleDeleteItem(itemId: string) {
     const res = await fetch(`/api/file/${itemId}`, { method: "DELETE" });
     if (!res.ok) return;
-    setItems((prev) => prev.filter((i) => i.id !== itemId));
+    // Remove the deleted item and all its descendants from local state
+    const toRemove = new Set<string>([itemId]);
+    const queue = [itemId];
+    while (queue.length) {
+      const next = queue.shift()!;
+      for (const child of childrenMap.get(next) ?? []) {
+        toRemove.add(child.id);
+        queue.push(child.id);
+      }
+    }
+    setItems((prev) => prev.filter((i) => !toRemove.has(i.id)));
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -378,6 +450,8 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
             onDeleteItem={handleDeleteItem}
             onLinkCad={setCadModalItemId}
             canEdit={canEdit}
+            resolvingId={resolvingId}
+            onResolve={handleResolve}
           />
         </div>
 

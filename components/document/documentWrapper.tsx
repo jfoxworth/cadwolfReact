@@ -6,7 +6,7 @@ import {
   ToggleLeft, ChevronDown, Repeat, GitBranch, RefreshCw,
   LineChart, Image as ImageIcon, Video, Minus, CreditCard,
   Settings, Eye, List, Link as LinkIcon, BookMarked, Code, LogIn, Database, Package, Network,
-  Lock, LockOpen, History,
+  Lock, LockOpen, History, AlertTriangle,
 } from "lucide-react";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -183,6 +183,8 @@ interface RenderBlockOptions {
   onToggleSettings?: (blockId: string) => void;
   modelView?: ModelView;
   onModelViewChange?: (blockId: string, view: ModelView) => void;
+  canUpload?: boolean;
+  staleVarNames?: Set<string>;
 }
 
 function getBlockLabel(block: VirtualBlock): string {
@@ -237,6 +239,8 @@ function renderBlock({
   onToggleSettings,
   modelView,
   onModelViewChange,
+  canUpload = false,
+  staleVarNames,
 }: RenderBlockOptions) {
   if (block._status === "deleted") return null;
 
@@ -284,6 +288,7 @@ function renderBlock({
           onViewerRawChange={onViewerRawChange}
           onResolve={onResolve}
           modelView={modelView}
+          staleVarNames={staleVarNames}
         />
       );
       break;
@@ -570,6 +575,22 @@ export default function DocumentWrapper({
         })),
     [fileImports],
   );
+
+  // Compute which variable names are stale (imported but out of date) and
+  // propagate staleness through equations that depend on them.
+  const staleVarNames = useMemo<Set<string>>(() => {
+    const stale = new Set(
+      fileImports.filter((fi) => fi.needsUpdate).map((fi) => fi.localAlias),
+    );
+    for (const block of virtualBlocks) {
+      if (block.type !== "EQUATION") continue;
+      const raw = (block.definition.raw as string) ?? "";
+      const lhs = raw.split("=")[0].trim();
+      const rhs = raw.split("=").slice(1).join("=");
+      if ([...stale].some((v) => new RegExp(`\\b${v}\\b`, "i").test(rhs))) stale.add(lhs);
+    }
+    return stale;
+  }, [fileImports, virtualBlocks]);
 
   // ── Dataset Imports (declared early so solver can include them) ───────────
   const [datasetImports, setDatasetImports] = useState<DatasetImportEntry[]>(data.datasetImports as DatasetImportEntry[]);
@@ -1684,6 +1705,12 @@ export default function DocumentWrapper({
             toc={docMeta.toc}
             scrollContainerRef={scrollContainerRef}
           />
+          {fileImports.some((fi) => fi.needsUpdate) && (
+            <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-orange-700">
+              <AlertTriangle size={15} className="shrink-0" />
+              Some imported values are out of date. Re-solve this document from the part tree.
+            </div>
+          )}
           <div className="grid grid-cols-12 gap-3 items-start">
             {ordered.map((block, blockIdx) =>
               renderBlock({
@@ -1717,6 +1744,8 @@ export default function DocumentWrapper({
                 onToggleSettings: (id) => setOpenSettingsId((prev) => (prev === id ? null : id)),
                 modelView: blockModelViews[block.id],
                 onModelViewChange: (id, view) => setBlockModelViews((prev) => ({ ...prev, [id]: view })),
+                canUpload,
+                staleVarNames,
               }),
             )}
           </div>

@@ -283,7 +283,7 @@ function HexNav({
 
 // ─── main component ───────────────────────────────────────────────────────────
 interface SideMenuNewProps {
-  user: { id: number; name: string; email: string; username: string | null };
+  user: { id: number; name: string; email: string; username: string | null } | null;
 }
 
 export default function SideMenuNew({ user }: SideMenuNewProps) {
@@ -361,7 +361,7 @@ export default function SideMenuNew({ user }: SideMenuNewProps) {
       pos: CENTER_POS,
       action: () =>
         router.push(
-          user.username ? `/workspace/${user.username}` : "/workspace",
+          user?.username ? `/workspace/${user.username}` : "/workspace",
         ),
     },
     {

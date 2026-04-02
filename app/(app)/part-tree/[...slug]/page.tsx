@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import type { File } from "@prisma/client";
-import { getSessionUser } from "@/utils/getSessionUser";
+import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { resolveFileRoute, TYPE_ROUTE } from "@/utils/resolveRoute";
 import { db } from "@/utils/db";
 import { fileToItem } from "@/utils/transformers";
@@ -27,7 +27,8 @@ export default async function PartTreePage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-  const { userId } = await getSessionUser();
+  const session = await getSessionUserOrNull();
+  const userId = session?.userId ?? 0;
 
   const resolved = await resolveFileRoute("part-tree", slug, userId);
   if (!resolved) notFound();
@@ -45,7 +46,10 @@ export default async function PartTreePage({
     checkPermission(resolved.id, userId, "admin"),
   ]);
 
-  if (!canView) notFound();
+  if (!canView) {
+    if (!userId) redirect("/login");
+    notFound();
+  }
 
 
   return (

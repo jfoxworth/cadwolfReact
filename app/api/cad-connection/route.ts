@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/utils/db";
-import { getSessionUser } from "@/utils/getSessionUser";
+import { getSessionUser, getSessionUserOrNull } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
 
 // Normalize legacy info JSON (old Laravel format) to new format.
@@ -35,7 +35,8 @@ function normalizeInfo(raw: Record<string, unknown>): Record<string, unknown> {
 
 // GET /api/cad-connection?fileId=24
 export async function GET(req: NextRequest) {
-  const { userId } = await getSessionUser();
+  const session = await getSessionUserOrNull();
+  const userId = session?.userId ?? 0;
   const fileId = req.nextUrl.searchParams.get("fileId");
   if (!fileId) return NextResponse.json([]);
 

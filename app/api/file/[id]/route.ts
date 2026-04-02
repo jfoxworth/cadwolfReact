@@ -18,7 +18,7 @@ export async function PUT(
   if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, itemData, description, quantity, parentId } = body;
+  const { name, itemData, description, quantity, parentId, needsUpdate } = body;
 
   // Moving to a new parent requires edit permission on the target
   if (parentId !== undefined) {
@@ -43,6 +43,7 @@ export async function PUT(
       ...(name !== undefined && { name }),
       ...(mergedItemData !== undefined && { itemData: mergedItemData }),
       ...(parentId !== undefined && { parentId: Number(parentId) }),
+      ...(needsUpdate !== undefined && { needsUpdate }),
     },
   });
 
@@ -101,13 +102,41 @@ export async function DELETE(
     select: { fileTypeId: true, storageBytes: true, userId: true },
   });
 
-  await db.file.update({
-    where: { id: fileId },
+  // Collect all descendants for cascade soft-deletion
+  const descendantIds: number[] = [];
+  let queue = [fileId];
+  while (queue.length) {
+    const children = await db.file.findMany({
+      where: { parentId: { in: queue }, deletedAt: null },
+      select: { id: true },
+    });
+    const childIds = children.map((c) => c.id);
+    descendantIds.push(...childIds);
+    queue = childIds;
+  }
+
+  // Soft-delete the target file and all descendants in one batch
+  await db.file.updateMany({
+    where: { id: { in: [fileId, ...descendantIds] } },
     data: { deletedAt: new Date() },
   });
 
+  // Decrement storage for the root file if it's an Image
   if (file?.fileTypeId === "Image" && file.storageBytes > 0n) {
     await decrementStorageUsed(file.userId, Number(file.storageBytes));
+  }
+
+  // Decrement storage for any Image descendants
+  if (descendantIds.length > 0) {
+    const imageDescendants = await db.file.findMany({
+      where: { id: { in: descendantIds }, fileTypeId: "Image" },
+      select: { userId: true, storageBytes: true },
+    });
+    for (const img of imageDescendants) {
+      if (img.storageBytes > 0n) {
+        await decrementStorageUsed(img.userId, Number(img.storageBytes));
+      }
+    }
   }
 
   return NextResponse.json({ deleted: true });

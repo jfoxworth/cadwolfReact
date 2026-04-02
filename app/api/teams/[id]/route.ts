@@ -31,6 +31,8 @@ export async function GET(
 
   return NextResponse.json({
     ...team,
+    storageUsed: Number(team.storageUsed),
+    storageQuota: Number(team.storageQuota),
     members: team.members.map((m) => ({ ...m, user: userMap[m.userId] })),
   });
 }

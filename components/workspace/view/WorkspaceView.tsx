@@ -80,6 +80,9 @@ export default function WorkspaceView({ items, cadConns }: { items: Item[]; cadC
                 : <ItemIcon type={item.type} />
               }
               <span>{item.name}</span>
+              {item.type === "DOCUMENT" && item.needsUpdate && (
+                <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" title="Import values out of date" />
+              )}
               {item.lockedBy && item.lockedAt &&
                 Date.now() - new Date(item.lockedAt).getTime() < LOCK_TIMEOUT_MS && (
                 <Lock className="h-3.5 w-3.5 text-amber-500 shrink-0" aria-label="Checked out" />
