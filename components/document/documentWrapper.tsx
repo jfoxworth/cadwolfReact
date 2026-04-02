@@ -401,6 +401,7 @@ function renderBlock({
           isSelected={isSelected}
           onSelect={onSelect}
           onDefinitionChange={onDefinitionChange}
+          canUpload={canUpload}
         />
       );
       break;
@@ -473,12 +474,14 @@ interface DocumentWrapperProps {
   data: DocumentPageData;
   canEdit: boolean;
   lockInfo?: LockInfo;
+  canUpload?: boolean;
 }
 
 export default function DocumentWrapper({
   data,
   canEdit,
   lockInfo: initialLockInfo,
+  canUpload = false,
 }: DocumentWrapperProps) {
   const { document } = data;
 

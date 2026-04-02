@@ -17,9 +17,10 @@ interface WorkspaceWrapperProps {
   canEdit: boolean;
   canAdmin: boolean;
   userId: number;
+  canUpload?: boolean;
 }
 
-export default function WorkspaceWrapper({ data, canEdit, canAdmin, userId }: WorkspaceWrapperProps) {
+export default function WorkspaceWrapper({ data, canEdit, canAdmin, userId, canUpload = false }: WorkspaceWrapperProps) {
   const { workspace, items } = data;
   const [cadConns, setCadConns] = useState<Map<string, CadConn>>(new Map());
 
@@ -63,7 +64,7 @@ export default function WorkspaceWrapper({ data, canEdit, canAdmin, userId }: Wo
       </div>
 
       {canEdit ? (
-        <WorkspaceEdit items={items} canAdmin={canAdmin} workspaceId={workspace.id} userId={userId} cadConns={cadConns} />
+        <WorkspaceEdit items={items} canAdmin={canAdmin} workspaceId={workspace.id} userId={userId} cadConns={cadConns} canUpload={canUpload} />
       ) : (
         <WorkspaceView items={items} cadConns={cadConns} />
       )}

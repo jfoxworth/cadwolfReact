@@ -78,7 +78,7 @@ export default async function DocumentPage({
 
   const LOCK_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
-  const [file, allComponents, bibliographies, existingFileImports, datasetImports, canView, canEdit] = await Promise.all([
+  const [file, allComponents, bibliographies, existingFileImports, datasetImports, canView, canEdit, currentUser] = await Promise.all([
     db.file.findUniqueOrThrow({ where: { id: resolved.id } }),
     db.component.findMany({
       where: { fileId: resolved.id, inEdit: 1, deletedAt: null },
@@ -99,6 +99,7 @@ export default async function DocumentPage({
     }),
     checkPermission(resolved.id, userId, "view"),
     checkPermission(resolved.id, userId, "edit"),
+    db.user.findUnique({ where: { id: userId }, select: { tier: true } }),
   ]);
 
   if (!canView) notFound();
@@ -220,5 +221,6 @@ export default async function DocumentPage({
     isLockedByMe: lockedBy === userId,
   };
 
-  return <DocumentWrapper data={data} canEdit={canEdit} lockInfo={lockInfo} />;
+  const canUpload = currentUser?.tier === "pro" || currentUser?.tier === "business";
+  return <DocumentWrapper data={data} canEdit={canEdit} lockInfo={lockInfo} canUpload={canUpload} />;
 }

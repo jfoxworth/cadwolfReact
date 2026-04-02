@@ -3,6 +3,7 @@ import { db } from "@/utils/db";
 import { fileToItem } from "@/utils/transformers";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
+import { decrementStorageUsed } from "@/utils/storage";
 
 // PUT /api/file/[id] — update name or itemData (requires edit permission)
 export async function PUT(
@@ -95,10 +96,19 @@ export async function DELETE(
   const canAdmin = await checkPermission(fileId, userId, "admin");
   if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const file = await db.file.findUnique({
+    where: { id: fileId },
+    select: { fileTypeId: true, storageBytes: true, userId: true },
+  });
+
   await db.file.update({
     where: { id: fileId },
     data: { deletedAt: new Date() },
   });
+
+  if (file?.fileTypeId === "Image" && file.storageBytes > 0n) {
+    await decrementStorageUsed(file.userId, Number(file.storageBytes));
+  }
 
   return NextResponse.json({ deleted: true });
 }

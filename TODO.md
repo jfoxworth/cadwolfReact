@@ -21,8 +21,8 @@
 - [x] Create `/api/stripe/seats` route (adjust business seat count)
 - [x] Build pricing / upgrade UI page (`/pricing`)
 - [x] Build billing management page (`/billing`)
-- [ ] Enforce storage quota in file upload endpoints (quota fields exist but nothing checks them)
-- [ ] Enforce tier-based feature gates in API (tier field exists but is never read)
+- [ ] **Image upload feature** — build `/api/upload` endpoint (S3 or similar), enforce tier gate (free users blocked, pro/business allowed), track `storageUsed`, enforce `storageQuota` before accepting; surface upload UI in image block and workspace
+- [ ] Enforce tier-based feature gates in API (tier field exists but is never read) — blocked on image upload above
 
 ### User Account
 - [x] Email change flow — inline form on profile page; sends confirmation email to new address; `/confirm-email-change` page processes token

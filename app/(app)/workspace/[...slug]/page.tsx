@@ -23,7 +23,7 @@ export default async function WorkspacePage({
     redirect(`/${correctRoute}/${slug[0]}`);
   }
 
-  const [file, children, canView, canEdit, canAdmin] = await Promise.all([
+  const [file, children, canView, canEdit, canAdmin, currentUser] = await Promise.all([
     db.file.findUniqueOrThrow({ where: { id: resolved.id } }),
     db.file.findMany({
       where: { parentId: resolved.id, deletedAt: null },
@@ -32,9 +32,12 @@ export default async function WorkspacePage({
     checkPermission(resolved.id, userId, "view"),
     checkPermission(resolved.id, userId, "edit"),
     checkPermission(resolved.id, userId, "admin"),
+    db.user.findUnique({ where: { id: userId }, select: { tier: true } }),
   ]);
 
   if (!canView) notFound();
+
+  const canUpload = currentUser?.tier === "pro" || currentUser?.tier === "business";
 
   return (
     <WorkspaceWrapper
@@ -42,6 +45,7 @@ export default async function WorkspacePage({
       canEdit={canEdit}
       canAdmin={canAdmin}
       userId={userId}
+      canUpload={canUpload}
     />
   );
 }

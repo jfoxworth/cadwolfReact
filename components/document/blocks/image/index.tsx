@@ -1,12 +1,12 @@
 "use client";
 
 import { memo, useState, useEffect, useCallback } from "react";
-import { ImageIcon, Link, FolderOpen, Folder, ChevronRight, ArrowUp, RefreshCw } from "lucide-react";
+import { ImageIcon, Link, FolderOpen, Folder, ChevronRight, ArrowUp, RefreshCw, Upload, Lock } from "lucide-react";
 import type { Block } from "@/types/document";
 import type { SelectBlockFn } from "../../documentWrapper";
 import type { ImageBrowseItem } from "@/app/api/image-browse/route";
 
-type SourceTab = "link" | "workspace";
+type SourceTab = "link" | "workspace" | "upload";
 
 interface BreadcrumbEntry { id: number | null; name: string }
 
@@ -16,6 +16,7 @@ interface ImageBlockProps {
   isSelected?:        boolean;
   onSelect?:          SelectBlockFn;
   onDefinitionChange?: (blockId: string, newDef: Record<string, unknown>) => void;
+  canUpload?:         boolean;
 }
 
 // ── Workspace image browser ───────────────────────────────────────────────────
@@ -151,6 +152,7 @@ export default memo(function ImageBlock({
   isSelected = false,
   onSelect,
   onDefinitionChange,
+  canUpload = false,
 }: ImageBlockProps) {
   const initialSrc     = (block.definition.src     as string) ?? "";
   const initialAlt     = (block.definition.alt     as string) ?? (block.name ?? "");
@@ -164,6 +166,8 @@ export default memo(function ImageBlock({
   const [draftSrc,       setDraftSrc]       = useState(initialSrc);
   const [draftAlt,       setDraftAlt]       = useState(initialAlt);
   const [draftCaption,   setDraftCaption]   = useState(initialCaption);
+  const [uploading,      setUploading]      = useState(false);
+  const [uploadError,    setUploadError]    = useState<string | null>(null);
 
   // Close edit mode when deselected externally
   useEffect(() => {
@@ -236,6 +240,19 @@ export default memo(function ImageBlock({
             <FolderOpen size={13} />
             Workspace
           </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("upload"); setUploadError(null); }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 border-l border-gray-200 transition-colors ${
+              activeTab === "upload"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {canUpload ? <Upload size={13} /> : <Lock size={13} />}
+            Upload
+            {!canUpload && <span className="ml-0.5 text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 rounded px-1 py-0.5">Pro</span>}
+          </button>
         </div>
 
         {/* Link tab */}
@@ -271,6 +288,58 @@ export default memo(function ImageBlock({
         {/* Workspace tab */}
         {activeTab === "workspace" && (
           <WorkspaceBrowser onSelectUrl={(url) => setDraftSrc(url)} />
+        )}
+
+        {/* Upload tab */}
+        {activeTab === "upload" && !canUpload && (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <Lock size={26} className="text-gray-300" />
+            <p className="text-sm text-gray-500">Image uploads require a <strong>Pro</strong> or <strong>Business</strong> subscription.</p>
+            <a href="/accounts" className="text-sm font-medium text-blue-600 hover:underline">View plans →</a>
+          </div>
+        )}
+        {activeTab === "upload" && canUpload && (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-gray-500">Upload an image from your computer (JPEG, PNG, GIF, WebP · max 10 MB).</p>
+            <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md border-2 border-dashed cursor-pointer transition-colors ${
+              uploading ? "border-gray-200 bg-gray-50 text-gray-400" : "border-blue-300 hover:border-blue-400 hover:bg-blue-50 text-blue-600"
+            }`}>
+              {uploading ? (
+                <><RefreshCw size={15} className="animate-spin" /> Uploading…</>
+              ) : (
+                <><Upload size={15} /> Choose a file</>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const picked = e.target.files?.[0];
+                  if (!picked) return;
+                  setUploading(true);
+                  setUploadError(null);
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", picked);
+                    const res = await fetch("/api/upload", { method: "POST", body: fd });
+                    const json = await res.json();
+                    if (!res.ok) {
+                      setUploadError(json.error ?? "Upload failed.");
+                    } else {
+                      setDraftSrc(json.url);
+                      setActiveTab("link");
+                    }
+                  } catch {
+                    setUploadError("Upload failed. Please try again.");
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+            </label>
+            {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
+          </div>
         )}
 
         {/* Alt text & caption */}

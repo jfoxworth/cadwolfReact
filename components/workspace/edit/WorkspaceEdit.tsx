@@ -16,6 +16,8 @@ import {
   ImagePlus,
   ChevronUp,
   ChevronDown,
+  Upload,
+  RefreshCw,
 } from "lucide-react";
 import ItemIcon from "../ItemIcon";
 // import EditPanel from "./EditPanel"; // replaced by inline slide-out menu
@@ -78,7 +80,7 @@ const LABEL_TO_DISPLAY: Record<string, string> = {
   "Part Tree": "Part Tree",
 };
 
-export default function WorkspaceEdit({ items: initialItems, canAdmin, workspaceId, userId, cadConns }: { items: Item[]; canAdmin: boolean; workspaceId: string; userId: number; cadConns: Map<string, CadConn> }) {
+export default function WorkspaceEdit({ items: initialItems, canAdmin, workspaceId, userId, cadConns, canUpload = false }: { items: Item[]; canAdmin: boolean; workspaceId: string; userId: number; cadConns: Map<string, CadConn>; canUpload?: boolean }) {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>(initialItems);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -88,7 +90,8 @@ export default function WorkspaceEdit({ items: initialItems, canAdmin, workspace
   const [saving, setSaving] = useState(false);
   const [copying, setCopying] = useState(false);
   const [imageModalOpen, setImageModalOpen] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
 
@@ -392,56 +395,84 @@ export default function WorkspaceEdit({ items: initialItems, canAdmin, workspace
       {imageModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => { setImageModalOpen(false); setImageUrl(""); }}
+          onClick={() => { setImageModalOpen(false); setImageUploadError(null); }}
         >
           <div
             className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-gray-900">Add Image</h2>
-            <p className="text-sm text-gray-500 -mt-2">Paste a URL to an image to add it to the workspace.</p>
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.png"
-              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => { setImageModalOpen(false); setImageUrl(""); }}
-                className="px-4 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={!imageUrl.trim()}
-                onClick={async () => {
-                  if (!imageUrl.trim()) return;
-                  const res = await fetch("/api/file", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      fileTypeId: "Image",
-                      name: imageUrl.trim(),
-                      parentId: parseInt(workspaceId, 10),
-                      userId,
-                    }),
-                  });
-                  if (res.ok) {
-                    const newItem: Item = await res.json();
-                    setItems((prev) => [...prev, newItem]);
-                    setPendingScrollId(newItem.id);
-                  }
-                  setImageModalOpen(false);
-                  setImageUrl("");
-                }}
-                className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
-              >
-                Add
-              </button>
-            </div>
+
+            {!canUpload ? (
+              <>
+                <div className="flex flex-col items-center gap-3 py-6 text-center">
+                  <Lock size={26} className="text-gray-300" />
+                  <p className="text-sm text-gray-500">Image uploads require a <strong>Pro</strong> or <strong>Business</strong> subscription.</p>
+                  <a href="/accounts" className="text-sm font-medium text-blue-600 hover:underline">View plans →</a>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setImageModalOpen(false)}
+                    className="px-4 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 -mt-2">Upload an image from your computer (JPEG, PNG, GIF, WebP · max 10 MB).</p>
+                <label className={`flex items-center justify-center gap-2 px-4 py-5 rounded-md border-2 border-dashed cursor-pointer transition-colors ${
+                  imageUploading ? "border-gray-200 bg-gray-50 text-gray-400" : "border-blue-300 hover:border-blue-400 hover:bg-blue-50 text-blue-600"
+                }`}>
+                  {imageUploading ? (
+                    <><RefreshCw size={16} className="animate-spin" /> Uploading…</>
+                  ) : (
+                    <><Upload size={16} /> Choose a file</>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    disabled={imageUploading}
+                    onChange={async (e) => {
+                      const picked = e.target.files?.[0];
+                      if (!picked) return;
+                      setImageUploading(true);
+                      setImageUploadError(null);
+                      try {
+                        const fd = new FormData();
+                        fd.append("file", picked);
+                        fd.append("parentId", workspaceId);
+                        const res = await fetch("/api/upload", { method: "POST", body: fd });
+                        const json = await res.json();
+                        if (!res.ok) {
+                          setImageUploadError(json.error ?? "Upload failed.");
+                        } else if (json.item) {
+                          setItems((prev) => [...prev, json.item]);
+                          setPendingScrollId(json.item.id);
+                          setImageModalOpen(false);
+                          setImageUploadError(null);
+                        }
+                      } catch {
+                        setImageUploadError("Upload failed. Please try again.");
+                      } finally {
+                        setImageUploading(false);
+                      }
+                    }}
+                  />
+                </label>
+                {imageUploadError && <p className="text-sm text-red-500">{imageUploadError}</p>}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => { setImageModalOpen(false); setImageUploadError(null); }}
+                    className="px-4 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
