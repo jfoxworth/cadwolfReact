@@ -63,4 +63,18 @@ describe("rawToLatex", () => {
     expect(r).toContain("99");
     expect(r).toContain("200");
   });
+
+  it("sqrt(a)/sqrt(b) → \\frac{\\sqrt{a}}{\\sqrt{b}}", () => {
+    expect(rawToLatex("x = sqrt(a)/sqrt(b)")).toBe("x = \\frac{\\sqrt{a}}{\\sqrt{b}}");
+  });
+
+  it("sqrt(sum)/sqrt(sum) → \\frac{\\sqrt{...}}{\\sqrt{...}} at top level", () => {
+    const r = rawToLatex("Dist = sqrt(Moment[0][0]^2+Moment[0][1]^2+Moment[0][2]^2)/sqrt(Force[0][0]^2+Force[0][1]^2+Force[0][2]^2)");
+    // The \frac must wrap both \sqrt expressions at the top level, not appear inside \sqrt
+    expect(r).toMatch(/\\frac\{\\sqrt\{.*?\}\}\{\\sqrt\{/);
+  });
+
+  it("sqrt expr divided by scalar → \\frac{\\sqrt{...}}{n}", () => {
+    expect(rawToLatex("x = sqrt(a+b)/2")).toBe("x = \\frac{\\sqrt{a+b}}{2}");
+  });
 });

@@ -98,6 +98,7 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
 
     // ── Operators ────────────────────────────────────────────────────────────
     if (tok === "+") {
+      if (stack.length < 2) return { ...ctx, errors: [...ctx.errors, `Solve3: Insufficient operands for '+'.`] };
       const b = stack.pop()!, a = stack.pop()!;
       let result: StackItem;
       if (!isMat(a) && !isMat(b)) {
@@ -129,6 +130,7 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
       stack.push(result);
 
     } else if (tok === "-") {
+      if (stack.length < 2) return { ...ctx, errors: [...ctx.errors, `Solve3: Insufficient operands for '-'.`] };
       const b = stack.pop()!, a = stack.pop()!;
       let result: StackItem;
       if (!isMat(a) && !isMat(b)) {
@@ -160,6 +162,7 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
       stack.push(result);
 
     } else if (tok === "*") {
+      if (stack.length < 2) return { ...ctx, errors: [...ctx.errors, `Solve3: Insufficient operands for '*'.`] };
       const b = stack.pop()!, a = stack.pop()!;
       let result: StackItem;
       if (!isMat(a) && !isMat(b)) {
@@ -188,6 +191,7 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
       stack.push(result);
 
     } else if (tok === "/") {
+      if (stack.length < 2) return { ...ctx, errors: [...ctx.errors, `Solve3: Insufficient operands for '/'.`] };
       const b = stack.pop()!, a = stack.pop()!;
       let result: StackItem;
       if (!isMat(a) && !isMat(b)) {
@@ -236,6 +240,7 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
       stack.push(result);
 
     } else if (tok === "^") {
+      if (stack.length < 2) return { ...ctx, errors: [...ctx.errors, `Solve3: Insufficient operands for '^'.`] };
       const b = stack.pop()!, a = stack.pop()!;
       let result: StackItem;
       if (!isMat(a) && !isMat(b)) {

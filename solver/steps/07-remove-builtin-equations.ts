@@ -666,6 +666,27 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         }
       }
 
+      // ── Unit-combining function handling ──────────────────────────────────
+      // For functions whose output dimension is the product of the two input
+      // dimensions (i.e., base exponents are added element-wise).
+      // Examples: cross(a, b), dot(a, b)
+      const UNIT_COMBINING_FNS = new Set(["cross", "dot"]);
+      if (UNIT_COMBINING_FNS.has(parsed.name)) {
+        const aBase = complexArgs[0]?.baseUnits;
+        const bBase = complexArgs[1]?.baseUnits;
+        if (aBase && bBase) {
+          const combined = aBase.map((v, idx) => v + (bBase[idx] ?? 0)) as typeof aBase;
+          if (combined.some(v => v !== 0)) {
+            const unitStr = baseArrayToUnitString(combined);
+            if (unitStr) {
+              tokens.splice(i + 1, 0, unitStr);
+              keyArray.splice(i + 1, 0, 1);
+              i++;
+            }
+          }
+        }
+      }
+
     } catch (err) {
       errors.push(`Solve5: Error in ${parsed.name}(): ${err instanceof Error ? err.message : String(err)}`);
     }

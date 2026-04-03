@@ -188,10 +188,26 @@ const TOKEN_CHARS = /^([A-Za-z0-9_.\\{}[\]^]+)/;
 const TOKEN_CHARS_END = /([A-Za-z0-9_.\\{}[\]^]+)$/;
 
 /**
+ * Walk forward from position `pos` in `s`, capturing one balanced {...} group.
+ * Returns the index after the closing "}". Assumes s[pos] === "{".
+ */
+function captureBalancedBrace(s: string, pos: number): number {
+  let d = 1;
+  pos++;
+  while (pos < s.length && d > 0) {
+    if (s[pos] === "{") d++;
+    else if (s[pos] === "}") d--;
+    pos++;
+  }
+  return pos;
+}
+
+/**
  * Replace a/b → \frac{a}{b} where a and b are either:
  *   - parenthesised groups  (expr)
+ *   - LaTeX brace groups    \cmd{expr}  or  \cmd[n]{expr}
  *   - single non-operator tokens
- * Repeated until no "/" remains at paren depth 0.
+ * Repeated until no "/" remains at paren/brace depth 0.
  */
 function expandDivision(expr: string): string {
   let result = expr;
@@ -202,8 +218,9 @@ function expandDivision(expr: string): string {
     let depth = 0;
 
     for (let i = 0; i < result.length; i++) {
-      if (result[i] === "(") { depth++; continue; }
-      if (result[i] === ")") { depth--; continue; }
+      // Track both () and {} depth so we only convert "/" at the top level
+      if (result[i] === "(" || result[i] === "{") { depth++; continue; }
+      if (result[i] === ")" || result[i] === "}") { depth--; continue; }
       if (result[i] !== "/" || depth !== 0) continue;
 
       // ── LHS ──────────────────────────────────────────────────────────
@@ -212,22 +229,33 @@ function expandDivision(expr: string): string {
       let lhs: string;
 
       if (before.endsWith(")")) {
-        // Walk back to find the matching "("
+        // Parenthesized group — walk back to matching "("
         let d = 1, j = before.length - 2;
         while (j >= 0 && d > 0) {
           if (before[j] === ")") d++;
           else if (before[j] === "(") d--;
           j--;
         }
-        lhsStart = j + 1; // index of the matching "("
-        // If the "(" is part of \left(, keep the entire \left(...\right) as the lhs
-        // (stripping would produce an orphaned \right which is invalid KaTeX)
+        lhsStart = j + 1;
         if (lhsStart >= 5 && before.slice(lhsStart - 5, lhsStart) === "\\left") {
           lhsStart -= 5;
           lhs = before.slice(lhsStart);
         } else {
           lhs = before.slice(lhsStart + 1, before.length - 1); // strip outer ( )
         }
+      } else if (before.endsWith("}")) {
+        // LaTeX brace group — walk back to matching "{", then include preceding \cmd[opt]
+        let d = 1, j = before.length - 2;
+        while (j >= 0 && d > 0) {
+          if (before[j] === "}") d++;
+          else if (before[j] === "{") d--;
+          j--;
+        }
+        // j is now just before the "{". Capture any \command[opt] that precedes it.
+        const prefixStr = before.slice(0, j + 1).trimEnd();
+        const cmdMatch = prefixStr.match(/(\\[A-Za-z]+(?:\[[^\]]*\])?[_A-Za-z0-9]*)\s*$/);
+        lhsStart = cmdMatch ? prefixStr.length - cmdMatch[0].length : j + 1;
+        lhs = before.slice(lhsStart); // keep braces — already valid LaTeX
       } else {
         const m = before.match(TOKEN_CHARS_END);
         if (!m) continue;
@@ -245,6 +273,14 @@ function expandDivision(expr: string): string {
         const closeIdx = findClose(after.slice(1));
         rhs = after.slice(1, closeIdx + 1);             // strip outer ( )
         rhsLen = closeIdx + 2 + skipSpaces;
+      } else if (after.startsWith("\\")) {
+        // LaTeX command: \cmd, \cmd[opt], followed by zero or more {...} groups
+        const cmdMatch = after.match(/^\\[A-Za-z]+(?:\[[^\]]*\])?/);
+        if (!cmdMatch) continue;
+        let pos = cmdMatch[0].length;
+        while (after[pos] === "{") pos = captureBalancedBrace(after, pos);
+        rhs = after.slice(0, pos);
+        rhsLen = pos + skipSpaces;
       } else {
         const m = after.match(TOKEN_CHARS);
         if (!m) continue;

@@ -193,3 +193,73 @@ describe("Structural: moment calculation — round() must preserve units", () =>
     expect(Moment1?.solution?.baseUnits?.some((v) => v !== 0)).toBe(true);
   });
 });
+
+// ─── Vector literal with scaled units ─────────────────────────────────────────
+
+describe("Vector literal with unit-scaled elements", () => {
+  it("rOF = [4ft, 1ft, 1ft] → values converted to meters (SI)", async () => {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw: "rOF = [4ft, 1ft, 1ft]", variableName: "rOF" } };
+    const r = await solveDocument([block], "b1", []);
+    const res = r.results.find(res => res.blockId === "b1");
+    expect(res?.errors).toHaveLength(0);
+    expect(res?.solution?.real?.["0-0"]).toBeCloseTo(4 * 0.3048, 4);
+    expect(res?.solution?.real?.["0-1"]).toBeCloseTo(0.3048, 4);
+    expect(res?.solution?.real?.["0-2"]).toBeCloseTo(0.3048, 4);
+  });
+
+  it("rOF = [4ft, 1ft, 1ft] → baseUnits is non-zero (meter dimension)", async () => {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw: "rOF = [4ft, 1ft, 1ft]", variableName: "rOF" } };
+    const r = await solveDocument([block], "b1", []);
+    const res = r.results.find(res => res.blockId === "b1");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+
+  it("v = [1 m, 2 m, 3 m] → baseUnits is non-zero", async () => {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw: "v = [1 m, 2 m, 3 m]", variableName: "v" } };
+    const r = await solveDocument([block], "b1", []);
+    const res = r.results.find(res => res.blockId === "b1");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+
+  it("v = [1 kN, 2 kN, 3 kN] → baseUnits is non-zero (force dimension)", async () => {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw: "v = [1 kN, 2 kN, 3 kN]", variableName: "v" } };
+    const r = await solveDocument([block], "b1", []);
+    const res = r.results.find(res => res.blockId === "b1");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});
+
+// ─── Regression: unit-in-parens division ─────────────────────────────────────
+//
+// Dy = (100mm * 150N) / 30mm
+//
+// The `)` after 150N was being merged into the unit token "N)" which caused:
+//   1. "N)" not recognized as a unit → 150 N incorrectly handled
+//   2. The `)` disappeared → unmatched `(` ended up in postfix
+//   3. Step 26 tried to parse `(` as a number → "Solve3: Cannot parse token '(' as a number"
+//
+// Expected: (0.1 m * 150 N) / 0.03 m = 500 N (no errors)
+
+describe("Regression: (value unit * value unit) / value unit", () => {
+  it("Dy = (100mm*150N)/30mm → no errors, result ≈ 500 N", async () => {
+    const block: OrderedBlock = {
+      id: "b1", order: 1, type: "EQUATION",
+      definition: { raw: "Dy = (100mm*150N)/30mm", variableName: "Dy" },
+    };
+    const r = await solveDocument([block], "b1", []);
+    const res = r.results.find(res => res.blockId === "b1");
+    expect(res?.errors).toHaveLength(0);
+    // (0.1 m * 150 N) / 0.03 m = 15 N·m / 0.03 m = 500 N
+    expect(res?.solution?.real?.["0-0"]).toBeCloseTo(500, 2);
+  });
+
+  it("Dy = (100mm*150N)/30mm → result has force units (N)", async () => {
+    const block: OrderedBlock = {
+      id: "b1", order: 1, type: "EQUATION",
+      definition: { raw: "Dy = (100mm*150N)/30mm", variableName: "Dy" },
+    };
+    const r = await solveDocument([block], "b1", []);
+    const res = r.results.find(res => res.blockId === "b1");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});

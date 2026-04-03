@@ -53,11 +53,16 @@ export const recombineUnits: StepFn = async (ctx: SolveContext): Promise<SolveCo
       }
       // Only mark as unit paren if the token before the matching "(" is a unit (or operator),
       // not a function name. This prevents sin(30deg) from treating ")" as a unit token.
+      // Also require ALL tokens inside the parens to be unit tokens — this prevents
+      // expressions like (100mm*150N) from having their ")" swallowed into a unit string.
       if (matchingOpen >= 0) {
         const beforeIsUnit = matchingOpen > 0 && keyArray[matchingOpen - 1] === 1;
         const beforeOpen = matchingOpen > 0 ? tokens[matchingOpen - 1] : "";
         const beforeIsOp = ["/", "*", "^", "(", "+", "-"].includes(beforeOpen);
-        if (beforeIsUnit || beforeIsOp || matchingOpen === 0) {
+        const allInnerAreUnits = tokens
+          .slice(matchingOpen + 1, index)
+          .every((_, offset) => keyArray[matchingOpen + 1 + offset] === 1);
+        if ((beforeIsUnit || beforeIsOp || matchingOpen === 0) && allInnerAreUnits) {
           let flag = 1;
           for (let a = index; a < tokens.length; a++) {
             if (tokens[a] === ")" && flag === 1) { keyArray[a] = 1; } else { flag = 0; }

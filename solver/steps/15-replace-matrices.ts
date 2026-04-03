@@ -65,6 +65,7 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
     const real: Record<string, number> = {};
     const numRows = cellGroups.length;
     let numCols = 0;
+    let cellBaseUnits: number[] | undefined;
 
     for (let r = 0; r < cellGroups.length; r++) {
       if (cellGroups[r].length > numCols) numCols = cellGroups[r].length;
@@ -85,6 +86,9 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
         if (cellExpr.startsWith("MATRIX::")) {
           const mat = decodeMatrix(cellExpr);
           real[`${r}-${c}`] = mat ? (mat.real["0-0"] ?? 0) : 0;
+          if (!cellBaseUnits && mat?.baseArray?.some(v => v !== 0)) {
+            cellBaseUnits = mat.baseArray;
+          }
           continue;
         }
 
@@ -110,6 +114,9 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
         const result = await runPipeline(subCtx);
         if (result.errors.length === 0) {
           real[`${r}-${c}`] = (result.solution.real["0-0"] ?? 0) * result.solution.multiplier;
+          if (!cellBaseUnits && result.solution.baseUnits?.some(v => v !== 0)) {
+            cellBaseUnits = [...result.solution.baseUnits];
+          }
         } else {
           const fallback = parseFloat(cellExpr);
           real[`${r}-${c}`] = isNaN(fallback) ? 0 : fallback;
@@ -118,7 +125,7 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
     }
 
     const size = `${numRows}x${numCols}`;
-    tokens.splice(i, j - i, encodeMatrix(real, size));
+    tokens.splice(i, j - i, encodeMatrix(real, size, undefined, cellBaseUnits));
     keyArray.splice(i, j - i, 0);
     // Re-check same position (handles adjacent matrices)
   }

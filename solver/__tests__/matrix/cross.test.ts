@@ -130,3 +130,55 @@ describe("cross — unit tests: SI values used in computation", () => {
     expect(r.solution.real["0-1"]).toBeCloseTo(0, 4);
   });
 });
+
+// ── Unit-combining tests ───────────────────────────────────────────────────────
+
+describe("cross — unit preservation (inline units, two args)", () => {
+  async function solveCross(raw: string) {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw, variableName: "M" } };
+    const r = await solveDocument([block], "b1", []);
+    return r.results.find(res => res.blockId === "b1");
+  }
+
+  it("cross([1 m,0,0], [0,1 N,0]) → baseUnits non-zero (N·m = kg·m²/s²)", async () => {
+    const blocks: OrderedBlock[] = [
+      { id: "r1", order: 1, type: "EQUATION", definition: { raw: "rOF = [1 m, 0 m, 0 m]", variableName: "rOF" } },
+      { id: "f1", order: 2, type: "EQUATION", definition: { raw: "F = [0 N, 1 N, 0 N]", variableName: "F" } },
+      { id: "b1", order: 3, type: "EQUATION", definition: { raw: "M = Cross(rOF, F)", variableName: "M" } },
+    ];
+    const r1 = await solveDocument(blocks, "r1", []);
+    const r2 = await solveDocument(blocks, "f1", r1.resolvedMap);
+    const r3 = await solveDocument(blocks, "b1", r2.resolvedMap);
+    const res = r3.results.find(res => res.blockId === "b1");
+    expect(res?.errors).toHaveLength(0);
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+
+  it("cross([4ft,1ft,1ft], [-20lbf,20lbf,10lbf]) → baseUnits non-zero", async () => {
+    const blocks: OrderedBlock[] = [
+      { id: "r1", order: 1, type: "EQUATION", definition: { raw: "rOF = [4ft, 1ft, 1ft]", variableName: "rOF" } },
+      { id: "f1", order: 2, type: "EQUATION", definition: { raw: "Force = [-20lbf, 20lbf, 10lbf]", variableName: "Force" } },
+      { id: "b1", order: 3, type: "EQUATION", definition: { raw: "Moment = Cross(rOF, Force)", variableName: "Moment" } },
+    ];
+    const r1 = await solveDocument(blocks, "r1", []);
+    const r2 = await solveDocument(blocks, "f1", r1.resolvedMap);
+    const r3 = await solveDocument(blocks, "b1", r2.resolvedMap);
+    const res = r3.results.find(res => res.blockId === "b1");
+    expect(res?.errors).toHaveLength(0);
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+
+  it("cross(m-vector, kN-vector) → baseUnits non-zero", async () => {
+    const blocks: OrderedBlock[] = [
+      { id: "r1", order: 1, type: "EQUATION", definition: { raw: "r = [2 m, 0 m, 0 m]", variableName: "r" } },
+      { id: "f1", order: 2, type: "EQUATION", definition: { raw: "F = [0 kN, 5 kN, 0 kN]", variableName: "F" } },
+      { id: "b1", order: 3, type: "EQUATION", definition: { raw: "M = Cross(r, F)", variableName: "M" } },
+    ];
+    const r1 = await solveDocument(blocks, "r1", []);
+    const r2 = await solveDocument(blocks, "f1", r1.resolvedMap);
+    const r3 = await solveDocument(blocks, "b1", r2.resolvedMap);
+    const res = r3.results.find(res => res.blockId === "b1");
+    expect(res?.errors).toHaveLength(0);
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});
