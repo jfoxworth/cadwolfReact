@@ -15,7 +15,7 @@ import { encodeMatrix, isMatrixToken, decodeMatrix } from "./matrix-utils";
 // (m_A*v_A + m_B*v_B)/(m_A+m_B) → m/s.
 
 function getPrecedingOp(tokens: string[], i: number): string | null {
-  let j = i - 1;
+  let j = i;
   while (j >= 0) {
     const tok = tokens[j];
     if (tok === "(" || tok === ")") { j--; continue; }
@@ -91,15 +91,30 @@ function checkAddCompat(tokens: string[], keyArray: (number | string)[]): string
   return null;
 }
 
+function hasUnresolvedVariables(tokens: string[], keyArray: (number | string)[]): boolean {
+  return tokens.some((tok, i) => {
+    if (keyArray[i] === 1 || (keyArray[i] as unknown as string) === "1") return false; // unit token
+    if (isMatrixToken(tok)) return false;
+    if (["+", "-", "*", "/", "^", "(", ")", "[", "]", ","].includes(tok)) return false;
+    if (tok.length > 0 && !isNaN(Number(tok))) return false;
+    return true; // bare variable name — unresolved
+  });
+}
+
 export const replaceNumbers: StepFn = async (ctx: SolveContext): Promise<SolveContext> => {
   const errors   = [...ctx.errors];
   const tokens   = [...ctx.tokens];
   const keyArray = [...ctx.keyArray];
 
-  const addError = checkAddCompat(tokens, keyArray);
-  if (addError) {
-    errors.push(addError);
-    return { ...ctx, errors };
+  // Only run the static unit-compatibility pre-check when all variables have
+  // been resolved (MATRIX tokens). If any bare variable token remains, skip
+  // the check — step 26 will catch real mismatches at runtime with full info.
+  if (!hasUnresolvedVariables(tokens, keyArray)) {
+    const addError = checkAddCompat(tokens, keyArray);
+    if (addError) {
+      errors.push(addError);
+      return { ...ctx, errors };
+    }
   }
 
   function isNum(s: string): boolean {

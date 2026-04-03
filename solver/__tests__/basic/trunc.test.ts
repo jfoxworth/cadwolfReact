@@ -40,3 +40,31 @@ describe("trunc — pipeline", () => {
     expect(r.solution.real["0-0"]).toBe(-3);
   });
 });
+
+import { solveDocument } from "../../worker/document-solver";
+import type { OrderedBlock } from "../../types";
+
+describe("trunc — unit preservation (inline units)", () => {
+  async function solveUnit(raw: string) {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw, variableName: "y" } };
+    const r = await solveDocument([block], "b1", []);
+    return r.results.find(res => res.blockId === "b1");
+  }
+
+  it("trunc(3 m) → preserves meter dimension", async () => {
+    const res = await solveUnit("y = trunc(3 m)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("trunc(3 kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveUnit("y = trunc(3 kg*m/s^2)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("trunc(3 km) → preserves scaled unit", async () => {
+    const res = await solveUnit("y = trunc(3 km)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("trunc(25 kN) → preserves complex scaled unit", async () => {
+    const res = await solveUnit("y = trunc(25 kN)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});

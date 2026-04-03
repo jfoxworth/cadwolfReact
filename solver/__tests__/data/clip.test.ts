@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { clip } from "../../functions/data/clip";
+import { solveDocument } from "../../worker/document-solver";
+import type { OrderedBlock } from "../../types";
 
 describe("clip", () => {
   it("clamps values to [2, 6]", async () => {
@@ -38,5 +40,30 @@ describe("clip", () => {
   it("scalar clamp", async () => {
     const r = await clip([{ "0-0": 100 }, { "0-0": -50 }, { "0-0": 50 }], {} as any);
     expect(r["0-0"]).toBe(50);
+  });
+});
+
+describe("clip — unit preservation (inline units)", () => {
+  async function solveUnit(raw: string) {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw, variableName: "y" } };
+    const r = await solveDocument([block], "b1", []);
+    return r.results.find(res => res.blockId === "b1");
+  }
+
+  it("clip(3 m, 1 m, 5 m) → preserves meter dimension", async () => {
+    const res = await solveUnit("y = clip(3 m, 1 m, 5 m)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("clip(3 kg*m/s^2, 1 kg*m/s^2, 5 kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveUnit("y = clip(3 kg*m/s^2, 1 kg*m/s^2, 5 kg*m/s^2)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("clip(3 km, 1 km, 5 km) → preserves scaled unit", async () => {
+    const res = await solveUnit("y = clip(3 km, 1 km, 5 km)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("clip(25 kN, 1 kN, 50 kN) → preserves complex scaled unit", async () => {
+    const res = await solveUnit("y = clip(25 kN, 1 kN, 50 kN)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
   });
 });

@@ -28,3 +28,31 @@ describe("hypot — pipeline", () => {
     expect(r.solution.real["0-0"]).toBeCloseTo(5, 4);
   });
 });
+
+import { solveDocument } from "../../worker/document-solver";
+import type { OrderedBlock } from "../../types";
+
+describe("hypot — unit preservation (inline units)", () => {
+  async function solveUnit(raw: string) {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw, variableName: "y" } };
+    const r = await solveDocument([block], "b1", []);
+    return r.results.find(res => res.blockId === "b1");
+  }
+
+  it("hypot(3 m, 4 m) → preserves meter dimension", async () => {
+    const res = await solveUnit("y = hypot(3 m, 4 m)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("hypot(3 kg*m/s^2, 4 kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveUnit("y = hypot(3 kg*m/s^2, 4 kg*m/s^2)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("hypot(3 km, 4 km) → preserves scaled unit", async () => {
+    const res = await solveUnit("y = hypot(3 km, 4 km)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("hypot(25 kN, 25 kN) → preserves complex scaled unit", async () => {
+    const res = await solveUnit("y = hypot(25 kN, 25 kN)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});

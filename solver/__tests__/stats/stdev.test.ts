@@ -171,6 +171,35 @@ describe("stdev — compound units (m/s): uses SI value", () => {
   });
 });
 
+describe("stdev — unit preservation (inline units)", () => {
+  async function solveVecUnit(vecRaw: string, fnRaw: string) {
+    const blocks: OrderedBlock[] = [
+      { id: "v1", order: 1, type: "EQUATION", definition: { raw: vecRaw, variableName: "x" } },
+      { id: "b1", order: 2, type: "EQUATION", definition: { raw: fnRaw, variableName: "y" } },
+    ];
+    const r1 = await solveDocument(blocks, "v1", []);
+    const r2 = await solveDocument(blocks, "b1", r1.resolvedMap);
+    return r2.results.find(res => res.blockId === "b1");
+  }
+
+  it("stdev([3,5,7] m) → preserves meter dimension", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] m", "y = stdev(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("stdev([3,5,7] kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] kg*m/s^2", "y = stdev(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("stdev([3,5,7] km) → preserves scaled unit", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] km", "y = stdev(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("stdev([25,50,75] kN) → preserves complex scaled unit", async () => {
+    const res = await solveVecUnit("x = [25, 50, 75] kN", "y = stdev(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});
+
 describe("stdev — converted units (ft): single value → 0", () => {
   it("stdev(5ft) → 0 (single scalar — no spread)", async () => {
     const r = await runPipeline(ctx("x = stdev(5ft)"));

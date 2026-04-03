@@ -63,6 +63,7 @@ Set via `heroku config:set KEY=value` or the Heroku dashboard → Settings → C
 | Variable | Value |
 |----------|-------|
 | `ADMIN_EMAILS` | Comma-separated admin emails |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics 4 Measurement ID (e.g. `G-XXXXXXXXXX`) |
 
 ---
 

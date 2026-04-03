@@ -638,14 +638,28 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
       }
       keyArray[i] = 0;
 
-      // floor/ceil/round with a unit arg: re-inject the input unit so downstream
-      // equations keep the correct dimension. Rounding never changes the physical unit.
-      if ((parsed.name === "floor" || parsed.name === "ceil") && parsed.rawArgs.length >= 2) {
-        const { SCALE_UNIT_MAP } = await import("../units/scale-unit-data");
-        if (SCALE_UNIT_MAP.has(parsed.rawArgs[1].trim())) {
-          const inputUnit = complexArgs[0]?.units;
-          if (inputUnit) {
-            tokens.splice(i + 1, 0, inputUnit);
+      // ── General unit-transparent function handling ────────────────────────
+      // For functions whose output has the same physical dimension as their
+      // first argument, re-inject the input base units as a unit token so
+      // downstream steps (16/20b) embed them correctly in the result.
+      //
+      // Note: unit-quantized round/floor/ceil (with a unit second-arg) already
+      // `continue`d out of the loop above, so any round/floor/ceil that reaches
+      // here is the plain (no-unit-arg) form and should get normal unit injection.
+      const UNIT_TRANSPARENT_FNS = new Set([
+        "abs", "round", "floor", "ceil", "trunc",
+        "min", "max", "minu", "maxu", "minind", "maxind",
+        "mean", "median", "mode", "sum", "range", "stdev",
+        "cumsum", "cummax", "cummin", "cumprod",
+        "sort", "percentile", "quantile", "clip", "diff", "hypot",
+      ]);
+
+      if (UNIT_TRANSPARENT_FNS.has(parsed.name)) {
+        const inputBaseUnits = complexArgs[0]?.baseUnits;
+        if (inputBaseUnits?.some((v) => v !== 0)) {
+          const unitStr = baseArrayToUnitString(inputBaseUnits);
+          if (unitStr) {
+            tokens.splice(i + 1, 0, unitStr);
             keyArray.splice(i + 1, 0, 1);
             i++;
           }

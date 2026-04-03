@@ -8,7 +8,8 @@ import { describe, it, expect } from "vitest";
 import { percentile } from "../../functions/stats/percentile";
 import { runPipeline } from "../../pipeline";
 import { ctx } from "../helpers";
-import type { ResolvedEquation } from "../../types";
+import type { ResolvedEquation, OrderedBlock } from "../../types";
+import { solveDocument } from "../../worker/document-solver";
 
 const emptyBase: [number,number,number,number,number,number,number,number] = [0,0,0,0,0,0,0,0];
 
@@ -116,5 +117,34 @@ describe("percentile — pipeline", () => {
     const r = await runPipeline(c);
     expect(r.errors).toHaveLength(0);
     expect(r.solution.real["0-0"]).toBeCloseTo(3, 4);
+  });
+});
+
+describe("percentile — unit preservation (inline units)", () => {
+  async function solveVecUnit(vecRaw: string, fnRaw: string) {
+    const blocks: OrderedBlock[] = [
+      { id: "v1", order: 1, type: "EQUATION", definition: { raw: vecRaw, variableName: "x" } },
+      { id: "b1", order: 2, type: "EQUATION", definition: { raw: fnRaw, variableName: "y" } },
+    ];
+    const r1 = await solveDocument(blocks, "v1", []);
+    const r2 = await solveDocument(blocks, "b1", r1.resolvedMap);
+    return r2.results.find(res => res.blockId === "b1");
+  }
+
+  it("percentile([3,5,7] m, 50) → preserves meter dimension", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] m", "y = percentile(x, 50)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("percentile([3,5,7] kg*m/s^2, 50) → preserves combined units", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] kg*m/s^2", "y = percentile(x, 50)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("percentile([3,5,7] km, 50) → preserves scaled unit", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] km", "y = percentile(x, 50)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("percentile([25,50,75] kN, 50) → preserves complex scaled unit", async () => {
+    const res = await solveVecUnit("x = [25, 50, 75] kN", "y = percentile(x, 50)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
   });
 });

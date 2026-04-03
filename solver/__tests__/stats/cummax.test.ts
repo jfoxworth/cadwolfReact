@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { cummax } from "../../functions/stats/cummax";
+import { solveDocument } from "../../worker/document-solver";
+import type { OrderedBlock } from "../../types";
 
 describe("cummax", () => {
   it("running max of [3,1,4,1,5,9]", async () => {
@@ -41,5 +43,34 @@ describe("cummax", () => {
   it("empty returns empty", async () => {
     const r = await cummax([{}], {} as any);
     expect(Object.keys(r).length).toBe(0);
+  });
+});
+
+describe("cummax — unit preservation (inline units)", () => {
+  async function solveVecUnit(vecRaw: string, fnRaw: string) {
+    const blocks: OrderedBlock[] = [
+      { id: "v1", order: 1, type: "EQUATION", definition: { raw: vecRaw, variableName: "x" } },
+      { id: "b1", order: 2, type: "EQUATION", definition: { raw: fnRaw, variableName: "y" } },
+    ];
+    const r1 = await solveDocument(blocks, "v1", []);
+    const r2 = await solveDocument(blocks, "b1", r1.resolvedMap);
+    return r2.results.find(res => res.blockId === "b1");
+  }
+
+  it("cummax([3,5,7] m) → preserves meter dimension", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] m", "y = cummax(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("cummax([3,5,7] kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] kg*m/s^2", "y = cummax(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("cummax([3,5,7] km) → preserves scaled unit", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] km", "y = cummax(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("cummax([25,50,75] kN) → preserves complex scaled unit", async () => {
+    const res = await solveVecUnit("x = [25, 50, 75] kN", "y = cummax(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
   });
 });

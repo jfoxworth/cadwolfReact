@@ -163,6 +163,31 @@ describe("minu — compound units (m/s)", () => {
   });
 });
 
+describe("minu — unit preservation (inline units)", () => {
+  async function solveUnit(raw: string) {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw, variableName: "y" } };
+    const r = await solveDocument([block], "b1", []);
+    return r.results.find(res => res.blockId === "b1");
+  }
+
+  it("minu(3 m) → preserves meter dimension", async () => {
+    const res = await solveUnit("y = minu(3 m)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("minu(3 kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveUnit("y = minu(3 kg*m/s^2)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("minu(3 km) → preserves scaled unit", async () => {
+    const res = await solveUnit("y = minu(3 km)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("minu(25 kN) → preserves complex scaled unit", async () => {
+    const res = await solveUnit("y = minu(25 kN)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});
+
 describe("minu — converted units (ft)", () => {
   it("minu(-5ft) → -5 × 0.3048 m", async () => {
     const r = await runPipeline(ctx("x = minu(-5ft)"));

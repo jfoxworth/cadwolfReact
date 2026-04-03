@@ -272,6 +272,31 @@ describe("round — compound units (m/s)", () => {
   });
 });
 
+describe("round — unit preservation (inline units)", () => {
+  async function solveUnit(raw: string) {
+    const block: OrderedBlock = { id: "b1", order: 1, type: "EQUATION", definition: { raw, variableName: "y" } };
+    const r = await solveDocument([block], "b1", []);
+    return r.results.find(res => res.blockId === "b1");
+  }
+
+  it("round(3 m) → preserves meter dimension", async () => {
+    const res = await solveUnit("y = round(3 m)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("round(3 kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveUnit("y = round(3 kg*m/s^2)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("round(3 km) → preserves scaled unit", async () => {
+    const res = await solveUnit("y = round(3 km)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("round(25 kN) → preserves complex scaled unit", async () => {
+    const res = await solveUnit("y = round(25 kN)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+});
+
 describe("round — converted units (ft, in, lb)", () => {
   it("round(4.5ft) → round(4.5 × 0.3048) = 1", async () => {
     const r = await runPipeline(ctx("x = round(4.5ft)"));

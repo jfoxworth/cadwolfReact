@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { sort } from "../../functions/data/sort";
 import { runPipeline } from "../../pipeline";
 import { ctx } from "../helpers";
-import type { ResolvedEquation } from "../../types";
+import type { ResolvedEquation, OrderedBlock } from "../../types";
+import { solveDocument } from "../../worker/document-solver";
 
 const emptyBase: [number,number,number,number,number,number,number,number] = [0,0,0,0,0,0,0,0];
 function makeVec(name: string, vals: number[], order: number): ResolvedEquation {
@@ -62,5 +63,34 @@ describe("sort — pipeline", () => {
     expect(r.errors).toHaveLength(0);
     expect(r.solution.real["0-0"]).toBe(1);
     expect(r.solution.real["0-3"]).toBe(8);
+  });
+});
+
+describe("sort — unit preservation (inline units)", () => {
+  async function solveVecUnit(vecRaw: string, fnRaw: string) {
+    const blocks: OrderedBlock[] = [
+      { id: "v1", order: 1, type: "EQUATION", definition: { raw: vecRaw, variableName: "x" } },
+      { id: "b1", order: 2, type: "EQUATION", definition: { raw: fnRaw, variableName: "y" } },
+    ];
+    const r1 = await solveDocument(blocks, "v1", []);
+    const r2 = await solveDocument(blocks, "b1", r1.resolvedMap);
+    return r2.results.find(res => res.blockId === "b1");
+  }
+
+  it("sort([3,5,7] m) → preserves meter dimension", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] m", "y = sort(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("sort([3,5,7] kg*m/s^2) → preserves combined units", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] kg*m/s^2", "y = sort(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("sort([3,5,7] km) → preserves scaled unit", async () => {
+    const res = await solveVecUnit("x = [3, 5, 7] km", "y = sort(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
+  });
+  it("sort([25,50,75] kN) → preserves complex scaled unit", async () => {
+    const res = await solveVecUnit("x = [25, 50, 75] kN", "y = sort(x)");
+    expect(res?.solution?.baseUnits?.some(v => v !== 0)).toBe(true);
   });
 });

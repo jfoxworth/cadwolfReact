@@ -197,6 +197,11 @@ export default function EquationBlock({
     }
   }
 
+  const isStale = useMemo(() => {
+    if (!staleVarNames?.size) return false;
+    return [...staleVarNames].some((v) => new RegExp(`\\b${v}\\b`, "i").test(def.raw ?? ""));
+  }, [staleVarNames, def.raw]);
+
   // ── Edit mode ─────────────────────────────────────────────────────────────
   if (editing) {
     const currentShowMatrix = def.displayOptions?.showMatrix;
@@ -309,11 +314,6 @@ export default function EquationBlock({
   // Show stored DB display until the solver sets solutionTex
   const combinedTex = modelDisplay
     ?? (solutionTex ? `${displayEq} = ${solutionTex}` : (storedDisplay || displayEq));
-
-  const isStale = useMemo(() => {
-    if (!staleVarNames?.size) return false;
-    return [...staleVarNames].some((v) => new RegExp(`\\b${v}\\b`, "i").test(def.raw ?? ""));
-  }, [staleVarNames, def.raw]);
 
   return (
     <div
