@@ -1,10 +1,18 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@cadwolf.com";
+const transporter = nodemailer.createTransport({
+  host: process.env.MAIL_HOST ?? "smtp.sendgrid.net",
+  port: 587,
+  auth: {
+    user: process.env.MAIL_USERNAME,
+    pass: process.env.MAIL_PASSWORD,
+  },
+});
+
+const FROM = process.env.MAIL_FROM_EMAIL ?? "noReply@cadwolf.com";
 
 export async function sendVerificationEmail(to: string, verifyUrl: string) {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: "Verify your CadWolf email address",
@@ -26,7 +34,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
 }
 
 export async function sendTeamInviteEmail(to: string, inviteUrl: string, teamName: string, role: string) {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: `You've been invited to join ${teamName} on CadWolf`,
@@ -51,7 +59,7 @@ export async function sendTeamInviteEmail(to: string, inviteUrl: string, teamNam
 }
 
 export async function sendEmailChangeEmail(to: string, confirmUrl: string) {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: "Confirm your new CadWolf email address",
@@ -73,7 +81,7 @@ export async function sendEmailChangeEmail(to: string, confirmUrl: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: "Reset your CadWolf password",
