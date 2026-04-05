@@ -27,5 +27,15 @@ export async function GET(
     }),
   ]);
 
-  return NextResponse.json({ blocks: components.map(componentToBlock), fileImports });
+  // Exclude old-style import components (those with inputFile pointing to a different file).
+  // They are represented as fileImports entries and must not be treated as regular blocks.
+  const regularComponents = components.filter((c) => {
+    let raw: Record<string, unknown> = {};
+    try { raw = JSON.parse(c.content ?? "{}"); } catch { /* ignore */ }
+    const inputFile = raw.inputFile;
+    const sourceFileId = inputFile && inputFile !== "0" && inputFile !== 0 ? Number(inputFile) : null;
+    return !(sourceFileId && sourceFileId !== fileId);
+  });
+
+  return NextResponse.json({ blocks: regularComponents.map(componentToBlock), fileImports });
 }

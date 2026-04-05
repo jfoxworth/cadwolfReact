@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, MoreHorizontal, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronDown,
+  MoreHorizontal,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import ItemIcon from "@/components/workspace/ItemIcon";
 import type { Item } from "@/types/item";
 
@@ -26,7 +34,7 @@ interface Props {
   displayValues: Map<string, EqValue>;
   cadDisplayValues: Map<string, EqValue>;
   valueToSumLabel: string;
-  needsUpdateMap: Map<string, boolean>;
+  anyStale: boolean;
   onshapeConns: Map<string, OnshapeConnInfo>;
   onQuantityChange: (itemId: string, quantity: number | null) => void;
   onAddItem: (parentId: string, fileTypeId: string) => Promise<void>;
@@ -36,6 +44,8 @@ interface Props {
   canEdit: boolean;
   resolvingId?: string | null;
   onResolve?: (item: Item) => void;
+  refreshingCadId?: string | null;
+  onRefreshCad?: (item: Item) => void;
 }
 
 interface TreeNodeProps {
@@ -49,7 +59,6 @@ interface TreeNodeProps {
   ensureExpanded: (id: string) => void;
   displayValues: Map<string, EqValue>;
   cadDisplayValues: Map<string, EqValue>;
-  needsUpdateMap: Map<string, boolean>;
   onshapeConns: Map<string, OnshapeConnInfo>;
   onQuantityChange: (itemId: string, quantity: number | null) => void;
   onAddItem: (parentId: string, fileTypeId: string) => Promise<void>;
@@ -59,6 +68,8 @@ interface TreeNodeProps {
   canEdit: boolean;
   resolvingId?: string | null;
   onResolve?: (item: Item) => void;
+  refreshingCadId?: string | null;
+  onRefreshCad?: (item: Item) => void;
 }
 
 // ── Ellipsis menu ────────────────────────────────────────────────────────────
@@ -71,12 +82,24 @@ interface EllipsisMenuProps {
   onEditTitle?: () => void;
   onDeleteItem?: () => void;
   onLinkCad?: () => void;
+  onResolve?: () => void;
 }
 
-function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEditTitle, onDeleteItem, onLinkCad }: EllipsisMenuProps) {
+function EllipsisMenu({
+  item,
+  onShowDescription,
+  onAddSubsystem,
+  onAddPart,
+  onEditTitle,
+  onDeleteItem,
+  onLinkCad,
+  onResolve,
+}: EllipsisMenuProps) {
   const [open, setOpen] = useState(false);
 
-  function close() { setOpen(false); }
+  function close() {
+    setOpen(false);
+  }
 
   const isWorkspace = item.type === "WORKSPACE" || item.type === "PART_TREE";
 
@@ -129,7 +152,10 @@ function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEd
           {isWorkspace && onAddSubsystem && (
             <button
               className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-              onClick={() => { close(); onAddSubsystem(); }}
+              onClick={() => {
+                close();
+                onAddSubsystem();
+              }}
             >
               Add Subsystem (Folder)
             </button>
@@ -137,7 +163,10 @@ function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEd
           {isWorkspace && onAddPart && (
             <button
               className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-              onClick={() => { close(); onAddPart(); }}
+              onClick={() => {
+                close();
+                onAddPart();
+              }}
             >
               Add Part (Document)
             </button>
@@ -147,7 +176,10 @@ function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEd
           {onEditTitle && (
             <button
               className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-              onClick={() => { close(); onEditTitle(); }}
+              onClick={() => {
+                close();
+                onEditTitle();
+              }}
             >
               Edit title
             </button>
@@ -157,16 +189,32 @@ function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEd
           {onLinkCad && (
             <button
               className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-              onClick={() => { close(); onLinkCad(); }}
+              onClick={() => {
+                close();
+                onLinkCad();
+              }}
             >
               Link CAD
+            </button>
+          )}
+
+          {/* Resolve — re-solve with latest imported values */}
+          {onResolve && item.type === "DOCUMENT" && (
+            <button
+              className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+              onClick={() => { close(); onResolve(); }}
+            >
+              Resolve
             </button>
           )}
 
           {/* Display description */}
           <button
             className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-            onClick={() => { close(); onShowDescription(); }}
+            onClick={() => {
+              close();
+              onShowDescription();
+            }}
           >
             Display description
           </button>
@@ -174,7 +222,10 @@ function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEd
           {onDeleteItem && (
             <button
               className="block w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 whitespace-nowrap"
-              onClick={() => { close(); onDeleteItem(); }}
+              onClick={() => {
+                close();
+                onDeleteItem();
+              }}
             >
               {item.type === "DOCUMENT" ? "Delete Part" : "Delete System"}
             </button>
@@ -187,9 +238,15 @@ function EllipsisMenu({ item, onShowDescription, onAddSubsystem, onAddPart, onEd
 
 // ── Quantity input ────────────────────────────────────────────────────────────
 
-function QuantityInput({ item, onQuantityChange }: { item: Item; onQuantityChange: (itemId: string, quantity: number | null) => void }) {
+function QuantityInput({
+  item,
+  onQuantityChange,
+}: {
+  item: Item;
+  onQuantityChange: (itemId: string, quantity: number | null) => void;
+}) {
   const [value, setValue] = useState<string>(
-    item.quantity !== undefined ? String(item.quantity) : ""
+    item.quantity !== undefined ? String(item.quantity) : "",
   );
 
   async function save() {
@@ -251,7 +308,6 @@ function TreeNode({
   ensureExpanded,
   displayValues,
   cadDisplayValues,
-  needsUpdateMap,
   onshapeConns,
   onQuantityChange,
   onAddItem,
@@ -261,6 +317,8 @@ function TreeNode({
   canEdit,
   resolvingId,
   onResolve,
+  refreshingCadId,
+  onRefreshCad,
 }: TreeNodeProps) {
   const children = childrenMap.get(item.id) ?? [];
   const hasChildren = children.length > 0;
@@ -274,7 +332,9 @@ function TreeNode({
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Keep title in sync if parent renames it
-  useEffect(() => { setTitleValue(item.name); }, [item.name]);
+  useEffect(() => {
+    setTitleValue(item.name);
+  }, [item.name]);
 
   useEffect(() => {
     if (isEditingTitle) titleInputRef.current?.focus();
@@ -303,7 +363,9 @@ function TreeNode({
     <div>
       <div
         className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer transition-colors border-b border-gray-200 ${
-          isSelected ? "bg-blue-50 text-blue-700" : "hover:bg-gray-100 text-gray-700"
+          isSelected
+            ? "bg-blue-50 text-blue-700"
+            : "hover:bg-gray-100 text-gray-700"
         }`}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
         onClick={() => onSelect(item.id)}
@@ -316,7 +378,11 @@ function TreeNode({
           }}
         >
           {hasChildren ? (
-            isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />
+            isExpanded ? (
+              <ChevronDown size={15} />
+            ) : (
+              <ChevronRight size={15} />
+            )
           ) : null}
         </span>
 
@@ -330,7 +396,10 @@ function TreeNode({
             onBlur={commitTitle}
             onKeyDown={(e) => {
               if (e.key === "Enter") commitTitle();
-              if (e.key === "Escape") { setTitleValue(item.name); setIsEditingTitle(false); }
+              if (e.key === "Escape") {
+                setTitleValue(item.name);
+                setIsEditingTitle(false);
+              }
               e.stopPropagation();
             }}
             onClick={(e) => e.stopPropagation()}
@@ -350,7 +419,10 @@ function TreeNode({
           return (
             <div className="flex items-center gap-1.5 shrink-0">
               {conn.elementName && (
-                <span className="text-xs text-gray-500 truncate max-w-[8rem]" title={conn.elementName}>
+                <span
+                  className="text-xs text-gray-500 truncate max-w-[8rem]"
+                  title={conn.elementName}
+                >
                   {conn.elementName}
                 </span>
               )}
@@ -358,37 +430,66 @@ function TreeNode({
                 src={src}
                 alt={conn.elementName ?? item.name}
                 className="h-7 w-12 object-contain rounded border border-gray-200 bg-gray-50"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
               />
             </div>
           );
         })()}
 
         {/* Value to Sum column */}
-        <span className="text-sm text-gray-500 text-center shrink-0" style={{ width: VALUE_COL }}>
+        <span
+          className="text-sm text-gray-500 text-center shrink-0"
+          style={{ width: VALUE_COL }}
+        >
           {formatEqValue(displayValues.get(item.id))}
         </span>
 
         {/* CAD Value column */}
-        <span className="text-sm text-gray-500 text-center shrink-0" style={{ width: CAD_COL }}>
-          {formatEqValue(cadDisplayValues.get(item.id))}
-        </span>
+        <div
+          className="flex items-center justify-between shrink-0 gap-1"
+          style={{ width: CAD_COL }}
+        >
+          <span className="text-sm text-gray-500 truncate">
+            {formatEqValue(cadDisplayValues.get(item.id))}
+          </span>
+          {item.type === "DOCUMENT" && onshapeConns.has(item.id) && onRefreshCad && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRefreshCad(item); }}
+              disabled={refreshingCadId === item.id}
+              title={item.importedCadFetchedAt
+                ? `Last fetched: ${new Date(item.importedCadFetchedAt).toLocaleString()}`
+                : "Fetch CAD properties"}
+              className="shrink-0 text-gray-400 hover:text-blue-600 disabled:opacity-40"
+            >
+              {refreshingCadId === item.id
+                ? <Loader2 size={12} className="animate-spin" />
+                : <RefreshCw size={12} />}
+            </button>
+          )}
+        </div>
 
         <QuantityInput item={item} onQuantityChange={onQuantityChange} />
 
-        {needsUpdateMap.get(item.id) ? (
+        {item.needsUpdate ? (
           <div className="flex items-center gap-1 shrink-0">
             <XCircle size={16} className="text-red-500" />
             {onResolve && item.type === "DOCUMENT" && (
               <button
-                onClick={(e) => { e.stopPropagation(); onResolve(item); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onResolve(item);
+                }}
                 disabled={resolvingId === item.id}
                 title="Re-solve with latest imported values"
                 className="flex items-center gap-0.5 text-xs text-orange-600 hover:text-orange-800 disabled:opacity-50"
               >
-                {resolvingId === item.id
-                  ? <Loader2 size={12} className="animate-spin" />
-                  : <RefreshCw size={12} />}
+                {resolvingId === item.id ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={12} />
+                )}
               </button>
             )}
           </div>
@@ -404,10 +505,12 @@ function TreeNode({
           onEditTitle={() => setIsEditingTitle(true)}
           onLinkCad={() => onLinkCad(item.id)}
           onDeleteItem={
-            (isWorkspace && !hasChildren) || (item.type === "DOCUMENT" && canEdit)
+            (isWorkspace && !hasChildren) ||
+            (item.type === "DOCUMENT" && canEdit)
               ? () => onDeleteItem(item.id)
               : undefined
           }
+          onResolve={onResolve && item.type === "DOCUMENT" ? () => onResolve(item) : undefined}
         />
       </div>
 
@@ -435,7 +538,6 @@ function TreeNode({
               ensureExpanded={ensureExpanded}
               displayValues={displayValues}
               cadDisplayValues={cadDisplayValues}
-              needsUpdateMap={needsUpdateMap}
               onshapeConns={onshapeConns}
               onQuantityChange={onQuantityChange}
               onAddItem={onAddItem}
@@ -443,6 +545,10 @@ function TreeNode({
               onDeleteItem={onDeleteItem}
               onLinkCad={onLinkCad}
               canEdit={canEdit}
+              resolvingId={resolvingId}
+              onResolve={onResolve}
+              refreshingCadId={refreshingCadId}
+              onRefreshCad={onRefreshCad}
             />
           ))}
         </div>
@@ -460,7 +566,7 @@ export default function PartTreeNav({
   onSelect,
   displayValues,
   cadDisplayValues,
-  needsUpdateMap,
+  anyStale,
   onshapeConns,
   onQuantityChange,
   onAddItem,
@@ -468,16 +574,22 @@ export default function PartTreeNav({
   onDeleteItem,
   onLinkCad,
   canEdit,
+  resolvingId,
+  onResolve,
+  refreshingCadId,
+  onRefreshCad,
 }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(childrenMap.keys())
+    () => new Set(childrenMap.keys()),
   );
   const [showRootDescription, setShowRootDescription] = useState(false);
   const [isEditingRootTitle, setIsEditingRootTitle] = useState(false);
   const [rootTitleValue, setRootTitleValue] = useState(root.name);
   const rootTitleInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (isEditingRootTitle) rootTitleInputRef.current?.focus(); }, [isEditingRootTitle]);
+  useEffect(() => {
+    if (isEditingRootTitle) rootTitleInputRef.current?.focus();
+  }, [isEditingRootTitle]);
 
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
@@ -489,7 +601,7 @@ export default function PartTreeNav({
   }
 
   function ensureExpanded(id: string) {
-    setExpandedIds((prev) => prev.has(id) ? prev : new Set([...prev, id]));
+    setExpandedIds((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
   }
 
   async function commitRootTitle() {
@@ -518,7 +630,9 @@ export default function PartTreeNav({
       {/* Root node */}
       <div
         className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors border-b border-gray-200 ${
-          selectedId === root.id ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-800"
+          selectedId === root.id
+            ? "bg-blue-50 text-blue-700"
+            : "hover:bg-gray-50 text-gray-800"
         }`}
         onClick={() => onSelect(root.id)}
       >
@@ -532,14 +646,19 @@ export default function PartTreeNav({
             onBlur={commitRootTitle}
             onKeyDown={(e) => {
               if (e.key === "Enter") commitRootTitle();
-              if (e.key === "Escape") { setRootTitleValue(root.name); setIsEditingRootTitle(false); }
+              if (e.key === "Escape") {
+                setRootTitleValue(root.name);
+                setIsEditingRootTitle(false);
+              }
               e.stopPropagation();
             }}
             onClick={(e) => e.stopPropagation()}
             className="flex-1 text-base font-semibold border border-blue-400 rounded px-1 py-0 focus:outline-none"
           />
         ) : (
-          <span className="text-base font-semibold truncate flex-1">{root.name}</span>
+          <span className="text-base font-semibold truncate flex-1">
+            {root.name}
+          </span>
         )}
 
         {/* CAD thumbnail — inline, just right of name */}
@@ -555,10 +674,15 @@ export default function PartTreeNav({
                 src={src}
                 alt={conn.elementName ?? root.name}
                 className="h-7 w-12 object-contain rounded border border-gray-200 bg-gray-50"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
               />
               {conn.elementName && (
-                <span className="text-xs text-gray-500 truncate max-w-[8rem]" title={conn.elementName}>
+                <span
+                  className="text-xs text-gray-500 truncate max-w-[8rem]"
+                  title={conn.elementName}
+                >
                   {conn.elementName}
                 </span>
               )}
@@ -566,20 +690,27 @@ export default function PartTreeNav({
           );
         })()}
 
-        <span className="text-sm text-gray-500 font-medium text-center shrink-0" style={{ width: VALUE_COL }}>
+        <span
+          className="text-sm text-gray-500 font-medium text-center shrink-0"
+          style={{ width: VALUE_COL }}
+        >
           {formatEqValue(displayValues.get(root.id))}
         </span>
 
         {/* CAD Value column + qty spacer */}
-        <span className="text-sm text-gray-500 text-center shrink-0" style={{ width: CAD_COL }}>
+        <span
+          className="text-sm text-gray-500 text-center shrink-0"
+          style={{ width: CAD_COL }}
+        >
           {formatEqValue(cadDisplayValues.get(root.id))}
         </span>
         <div className="w-16 shrink-0" />
 
-        {needsUpdateMap.get(root.id)
-          ? <XCircle size={16} className="shrink-0 text-red-500" />
-          : <CheckCircle2 size={16} className="shrink-0 text-green-500" />
-        }
+        {anyStale ? (
+          <XCircle size={16} className="shrink-0 text-red-500" />
+        ) : (
+          <CheckCircle2 size={16} className="shrink-0 text-green-500" />
+        )}
 
         <EllipsisMenu
           item={root}
@@ -612,7 +743,6 @@ export default function PartTreeNav({
             ensureExpanded={ensureExpanded}
             displayValues={displayValues}
             cadDisplayValues={cadDisplayValues}
-            needsUpdateMap={needsUpdateMap}
             onshapeConns={onshapeConns}
             onQuantityChange={onQuantityChange}
             onAddItem={onAddItem}
@@ -620,6 +750,10 @@ export default function PartTreeNav({
             onDeleteItem={onDeleteItem}
             onLinkCad={onLinkCad}
             canEdit={canEdit}
+            resolvingId={resolvingId}
+            onResolve={onResolve}
+            refreshingCadId={refreshingCadId}
+            onRefreshCad={onRefreshCad}
           />
         ))}
       </div>

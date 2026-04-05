@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { solveDocumentOnce } from "@/utils/solveDocumentOnce";
 import type { OrderedBlock } from "@/solver/types";
 import PartTreeNav from "./PartTreeNav";
@@ -137,9 +138,11 @@ function computeDisplayValues(
 
 export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
   const { partTree } = data;
+  const router = useRouter();
   const [items, setItems] = useState<Item[]>(data.items);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [valueToSum, setValueToSum] = useState("");
+  const valueToSumRef = useRef("");
   const [valueToSumInput, setValueToSumInput] = useState("");
   const [cadValue, setCadValue] = useState("");
   const [rawEqValues, setRawEqValues] = useState<Map<string, EqValue>>(new Map());
@@ -164,6 +167,20 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
   const [onshapeConns, setOnshapeConns] = useState<Map<string, OnshapeConnInfo>>(new Map());
   const [cadModalItemId, setCadModalItemId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [refreshingCadId, setRefreshingCadId] = useState<string | null>(null);
+
+  // Refresh server data on mount so needsUpdate flags are current.
+  useEffect(() => { router.refresh(); }, []);
+
+  // Sync needsUpdate from fresh server props into items state after a refresh.
+  useEffect(() => {
+    setItems(prev =>
+      prev.map(p => {
+        const fresh = data.items.find(i => i.id === p.id);
+        return fresh ? { ...p, needsUpdate: fresh.needsUpdate } : p;
+      })
+    );
+  }, [data.items]);
 
   // Fetch Onshape CAD connections for all items in the tree.
   useEffect(() => {
@@ -228,24 +245,6 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
     setDisplayValues(out);
   }
 
-  // Pre-compute needsUpdate status: documents use their own flag; folders/root
-  // are true if ANY descendant document has needsUpdate === true.
-  const needsUpdateMap = useMemo<Map<string, boolean>>(() => {
-    const map = new Map<string, boolean>();
-    function compute(item: Item): boolean {
-      if (item.type === "DOCUMENT") {
-        const v = item.needsUpdate ?? false;
-        map.set(item.id, v);
-        return v;
-      }
-      const children = childrenMap.get(item.id) ?? [];
-      const any = children.some((child) => compute(child));
-      map.set(item.id, any);
-      return any;
-    }
-    compute(partTree);
-    return map;
-  }, [partTree, childrenMap]);
 
   async function fetchEqValues(equationName: string) {
     const docIds = items
@@ -302,6 +301,27 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
     setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, name: trimmed } : i));
   }
 
+  const handleRefreshCad = useCallback(async (item: Item) => {
+    setRefreshingCadId(item.id);
+    try {
+      const res = await fetch(`/api/file/${item.id}/refresh-cad-properties`, { method: "POST" });
+      if (!res.ok) return;
+      const data = await res.json() as {
+        importedCad: Array<{ eqname: string; partName?: string; properties?: Record<string, number> }>;
+        importedCadFetchedAt: string;
+      };
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? { ...i, importedCad: data.importedCad, importedCadFetchedAt: data.importedCadFetchedAt }
+            : i,
+        ),
+      );
+    } finally {
+      setRefreshingCadId(null);
+    }
+  }, []);
+
   const handleResolve = useCallback(async (item: Item) => {
     setResolvingId(item.id);
     try {
@@ -318,6 +338,15 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
           type: "EQUATION" as const,
           definition: { raw: `${fi.localAlias} = ${fi.value}${fi.units ? " " + fi.units : ""}` },
         }));
+
+      // Capture pre-solve scalar and size for each block (already in DB) before solving.
+      const preSolve = new Map<string, { scalar: number; size: unknown }>();
+      for (const b of blocks as Array<{ definition?: Record<string, unknown>; solution?: { real?: Record<string, number>; size?: unknown } }>) {
+        const varName = ((b.definition?.raw as string) ?? "").split("=")[0].trim().toLowerCase();
+        if (!varName) continue;
+        const scalar = b.solution?.real?.["0-0"];
+        if (scalar !== undefined) preSolve.set(varName, { scalar, size: b.solution?.size });
+      }
 
       const solverBlocks: OrderedBlock[] = [
         ...importBlocks,
@@ -337,7 +366,20 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
           .filter((b: { id: string; refId?: string }) => resultMap.has(b.id) && b.refId)
           .map((b: { id: string; refId: string; definition: Record<string, unknown> }) => {
             const r = resultMap.get(b.id)!;
-            const content = JSON.stringify({ _v2: true, ...b.definition, solution: { display: r.display } });
+            const lhs = r.display.equation ?? "";
+            const rhs = r.display.solution ?? "";
+            const displayStr = rhs ? `${lhs} = ${rhs}` : lhs;
+            const content = JSON.stringify({
+              _v2: true,
+              ...b.definition,
+              solution: {
+                display: displayStr,
+                real: r.solution?.real,
+                size: r.solution?.size,
+                units: r.solution?.units,
+                errors: [],
+              },
+            });
             return fetch(`/api/component/${b.refId}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
@@ -346,14 +388,49 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
           })
       );
 
-      // Clear needsUpdate flag on the file
+      // Clear needsUpdate flag on the file and its import stale flags
       await fetch(`/api/file/${item.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ needsUpdate: false }),
+        body: JSON.stringify({ needsUpdate: false, clearImportNeedsUpdate: true }),
       });
 
       setItems((prev) => prev.map((it) => it.id === item.id ? { ...it, needsUpdate: false } : it));
+
+      // Push only changed values to connected CAD models.
+      // Compare fresh solve result against pre-solve stored value — only include if different.
+      const allSolvedResults: Record<string, { value: number | string; units?: string }> = {};
+      for (const r of results) {
+        if (!r.variableName || !r.solution) continue;
+        const scalar = (r.solution.real as Record<string, number>)["0-0"];
+        if (scalar === undefined) continue;
+        const prior = preSolve.get(r.variableName.toLowerCase());
+        if (prior && prior.scalar === scalar && prior.size === r.solution.size) continue;
+        allSolvedResults[r.variableName] = { value: scalar, units: r.solution.units };
+      }
+
+      if (Object.keys(allSolvedResults).length > 0) {
+        const connsRes = await fetch(`/api/cad-connection?fileId=${item.id}`);
+        if (connsRes.ok) {
+          const connections = await connsRes.json() as Array<{ id: number; cadType: string; info: { equations?: Array<{ varName: string }> } }>;
+          for (const conn of connections) {
+            const eqs = conn.info.equations ?? [];
+            if (eqs.length === 0) continue;
+            const connResults: Record<string, { value: number | string; units?: string }> = {};
+            for (const eq of eqs) {
+              const key = Object.keys(allSolvedResults).find(k => k.toLowerCase() === eq.varName.toLowerCase());
+              if (key) connResults[key] = allSolvedResults[key];
+            }
+            fetch(`/api/cad-connection/${conn.id}/push`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ results: connResults }),
+            }).catch(() => {});
+          }
+        }
+      }
+      // Refresh "Value to sum" display with fresh DB values after solve.
+      if (valueToSumRef.current) fetchEqValues(valueToSumRef.current);
     } catch (err) {
       console.error("Resolve failed:", err);
     } finally {
@@ -381,6 +458,7 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
     if (e.key === "Enter") {
       const name = valueToSumInput.trim();
       setValueToSum(name);
+      valueToSumRef.current = name;
       if (name) {
         fetchEqValues(name);
       } else {
@@ -442,7 +520,7 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
             displayValues={displayValues}
             cadDisplayValues={cadDisplayValues}
             valueToSumLabel={valueToSum}
-            needsUpdateMap={needsUpdateMap}
+            anyStale={items.some(i => i.needsUpdate ?? false)}
             onshapeConns={effectiveOnshapeConns}
             onQuantityChange={handleQuantityChange}
             onAddItem={handleAddItem}
@@ -452,6 +530,8 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
             canEdit={canEdit}
             resolvingId={resolvingId}
             onResolve={handleResolve}
+            refreshingCadId={refreshingCadId}
+            onRefreshCad={handleRefreshCad}
           />
         </div>
 

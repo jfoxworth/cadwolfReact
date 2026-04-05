@@ -18,7 +18,7 @@ export async function PUT(
   if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, itemData, description, quantity, parentId, needsUpdate } = body;
+  const { name, itemData, description, quantity, parentId, needsUpdate, clearImportNeedsUpdate } = body;
 
   // Moving to a new parent requires edit permission on the target
   if (parentId !== undefined) {
@@ -46,6 +46,11 @@ export async function PUT(
       ...(needsUpdate !== undefined && { needsUpdate }),
     },
   });
+
+  // When resolving a document, also clear stale flags on its imports.
+  if (clearImportNeedsUpdate) {
+    await db.fileImport.updateMany({ where: { fileId }, data: { needsUpdate: false } });
+  }
 
   // When quantity changes, upsert a systemCount equation component so the solver can reference it.
   if (quantity !== undefined) {

@@ -32,6 +32,7 @@ Full reference: `memory/laravel-backend.md`
 ## Feedback / Rules
 - `memory/feedback_no_autosave.md` — never auto-save blocks/equations on edit; only save on explicit user action
 - `memory/feedback_unit_preservation.md` — ALL unit-transparent functions must preserve SI baseUnits; every new function needs 4 unit tests in `solver/__tests__/units/function-unit-preservation.test.ts` (basic/combined/scaled/complex); this has caused repeated bugs and user anger
+- [feedback_debugging_approach.md](feedback_debugging_approach.md) — Debug from code/evidence first, never guess at data formats
 
 ## Fixture Files
 - `fixtures/workspace.json` — workspace entity + items query result (two top-level keys: `workspace`, `items`)

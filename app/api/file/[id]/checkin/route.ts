@@ -48,22 +48,21 @@ export async function POST(
     }),
   ]);
 
-  // Flag any documents that import variables from this file as stale
-  const dependentImports = await db.fileImport.findMany({
-    where: { sourceFileId: fileId },
-    select: { id: true, fileId: true },
-  });
-  if (dependentImports.length > 0) {
-    const dependentFileIds = [...new Set(dependentImports.map((i) => i.fileId))];
-    await db.$transaction([
-      db.fileImport.updateMany({
-        where: { sourceFileId: fileId },
-        data: { needsUpdate: true },
-      }),
-      db.file.updateMany({
-        where: { id: { in: dependentFileIds } },
-        data: { needsUpdate: true },
-      }),
+  // Flag all files that import from this one as needing an update.
+  const like1 = `%"inputFile":${fileId}%`;
+  const like2 = `%"inputFile":"${fileId}"%`;
+  const rows = await db.$queryRaw<Array<{ file_id: number }>>`
+    SELECT DISTINCT file_id FROM file_imports WHERE source_file_id = ${fileId}
+    UNION
+    SELECT DISTINCT file_id FROM components
+    WHERE deleted_at IS NULL AND file_id != ${fileId}
+      AND (content LIKE ${like1} OR content LIKE ${like2})
+  `;
+  const dependentFileIds = rows.map((r) => Number(r.file_id));
+  if (dependentFileIds.length > 0) {
+    await Promise.all([
+      db.fileImport.updateMany({ where: { sourceFileId: fileId }, data: { needsUpdate: true } }),
+      db.file.updateMany({ where: { id: { in: dependentFileIds } }, data: { needsUpdate: true } }),
     ]);
   }
 

@@ -7,6 +7,8 @@ import { fileToItem } from "@/utils/transformers";
 import { checkPermission } from "@/utils/checkPermission";
 import PartTreeWrapper from "@/components/part-tree/PartTreeWrapper";
 
+export const dynamic = "force-dynamic";
+
 async function fetchDescendants(rootId: number): Promise<File[]> {
   const all: File[] = [];
   let queue = [rootId];

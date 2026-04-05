@@ -68,6 +68,7 @@ export interface Item {
   quantity?: number;                      // DOCUMENT — number of this part in the assembly
   needsUpdate?: boolean;                  // DOCUMENT — source imports have changed since last solve
   importedCad?: Array<{ eqname: string; partName?: string; properties?: Record<string, number> }>; // DOCUMENT — legacy CAD parts pulled from item_data
+  importedCadFetchedAt?: string; // DOCUMENT — ISO timestamp of last live CAD properties fetch
   fileImage?: string; // URL or relative S3 path for the item's thumbnail image
   lockedBy?: number | null;   // DOCUMENT/DATASET — userId of the user who has it checked out
   lockedAt?: string | null;   // ISO timestamp of when it was checked out

@@ -85,6 +85,16 @@ export function fileToItem(f: File): Item {
     importedCad: Array.isArray(itemData.importedCAD)
       ? (itemData.importedCAD as Array<Record<string, unknown>>)
           .map((entry) => {
+            // New computed format (written by refresh-cad-properties endpoint)
+            if (entry._computed) {
+              return {
+                eqname:   String(entry.eqname ?? ""),
+                partName: entry.partName as string | undefined,
+                properties: entry.properties as Record<string, number> | undefined,
+              };
+            }
+
+            // Legacy Laravel format
             const partData  = entry.part_data as Record<string, unknown> | undefined;
             const massData  = entry.mass_data as Record<string, unknown> | undefined;
             const bodies    = massData?.bodies as Record<string, Record<string, unknown>> | undefined;
@@ -113,6 +123,9 @@ export function fileToItem(f: File): Item {
             };
           })
           .filter((e) => e.eqname)
+      : undefined,
+    importedCadFetchedAt: typeof itemData.importedCadFetchedAt === "string"
+      ? itemData.importedCadFetchedAt
       : undefined,
     fileImage: (() => {
       const raw = (typeof itemData.fileImage === "string" && itemData.fileImage)
@@ -177,7 +190,16 @@ export function componentToBlock(c: Component): Block {
   // New-format blocks store definition directly with a _v2 marker
   if (raw._v2 === true) {
     const { _v2: _, solution, ...definition } = raw;
-    return { id: String(c.id), refId: String(c.id), type, order: c.order, name: c.name ?? undefined, definition, solution: solution as Record<string, unknown> | undefined };
+    // Fix old broken part-tree saves where solution.display was stored as a DisplayState
+    // object instead of a pre-built LaTeX string.
+    let fixedSolution = solution as Record<string, unknown> | undefined;
+    if (fixedSolution && typeof fixedSolution.display === "object" && fixedSolution.display !== null) {
+      const d = fixedSolution.display as { equation?: string; solution?: string };
+      const lhs = d.equation ?? "";
+      const rhs = d.solution ?? "";
+      fixedSolution = { ...fixedSolution, display: rhs ? `${lhs} = ${rhs}` : lhs };
+    }
+    return { id: String(c.id), refId: String(c.id), type, order: c.order, name: c.name ?? undefined, definition, solution: fixedSolution };
   }
 
   let definition: Record<string, unknown>;

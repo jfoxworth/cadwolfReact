@@ -2,7 +2,7 @@ import { getValidToken } from "./cadAuth";
 
 const BASE = "https://cad.onshape.com/api/v6";
 
-async function onshapeFetch(path: string, options: RequestInit = {}) {
+export async function onshapeFetch(path: string, options: RequestInit = {}) {
   const token = await getValidToken("onshape");
   const res = await fetch(`${BASE}${path}`, {
     ...options,
@@ -131,6 +131,29 @@ export interface OnshapePartProperties {
   principalAxes: number[];    // 9-element rotation matrix
 }
 
+/** Fetch mass properties for a single specific part. Returns the raw Onshape body object
+ *  (preserving the [display, si] array structure) so callers can store it in legacy format
+ *  and the transformer can read SI values at index 1.
+ */
+export async function getPartMassProperties(
+  documentId: string,
+  workspaceId: string,
+  elementId: string,
+  partId: string,
+): Promise<Record<string, unknown> | null> {
+  const data = await onshapeFetch(
+    `/parts/d/${documentId}/w/${workspaceId}/e/${elementId}/partid/${encodeURIComponent(partId)}/massproperties`,
+  );
+  const bodies = data.bodies as Record<string, unknown> | undefined;
+  if (!bodies) return null;
+  const body = bodies[partId];
+  if (!body) return null;
+  // Onshape sometimes wraps the body in an array; unwrap if so
+  return Array.isArray(body)
+    ? ((body as Array<Record<string, unknown>>)[0] ?? null)
+    : (body as Record<string, unknown>);
+}
+
 /** Fetch mass properties for every part in a PartStudio. */
 export async function getMassProperties(
   documentId: string,
@@ -143,9 +166,12 @@ export async function getMassProperties(
 
   const result: Record<string, OnshapePartProperties> = {};
 
-  const bodies: Record<string, unknown[]> = data.bodies ?? {};
-  for (const [partId, entries] of Object.entries(bodies)) {
-    const e = (entries as Array<Record<string, unknown>>)[0];
+  const bodies: Record<string, unknown> = data.bodies ?? {};
+  for (const [partId, bodyData] of Object.entries(bodies)) {
+    // Onshape returns either an array of body objects or a single body object
+    const e = Array.isArray(bodyData)
+      ? (bodyData as Array<Record<string, unknown>>)[0]
+      : bodyData as Record<string, unknown>;
     if (!e) continue;
 
     const mass   = (e.mass   as number[])?.[0] ?? 0;

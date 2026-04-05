@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   X, Plus, Trash2, ChevronRight, ArrowLeft, FileText,
-  Folder, RefreshCw, AlertCircle, ExternalLink, Check,
+  Folder, RefreshCw, ExternalLink, Check,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -55,15 +55,18 @@ interface DocumentFileInputsModalProps {
 
 function formatSolvedValue(result: SolvedImportResult | null | undefined): string | null {
   if (!result) return null;
-  const { size, real, units } = result;
-  const unitStr = units ? ` ${units}` : "";
+  const { size, real } = result;
   if (size === "1x1") {
     const v = real["0-0"] ?? 0;
     // Format: up to 6 significant figures, strip trailing zeros
-    const formatted = parseFloat(v.toPrecision(6)).toString();
-    return `${formatted}${unitStr}`;
+    return parseFloat(v.toPrecision(6)).toString();
   }
-  return `[${size}]${unitStr}`;
+  return `[${size}]`;
+}
+
+function formatSolvedUnits(result: SolvedImportResult | null | undefined, fallback: string | null): string | null {
+  if (result?.units) return result.units;
+  return fallback ?? null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -153,7 +156,7 @@ export default function DocumentFileInputsModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col">
           {view === "list" ? (
             <ListView
               entries={entries}
@@ -190,9 +193,9 @@ function ListView({
   readOnly?:      boolean;
 }) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0 flex flex-col">
       {/* Table */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2">
             <FileText size={32} className="opacity-30" />
@@ -214,6 +217,7 @@ function ListView({
                 <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Source Variable</th>
                 <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Local Alias</th>
                 <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cached Value</th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Units</th>
                 {!readOnly && <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-8"></th>}
               </tr>
             </thead>
@@ -305,15 +309,17 @@ function ImportRow({
           {(() => {
             const display = formatSolvedValue(solvedResult);
             if (display) return display;
-            if (entry.value) return entry.value + (entry.units ? ` ${entry.units}` : "");
+            if (entry.value) return entry.value;
             return <span className="text-gray-300 italic">—</span>;
           })()}
         </span>
-        {entry.needsUpdate && (
-          <span className="ml-2 inline-flex items-center gap-1 text-amber-500 text-xs">
-            <AlertCircle size={11} /> stale
-          </span>
-        )}
+      </td>
+
+      {/* Units */}
+      <td className="px-4 py-3">
+        <span className="text-gray-500 font-mono text-xs">
+          {formatSolvedUnits(solvedResult, entry.units) ?? <span className="text-gray-300 italic">—</span>}
+        </span>
       </td>
 
       {/* Delete */}

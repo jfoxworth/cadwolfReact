@@ -559,6 +559,83 @@ export default function DocumentWrapper({
   const [fileImports, setFileImports] = useState<FileImportEntry[]>(data.fileImports as FileImportEntry[]);
   const [showFileInputs, setShowFileInputs] = useState(false);
 
+  // ── checkUpdates — pull fresh values from source files at load time ────────
+  // Mirrors checkUpdates() from the original Angular codebase (FlagDocumentDependents → checkUpdates).
+  // If this document is stale (file.needsUpdate), fetch current solved values from each source
+  // file, compare against stored values, and set per-import needsUpdate accordingly.
+  useEffect(() => {
+    const uniqueSourceIds = [...new Set(data.fileImports.map((fi) => fi.sourceFileId))];
+    if (uniqueSourceIds.length === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const fetchedMaps = await Promise.all(
+        uniqueSourceIds.map(async (srcId) => {
+          try {
+            const res = await fetch(`/api/file/${srcId}/exported-values`);
+            if (!res.ok) return { srcId, values: {} as Record<string, { value: string; units: string | null }> };
+            return { srcId, values: await res.json() as Record<string, { value: string; units: string | null }> };
+          } catch {
+            return { srcId, values: {} as Record<string, { value: string; units: string | null }> };
+          }
+        }),
+      );
+      if (cancelled) return;
+
+      const valuesBySource = new Map(fetchedMaps.map((m) => [m.srcId, m.values]));
+
+      setFileImports((prev) => {
+        const updated = prev.map((fi) => {
+          const sourceValues = valuesBySource.get(fi.sourceFileId);
+          if (!sourceValues) return fi;
+
+          // Find the exported value case-insensitively
+          const key = Object.keys(sourceValues).find(
+            (k) => k.toLowerCase() === fi.sourceVariableName.toLowerCase(),
+          );
+          if (!key) return fi;
+
+          const fetched = sourceValues[key];
+          const changed = fetched.value !== fi.value || fetched.units !== fi.units;
+          return {
+            ...fi,
+            value: fetched.value,
+            units: fetched.units,
+            // Always clear in local state — values are refreshed now and will be re-solved.
+            needsUpdate: false,
+          };
+        });
+
+        // Persist updated values to DB. needsUpdate cleared since we've refreshed.
+        updated.forEach((fi, idx) => {
+          const prev_fi = prev[idx];
+          const changed = fi.value !== prev_fi.value || fi.units !== prev_fi.units;
+          if (changed || prev_fi.needsUpdate) {
+            fetch(`/api/file-import/${fi.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ value: fi.value, units: fi.units, needsUpdate: false }),
+            }).catch(() => {});
+          }
+        });
+
+        return updated;
+      });
+
+      // Clear the file-level stale flag
+      fetch(`/api/file/${document.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ needsUpdate: false }),
+      }).catch(() => {});
+    })();
+
+    return () => { cancelled = true; };
+  // Run once on mount only — document.needsUpdate is the initial server-rendered value
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Synthetic VirtualBlocks for imported variables — injected at negative orders
   // so they resolve before every real block in the document.
   const importSolverBlocks = useMemo<VirtualBlock[]>(
@@ -570,27 +647,11 @@ export default function DocumentWrapper({
           refId:      "",
           type:       "EQUATION" as BlockType,
           order:      -(fileImports.length - idx),
-          definition: { raw: `${fi.localAlias} = ${fi.value}`, displayEq: "" },
+          definition: { raw: `${fi.localAlias} = ${fi.value}${fi.units ? " " + fi.units : ""}`, displayEq: "" },
           _status:    "clean" as const,
         })),
     [fileImports],
   );
-
-  // Compute which variable names are stale (imported but out of date) and
-  // propagate staleness through equations that depend on them.
-  const staleVarNames = useMemo<Set<string>>(() => {
-    const stale = new Set(
-      fileImports.filter((fi) => fi.needsUpdate).map((fi) => fi.localAlias),
-    );
-    for (const block of virtualBlocks) {
-      if (block.type !== "EQUATION") continue;
-      const raw = (block.definition.raw as string) ?? "";
-      const lhs = raw.split("=")[0].trim();
-      const rhs = raw.split("=").slice(1).join("=");
-      if ([...stale].some((v) => new RegExp(`\\b${v}\\b`, "i").test(rhs))) stale.add(lhs);
-    }
-    return stale;
-  }, [fileImports, virtualBlocks]);
 
   // ── Dataset Imports (declared early so solver can include them) ───────────
   const [datasetImports, setDatasetImports] = useState<DatasetImportEntry[]>(data.datasetImports as DatasetImportEntry[]);
@@ -603,6 +664,25 @@ export default function DocumentWrapper({
   const [showCadModal, setShowCadModal] = useState(false);
   const [cadConnections, setCadConnections] = useState<Array<{ id: number; cadType: string; info: Record<string, unknown> }>>([]);
   const [pushStatus, setPushStatus] = useState<Record<number, { pushed?: number; error?: string }>>({});
+  const [localImportedCad, setLocalImportedCad] = useState(document.importedCad);
+  const [refreshingCad, setRefreshingCad] = useState(false);
+
+  const handleDeleteLegacyEntry = useCallback(async (eqname: string) => {
+    await fetch(`/api/file/${document.id}/refresh-cad-properties?eqname=${encodeURIComponent(eqname)}`, { method: "DELETE" });
+    setLocalImportedCad((prev) => prev?.filter((e) => e.eqname !== eqname) ?? []);
+  }, [document.id]);
+
+  const handleRefreshCad = useCallback(async () => {
+    setRefreshingCad(true);
+    try {
+      const res = await fetch(`/api/file/${document.id}/refresh-cad-properties`, { method: "POST" });
+      if (!res.ok) return;
+      const data = await res.json() as { importedCad: typeof document.importedCad };
+      setLocalImportedCad(data.importedCad);
+    } finally {
+      setRefreshingCad(false);
+    }
+  }, [document.id]);
 
   // Fetch CAD connections on page load
   useEffect(() => {
@@ -693,6 +773,39 @@ export default function DocumentWrapper({
 
   const { results: solverResults, solvingIds, solve } = useSolver(solverBlocks, solverImportedFunctions, initialCadParts);
 
+  // Re-solve with updated cadParts when localImportedCad changes (e.g. after a refresh).
+  // Skip the initial mount — initialCadParts already seeds the solver.
+  const cadRefreshCount = useRef(0);
+  useEffect(() => {
+    if (cadRefreshCount.current === 0) { cadRefreshCount.current = 1; return; }
+    const newCadParts: Record<string, import("@/solver/types").CadPart> = {};
+    for (const entry of localImportedCad ?? []) {
+      if (!entry.eqname || !entry.properties) continue;
+      newCadParts[entry.eqname] = { partId: entry.eqname, properties: entry.properties };
+    }
+    const allBlocks = buildSolverBlocks([...datasetSolverBlocks, ...importSolverBlocks, ...virtualBlocks]);
+    const eqBlocks = allBlocks.filter((b) => b.definition.raw).sort((a, b) => a.order - b.order);
+    for (const b of eqBlocks) solve(allBlocks, b.id, newCadParts);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localImportedCad]);
+
+  // Compute which variable names are stale (imported but out of date) and
+  // propagate staleness through equations that depend on them.
+  // Variables that have been freshly solved in this session are never stale.
+  const staleVarNames = useMemo<Set<string>>(() => {
+    const stale = new Set(
+      fileImports.filter((fi) => fi.needsUpdate).map((fi) => fi.localAlias),
+    );
+    for (const block of virtualBlocks) {
+      if (block.type !== "EQUATION") continue;
+      const raw = (block.definition.raw as string) ?? "";
+      const lhs = raw.split("=")[0].trim();
+      const rhs = raw.split("=").slice(1).join("=");
+      if ([...stale].some((v) => new RegExp(`\\b${v}\\b`, "i").test(rhs))) stale.add(lhs);
+    }
+    return stale;
+  }, [fileImports, virtualBlocks]);
+
   // Sync solver in-flight state onto virtualBlocks so equation blocks can show a grey background.
   useEffect(() => {
     setVirtualBlocks((prev) => prev.map((b) => ({ ...b, _solving: solvingIds.has(b.id) })));
@@ -781,6 +894,7 @@ export default function DocumentWrapper({
     if (solverResults.size === 0) return;
     setVirtualBlocks((prev) => {
       const next = prev.map((b) => {
+        if (b._status === "deleted") return b;
         const r = solverResults.get(b.id);
         if (!r) return b;
         if (r.errors.length > 0) {
@@ -811,53 +925,6 @@ export default function DocumentWrapper({
   // Legacy importedCAD cadParts are seeded into useSolver via initialCadParts at construction
   // time — no solve needed here.
 
-  // Hydrate cadParts from Onshape mass properties when connections change
-  useEffect(() => {
-    if (cadConnections.length === 0) return;
-    const allBlocks = buildSolverBlocks([...datasetSolverBlocks, ...importSolverBlocks, ...virtualBlocks]);
-
-    (async () => {
-      const cadParts: Record<string, import("@/solver/types").CadPart> = {};
-      for (const conn of cadConnections) {
-        if (conn.cadType !== "onshape") continue;
-        const info = conn.info as {
-          documentId?: string; workspaceId?: string; elementId?: string;
-          parts?: Array<{ cadwolfName: string; partId: string }>;
-        };
-        if (!info.documentId || !info.workspaceId || !info.elementId || !info.parts?.length) continue;
-        try {
-          const res = await fetch(
-            `/api/onshape/document/${info.documentId}/mass-properties?workspaceId=${info.workspaceId}&elementId=${info.elementId}`,
-          );
-          if (!res.ok) continue;
-          const props = await res.json() as Record<string, import("@/utils/onshape").OnshapePartProperties>;
-          for (const partMapping of info.parts) {
-            const p = props[partMapping.partId];
-            if (!p) continue;
-            cadParts[partMapping.cadwolfName] = {
-              partId: partMapping.partId,
-              properties: {
-                mass:             p.mass,
-                volume:           p.volume,
-                surface:          p.surface,
-                weight:           p.weight,
-                density:          p.density,
-                inertia:          p.inertia[0] ?? 0,   // keep scalars for simple access
-                principalInertia: p.principalInertia[0] ?? 0,
-              },
-            };
-          }
-        } catch { /* ignore individual failures */ }
-      }
-      if (Object.keys(cadParts).length === 0) return;
-      // Re-solve all blocks with the new cadParts
-      const eqBlocks = allBlocks.filter((b) => b.definition.raw).sort((a, b) => a.order - b.order);
-      for (const b of eqBlocks) {
-        solve(allBlocks, b.id, cadParts);
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cadConnections]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1298,7 +1365,13 @@ export default function DocumentWrapper({
       );
       setSaveStatus("saved");
 
-      // Push exported variables to connected CAD models after a successful save.
+      // Clear this document's own stale flag, then mark its dependents stale.
+      await fetch(`/api/file/${document.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ needsUpdate: false }),
+      }).catch(() => {});
+
       // Build a lookup of all solved equation blocks (original-case keys).
       const allSolvedResults: Record<string, { value: number | string; units?: string }> = {};
       for (const block of virtualBlocks) {
@@ -1309,6 +1382,18 @@ export default function DocumentWrapper({
         const scalar = sol?.real?.["0-0"];
         if (scalar === undefined) continue;
         allSolvedResults[varName] = { value: scalar, units: sol?.units };
+      }
+
+      if (dirty.length > 0) {
+        fetch(`/api/file/${document.id}/mark-dependents-stale`, { method: "POST" }).catch(() => {});
+      }
+
+      // Build set of variable names from dirty equation blocks — only these changed.
+      const dirtyVarNames = new Set<string>();
+      for (const block of dirty) {
+        if (block.type !== "EQUATION") continue;
+        const varName = ((block.definition.raw as string) ?? "").split("=")[0].trim().toLowerCase();
+        if (varName) dirtyVarNames.add(varName);
       }
 
       // Deduplicate connections by id, only keep those with an equations mapping.
@@ -1326,15 +1411,17 @@ export default function DocumentWrapper({
 
           let completed = 0;
           pushableConns.forEach((conn) => {
-            // Only send the variables this connection has mapped — nothing else.
+            // Only send variables that are both mapped by this connection and were dirty (changed).
             const connEqs = (conn.info.equations as Array<{ varName: string }>) ?? [];
             const connResults: Record<string, { value: number | string; units?: string }> = {};
             for (const eq of connEqs) {
+              if (!dirtyVarNames.has(eq.varName.toLowerCase())) continue;
               const key = Object.keys(allSolvedResults).find(
                 (k) => k.toLowerCase() === eq.varName.toLowerCase(),
               );
               if (key) connResults[key] = allSolvedResults[key];
             }
+            if (Object.keys(connResults).length === 0) return;
             fetch(`/api/cad-connection/${conn.id}/push`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1538,9 +1625,12 @@ export default function DocumentWrapper({
             });
             return out;
           })()}
-          legacyImportedCad={document.importedCad}
+          legacyImportedCad={localImportedCad}
           onClose={() => setShowCadModal(false)}
           onConnectionsChanged={(conns) => setCadConnections(conns as typeof cadConnections)}
+          onDeleteLegacyEntry={effectiveCanEdit ? handleDeleteLegacyEntry : undefined}
+          onRefreshCad={effectiveCanEdit ? handleRefreshCad : undefined}
+          refreshingCad={refreshingCad}
           pushStatus={pushStatus}
           readOnly={!effectiveCanEdit}
         />
@@ -1705,10 +1795,10 @@ export default function DocumentWrapper({
             toc={docMeta.toc}
             scrollContainerRef={scrollContainerRef}
           />
-          {fileImports.some((fi) => fi.needsUpdate) && (
+          {staleVarNames.size > 0 && (
             <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-orange-700">
               <AlertTriangle size={15} className="shrink-0" />
-              Some imported values are out of date. Re-solve this document from the part tree.
+              Imported Items may have altered. Resolve the highlighted items.
             </div>
           )}
           <div className="grid grid-cols-12 gap-3 items-start">

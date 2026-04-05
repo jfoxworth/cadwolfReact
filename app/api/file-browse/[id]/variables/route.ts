@@ -63,11 +63,19 @@ export async function GET(
       if (!eqMatch) continue;
 
       variableName = eqMatch[1].trim();
-      value        = eqMatch[2].trim();
       displayRaw   = rawStr.trim();
 
       // Fall back to the Name field if regex didn't find a name
       if (!variableName && c.name) variableName = c.name;
+
+      // Use the stored solved scalar. If not yet solved, value stays null
+      // (import block will be excluded from the solver until a value exists).
+      const sol = parsed.solution as { real?: Record<string, number>; units?: string } | undefined;
+      const scalar = sol?.real?.["0-0"];
+      if (scalar !== undefined) {
+        value = String(scalar);
+        units = sol?.units ?? null;
+      }
 
     } else if (c.componentTypeId === 14) {
       // Slider: { variableName, value, unit }

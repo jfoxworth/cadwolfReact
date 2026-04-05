@@ -22,10 +22,10 @@ export async function PUT(
   const entry = await db.fileImport.update({
     where: { id: Number(id) },
     data: {
-      localAlias:  body.localAlias  ?? undefined,
-      value:       body.value       ?? undefined,
-      units:       body.units       ?? undefined,
-      needsUpdate: body.needsUpdate ?? undefined,
+      ...(body.localAlias  !== undefined && { localAlias:  body.localAlias }),
+      ...(body.value       !== undefined && { value:       body.value }),
+      ...(body.units       !== undefined && { units:       body.units }),
+      ...(body.needsUpdate !== undefined && { needsUpdate: body.needsUpdate }),
     },
   });
 

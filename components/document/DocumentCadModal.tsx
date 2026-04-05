@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Trash2 } from "lucide-react";
 
 // ── Stable modal shell (must be outside the main component to avoid remount on every render) ──
 function CadModal({ title, onClose, children, footer }: {
@@ -113,6 +114,7 @@ interface PushResult {
 interface LegacyImportedCad {
   eqname: string;
   partName?: string;
+  properties?: Record<string, number>;
 }
 
 interface Props {
@@ -122,6 +124,9 @@ interface Props {
   legacyImportedCad?: LegacyImportedCad[];
   onClose: () => void;
   onConnectionsChanged?: (connections: Connection[]) => void;
+  onDeleteLegacyEntry?: (eqname: string) => Promise<void>;
+  onRefreshCad?: () => Promise<void>;
+  refreshingCad?: boolean;
   pushStatus?: Record<number, PushResult>;
   readOnly?: boolean;
 }
@@ -133,6 +138,9 @@ export default function DocumentCadModal({
   legacyImportedCad = [],
   onClose,
   onConnectionsChanged,
+  onDeleteLegacyEntry,
+  onRefreshCad,
+  refreshingCad = false,
   pushStatus = {},
   readOnly = false,
 }: Props) {
@@ -504,42 +512,76 @@ export default function DocumentCadModal({
 
                 {/* ── Imported: CAD → Document ── */}
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                    Imported into this document ← CAD
-                  </h3>
-                  {allImports.length === 0 ? (
-                    <p className="text-xs text-gray-400 italic">No CAD parts mapped for import.</p>
-                  ) : (
-                    <table className="w-full text-sm border rounded overflow-hidden">
-                      <thead className="bg-gray-50 border-b">
-                        <tr className="text-xs text-gray-500 font-medium">
-                          <th className="text-left px-3 py-2">Token</th>
-                          <th className="text-left px-3 py-2">Current value</th>
-                          <th className="text-left px-3 py-2">Part</th>
-                          <th className="text-left px-3 py-2">Platform</th>
-                          <th className="text-left px-3 py-2">CAD file</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allImports.map((row, idx) => {
-                          const sv = solverValues[row.token.toLowerCase()];
-                          return (
-                            <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
-                              <td className="px-3 py-2 font-mono text-gray-800">{row.token}</td>
-                              <td className="px-3 py-2 text-gray-700">
-                                {sv !== undefined
-                                  ? `${typeof sv.value === "number" ? sv.value.toPrecision(4) : sv.value}${sv.units ? " " + sv.units : ""}`
-                                  : <span className="text-gray-300">—</span>}
-                              </td>
-                              <td className="px-3 py-2 text-gray-500 text-xs">{row.partName || row.alias}</td>
-                              <td className="px-3 py-2 text-gray-500 text-xs">{row.platform}</td>
-                              <td className="px-3 py-2 text-gray-500 text-xs">{row.docLabel}</td>
-                            </tr>
-                          );
-                        })}
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Imported into this document ← CAD
+                    </h3>
+                    {!readOnly && onRefreshCad && (
+                      <button
+                        onClick={onRefreshCad}
+                        disabled={refreshingCad}
+                        className="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400 flex items-center gap-1"
+                      >
+                        {refreshingCad ? "Refreshing…" : "↻ Refresh from CAD"}
+                      </button>
+                    )}
+                  </div>
+                  {(() => {
+                    const importedByAlias = new Map<string, Record<string, number>>();
+                    for (const entry of legacyImportedCad) {
+                      if (entry.eqname && entry.properties) importedByAlias.set(entry.eqname, entry.properties);
+                    }
+                    return allImports.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No CAD parts mapped for import.</p>
+                    ) : (
+                      <table className="w-full text-sm border rounded overflow-hidden">
+                        <thead className="bg-gray-50 border-b">
+                          <tr className="text-xs text-gray-500 font-medium">
+                            <th className="text-left px-3 py-2">Token</th>
+                            <th className="text-left px-3 py-2">Current value</th>
+                            <th className="text-left px-3 py-2">Part</th>
+                            <th className="text-left px-3 py-2">Platform</th>
+                            <th className="text-left px-3 py-2">CAD file</th>
+                            <th className="px-3 py-2" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                          const seenAliases = new Set<string>();
+                          return allImports.map((row, idx) => {
+                            const propValue = importedByAlias.get(row.alias)?.[row.prop];
+                            const isFirstForAlias = !seenAliases.has(row.alias);
+                            if (isFirstForAlias) seenAliases.add(row.alias);
+                            return (
+                              <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
+                                <td className="px-3 py-2 font-mono text-gray-800">{row.token}</td>
+                                <td className="px-3 py-2 text-gray-700">
+                                  {propValue !== undefined
+                                    ? propValue.toPrecision(4)
+                                    : <span className="text-gray-300">—</span>}
+                                </td>
+                                <td className="px-3 py-2 text-gray-500 text-xs">{row.partName || row.alias}</td>
+                                <td className="px-3 py-2 text-gray-500 text-xs">{row.platform}</td>
+                                <td className="px-3 py-2 text-gray-500 text-xs">{row.docLabel}</td>
+                                <td className="px-3 py-2">
+                                  {isFirstForAlias && !readOnly && onDeleteLegacyEntry && (
+                                    <button
+                                      onClick={() => onDeleteLegacyEntry(row.alias)}
+                                      title={`Remove ${row.alias} from imported CAD data`}
+                                      className="text-gray-400 hover:text-red-600"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </table>
-                  )}
+                  );
+                  })()}
                 </section>
               </>
             )}

@@ -51,11 +51,12 @@
 ### Document
 
 - [ ] Version history UI — API exists (`/api/file/[id]/versions`) but never surfaced in the UI
-- [ ] Public / shareable links — permissions work for named users/teams but no anonymous link sharing
+- [x] Public / shareable links — permissions work for named users/teams but no anonymous link sharing
 
 ### Part Tree
 
 - [x] Part tree CRUD API — only `/api/part-tree/equation-values` exists; no create/update/delete/browse routes
+- [ ] **Onshape live-fetch on document load** — `documentWrapper.tsx` fires a `useEffect` that fetches mass properties from Onshape on every page load when CAD connections exist; evaluate whether this should remain, be moved to on-demand, or be cached differently
 
 ---
 
