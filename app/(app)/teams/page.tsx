@@ -24,6 +24,8 @@ export default async function TeamsRoute() {
     ...t,
     storageUsed: Number(t.storageUsed),
     storageQuota: Number(t.storageQuota),
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
   }));
 
   return (
