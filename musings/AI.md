@@ -104,6 +104,27 @@ This is the long-term play after Layers 1 and 2 are producing value.
 
 ---
 
+## UI: Chat Panel
+
+The AI assistant is accessible via a **single hexagon in the lower-right corner** of every page, visually distinct from the navigation hexagon cluster in the lower-left. Clicking it opens a slide-out panel from the right (~400px wide) showing the conversation thread. The hexagon matches the platform's existing design language but is intentionally separated from the nav cluster — nav hexagons are for getting around, the AI hexagon is a different kind of action.
+
+The panel has access to the current page's context (document blocks, variables, part tree state) which is injected into the system prompt automatically.
+
+---
+
+## System Prompt
+
+The system prompt is a static markdown file in the repo (`prompts/cadwolf-assistant.md`) covering:
+- All solver built-in functions with syntax and behavior
+- Equation/block syntax rules and unit handling
+- Block types and how they work
+
+Dynamic context injected at runtime:
+- Current document's blocks (equations, variables, solved values)
+- RAG results (similar prior designs, once Layer 1 is built)
+
+---
+
 ## Suggested Implementation Order
 
 1. **`serializeDocumentToText`** utility — convert blocks to readable text

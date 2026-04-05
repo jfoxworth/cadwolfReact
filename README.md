@@ -67,6 +67,16 @@ CadWolf is a web-based engineering calculation platform that lets engineers writ
 
 ---
 
+## AI Context
+
+The full platform reference used to prompt the CadWolf AI assistant is publicly accessible at:
+
+**[https://cadwolf.com/ai-context](https://cadwolf.com/ai-context)**
+
+This page documents platform structure, all built-in functions, the unit system, constants, CAD integration, and solver behavior. External AI systems can fetch this URL to gain full context about the CadWolf platform.
+
+---
+
 ## Additional READMEs (coming soon)
 
 - **Solver** — how the equation solver works, step pipeline, unit system, and Web Worker architecture
