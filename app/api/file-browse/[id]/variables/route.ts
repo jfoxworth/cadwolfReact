@@ -59,7 +59,7 @@ export async function GET(
       const rawStr = (parsed.raw as string | undefined) ?? eqStr;
 
       // Extract variable name: text before first '='
-      const eqMatch = rawStr.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/s);
+      const eqMatch = rawStr.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([\s\S]+)$/);
       if (!eqMatch) continue;
 
       variableName = eqMatch[1].trim();
