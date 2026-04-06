@@ -892,14 +892,14 @@ export default function DocumentWrapper({
   // Sync solver results back into virtualBlocks.solution and auto-persist
   useEffect(() => {
     if (solverResults.size === 0) return;
-    setVirtualBlocks((prev) => {
-      const next = prev.map((b) => {
+    setVirtualBlocks((prev: VirtualBlock[]) => {
+      const next = prev.map((b): VirtualBlock => {
         if (b._status === "deleted") return b;
         const r = solverResults.get(b.id);
         if (!r) return b;
         if (r.errors.length > 0) {
           // Persist the error so it shows on next page load
-          return { ...b, solution: { ...(b.solution ?? {}), errors: r.errors, display: undefined }, _status: b._status === "new" ? "new" : "modified" };
+          return { ...b, solution: { ...(b.solution ?? {}), errors: r.errors, display: undefined }, _status: b._status === "new" ? "new" : "modified" } as VirtualBlock;
         }
         if (!r.solution) return b;
         const lhs = r.display.equation ?? (b.definition as { displayEq?: string }).displayEq ?? "";
@@ -915,7 +915,7 @@ export default function DocumentWrapper({
             errors: [],
           },
           _status: b._status === "new" ? "new" : "modified",
-        };
+        } as VirtualBlock;
       });
       return next;
     });

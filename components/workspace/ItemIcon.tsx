@@ -1,4 +1,4 @@
-import { Folder, FileText, Database, GitBranch } from "lucide-react";
+import { Folder, FileText, Database, GitBranch, Image } from "lucide-react";
 import type { ItemType } from "@/types/item";
 
 const iconMap: Record<ItemType, React.ReactNode> = {
@@ -7,6 +7,7 @@ const iconMap: Record<ItemType, React.ReactNode> = {
   DOCUMENT:  <FileText size={18} className="text-gray-500" />,
   DATASET:   <Database size={18} className="text-green-500" />,
   PART_TREE: <GitBranch size={18} className="text-purple-500" />,
+  IMAGE:     <Image size={18} className="text-pink-500" />,
 };
 
 export default function ItemIcon({ type }: { type: ItemType }) {

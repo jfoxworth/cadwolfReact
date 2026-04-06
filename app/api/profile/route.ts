@@ -59,6 +59,7 @@ export async function PUT(req: NextRequest) {
     }
     const user = await db.user.findUnique({ where: { id: session.userId } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user.password) return NextResponse.json({ error: "No password set" }, { status: 400 });
     const valid = await bcrypt.compare(body.currentPassword, user.password);
     if (!valid) return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
   }

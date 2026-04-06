@@ -62,7 +62,7 @@ export default function DescriptionEditor({ content, onChange }: Props) {
 
   function applyLink() {
     const url = linkInput.trim();
-    if (url) editor.chain().focus().setLink({ href: url }).run();
+    if (url) editor?.chain().focus().setLink({ href: url }).run();
     setShowLinkInput(false);
     setLinkInput("");
   }

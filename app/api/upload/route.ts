@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   const rawParentId = formData.get("parentId");
   const parentId = rawParentId ? Number(rawParentId) : null;
 
-  let newItem = null;
+  let newItem: ReturnType<typeof fileToItem> | null = null;
   if (parentId) {
     const newFile = await db.file.create({
       data: {

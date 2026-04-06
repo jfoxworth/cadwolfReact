@@ -4,7 +4,21 @@ import { db } from "@/utils/db";
 
 // ─── Data fetching ────────────────────────────────────────────────────────────
 
-async function getStats() {
+interface AdminStats {
+  totalUsers: number; newUsersCount: number;
+  googleCount: number; facebookCount: number; standardCount: number;
+  monthlySignups: { month: string; count: number }[];
+  docsYesterday: number; docsLastWeek: number; docsLastMonth: number; totalDocs: number;
+  totalWorkspaces: number; totalFolders: number; totalPartTrees: number;
+  totalDatasets: number; totalTeams: number;
+  totalComponents: number; totalFileImports: number;
+  onshapeCount: number; fusionCount: number;
+  engagedUserCount: number; engagementRate: number;
+  blocksYesterday: number; blocksLastWeek: number; blocksLastMonth: number;
+  blockTypeBreakdown: { label: string; count: number }[];
+}
+
+async function getStats(): Promise<AdminStats> {
   const now       = new Date();
   const yesterday = new Date(now.getTime() -  1 * 24 * 60 * 60 * 1000);
   const weekAgo   = new Date(now.getTime() -  7 * 24 * 60 * 60 * 1000);
@@ -63,15 +77,15 @@ async function getStats() {
   ]);
 
   // Sign-up method breakdown for new users
-  const newUserIds = newUsersThisMonth.map((u) => u.id);
+  const newUserIds = newUsersThisMonth.map((u: { id: number }) => u.id);
   const [googleAccounts, facebookAccounts] = await Promise.all([
     db.oAuthAccount.findMany({ where: { provider: "google",   userId: { in: newUserIds } }, select: { userId: true } }),
     db.oAuthAccount.findMany({ where: { provider: "facebook", userId: { in: newUserIds } }, select: { userId: true } }),
   ]);
-  const federatedIds   = new Set([...googleAccounts.map((a) => a.userId), ...facebookAccounts.map((a) => a.userId)]);
+  const federatedIds   = new Set([...googleAccounts.map((a: { userId: number }) => a.userId), ...facebookAccounts.map((a: { userId: number }) => a.userId)]);
   const googleCount    = googleAccounts.length;
   const facebookCount  = facebookAccounts.length;
-  const standardCount  = newUserIds.filter((id) => !federatedIds.has(id)).length;
+  const standardCount  = newUserIds.filter((id: number) => !federatedIds.has(id)).length;
   const newUsersCount  = newUsersThisMonth.length;
 
   // Monthly signups for the last 6 months
@@ -89,8 +103,8 @@ async function getStats() {
   const monthlySignups = Object.entries(monthlyMap).map(([month, count]) => ({ month, count }));
 
   // CAD connection breakdown
-  const onshapeCount = cadConnections.filter((c) => c.cadType === "onshape").length;
-  const fusionCount  = cadConnections.filter((c) => c.cadType === "fusion").length;
+  const onshapeCount = cadConnections.filter((c: { cadType: string }) => c.cadType === "onshape").length;
+  const fusionCount  = cadConnections.filter((c: { cadType: string }) => c.cadType === "fusion").length;
 
   const engagedUserCount = usersWithDocs.length;
   const engagementRate   = totalUsers > 0 ? Math.round((engagedUserCount / totalUsers) * 100) : 0;
@@ -116,11 +130,11 @@ async function getStats() {
   };
 
   const blockTypeBreakdown = blocksByType
-    .map((row) => ({
+    .map((row: { componentTypeId: number; _count: { id: number } }) => ({
       label: COMPONENT_LABELS[row.componentTypeId] ?? `Type ${row.componentTypeId}`,
       count: row._count.id,
     }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a: { count: number }, b: { count: number }) => b.count - a.count);
 
   return {
     totalUsers, newUsersCount,
@@ -262,10 +276,10 @@ export default async function AdminPage() {
   const s = await getStats();
   const docMax         = Math.max(s.docsLastMonth, 1);
   const blockMax       = Math.max(s.blocksLastMonth, 1);
-  const blockTypeMax   = Math.max(...s.blockTypeBreakdown.map((b) => b.count), 1);
+  const blockTypeMax   = Math.max(...s.blockTypeBreakdown.map((b: { count: number }) => b.count), 1);
   const contentMax     = Math.max(s.totalDocs, s.totalWorkspaces, s.totalFolders, s.totalPartTrees, s.totalDatasets, 1);
   const cadMax         = Math.max(s.onshapeCount + s.fusionCount, 1);
-  const monthlyMax     = Math.max(...s.monthlySignups.map((m) => m.count), 1);
+  const monthlyMax     = Math.max(...s.monthlySignups.map((m: { count: number }) => m.count), 1);
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ paddingLeft: 88 }}>
