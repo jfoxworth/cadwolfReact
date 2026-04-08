@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "heroku-postbuild": "prisma generate && next build"
+    "postinstall": "prisma generate",
+    "heroku-postbuild": "next build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1022.0",
