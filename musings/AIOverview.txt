@@ -1,0 +1,733 @@
+# CadWolf — AI & Structural Engineering Implementation Plan
+
+This document is the working plan for building out CadWolf's structural engineering AI capability,
+starting with trusses and expanding from there. Work through each step in order. Each step
+produces artifacts that the next step depends on.
+
+---
+
+## Context & Architecture
+
+CadWolf is a web-based structured calculation platform. Documents contain equation blocks,
+text blocks, plots, loops, and conditionals. The solver is unit-aware and resolves dependencies
+automatically. Documents can be called as functions by other documents.
+
+The AI will be trained on CadWolf documents — not generic code. It needs to learn to write
+correct, unit-consistent, step-by-step engineering calculations in CadWolf syntax. Training data
+consists of:
+- Individual hand-solved examples (teach the method and narrative style)
+- General solver documents (teach generalization and reuse)
+- Member and connection design documents (teach code-checking)
+- Full design chains (teach end-to-end workflow)
+
+The user inputs to drive a full truss design are:
+- Connection points (node coordinates)
+- Fitting types (clevis, gusset, tube end, etc.)
+- Fitting material
+- Member/strut material
+- Member/strut cross-section shape (round tube, square tube, solid rod, etc.)
+- Factor of safety
+
+---
+
+## STEP 1 — Built-in Material & Fastener Constants
+
+**What:** Add material strengths, bolt capacities, and weld properties as platform-level global
+constants — like `grav` or `pi`. Available in any document without importing anything.
+
+**Why built-in code and not a dataset:** These are code-defined physical constants, not
+user data. They belong in the platform the same way gravitational acceleration does. A user
+typing `A36.Fy` should just work, everywhere, always.
+
+### 1A — Steel Material Grades
+
+Implement as a structured lookup. Each grade exposes:
+- `Fy` — yield strength [ksi or MPa]
+- `Fu` — ultimate tensile strength [ksi or MPa]
+- `E`  — modulus of elasticity (29,000 ksi / 200 GPa for all steel)
+- `G`  — shear modulus (11,200 ksi / 77 GPa for all steel)
+
+**Grades to implement (ASTM designations):**
+
+| Constant Name | Grade     | Fy (ksi) | Fu (ksi) | Common Use              |
+|---------------|-----------|-----------|-----------|-------------------------|
+| `A36`         | ASTM A36  | 36        | 58–80     | General structural steel|
+| `A572_42`     | A572 Gr42 | 42        | 60        | Structural shapes        |
+| `A572_50`     | A572 Gr50 | 50        | 65        | Most common HSLA steel  |
+| `A572_60`     | A572 Gr60 | 60        | 75        | High strength shapes    |
+| `A992`        | A992      | 50        | 65        | W-shapes (wide flange)  |
+| `A500_B_rect` | A500 Gr B | 46        | 58        | HSS rectangular         |
+| `A500_B_round`| A500 Gr B | 42        | 58        | HSS round               |
+| `A53_B`       | A53 Gr B  | 35        | 60        | Steel pipe              |
+| `A1085`       | A1085     | 50        | 65        | HSS (tighter tolerances)|
+
+**Source:** AISC Steel Construction Manual, 16th Edition, Table 2-4
+URL: https://www.aisc.org/steel-construction-manual
+
+**Implementation note:** Values in both imperial (ksi) and SI (MPa). Platform should serve
+whichever unit system the document is using.
+
+---
+
+### 1B — Aluminum Alloys
+
+| Constant Name  | Alloy/Temper | Fty (ksi) | Ftu (ksi) | E (ksi)  | Common Use           |
+|----------------|--------------|------------|------------|----------|----------------------|
+| `AL6061_T6`    | 6061-T6      | 35         | 42         | 10,100   | General structural   |
+| `AL6063_T5`    | 6063-T5      | 16         | 22         | 10,100   | Extrusions           |
+| `AL6063_T6`    | 6063-T6      | 25         | 30         | 10,100   | Extrusions           |
+| `AL7075_T6`    | 7075-T6      | 73         | 83         | 10,400   | Aerospace, high str  |
+| `AL2024_T3`    | 2024-T3      | 50         | 70         | 10,600   | Aerospace            |
+| `AL5052_H32`   | 5052-H32     | 23         | 33         | 10,200   | Marine, sheet        |
+
+**Source:** Aluminum Design Manual, Aluminum Association, 2020
+URL: https://www.aluminum.org/aluminum-design-manual
+
+---
+
+### 1C — Stainless Steel
+
+| Constant Name  | Grade     | Fy (ksi) | Fu (ksi) | Notes                  |
+|----------------|-----------|-----------|-----------|------------------------|
+| `SS304`        | 304       | 30        | 75        | General purpose        |
+| `SS316`        | 316       | 30        | 75        | Marine/corrosion       |
+| `SS17_4_H900`  | 17-4 H900 | 170       | 190       | Aerospace, high str    |
+
+**Source:** AISC Design Guide 27 — Structural Stainless Steel
+URL: https://www.aisc.org/design-guide-27
+
+---
+
+### 1D — Titanium (for aerospace/NASA use cases)
+
+| Constant Name  | Alloy        | Fty (ksi) | Ftu (ksi) | E (ksi) |
+|----------------|--------------|------------|------------|---------|
+| `Ti6Al4V`      | Ti-6Al-4V    | 120        | 130        | 16,500  |
+| `Ti3Al2_5V`    | Ti-3Al-2.5V  | 70         | 80         | 15,500  |
+
+**Source:** MIL-HDBK-5 / MMPDS (Metallic Materials Properties Development and Standardization)
+URL: https://www.mmpds.org
+
+---
+
+### 1E — Bolt Capacities
+
+Implement per AISC Table J3-2. Each bolt constant exposes:
+- `Fnv` — nominal shear stress [ksi]
+- `Fnt` — nominal tensile stress [ksi]
+- `diameter` — bolt diameter [in]
+
+**Bolt grades to implement:**
+
+| Constant Name   | Spec     | Fnt (ksi) | Fnv (ksi, threads excl.) | Notes           |
+|-----------------|----------|------------|---------------------------|-----------------|
+| `A307`          | A307     | 45         | 27                        | Low strength    |
+| `A325_half`     | A325 1/2"| 90         | 54                        | Common struct   |
+| `A325_1`        | A325 1"  | 90         | 54                        | Common struct   |
+| `A490_half`     | A490 1/2"| 113        | 68                        | High strength   |
+| `A490_1`        | A490 1"  | 113        | 68                        | High strength   |
+| `F3125_A`       | F3125 A  | 90         | 54                        | Replaces A325   |
+| `F3125_B`       | F3125 B  | 113        | 68                        | Replaces A490   |
+
+**Source:** AISC Steel Construction Manual 16th Ed., Table J3-2
+The bolt capacity for a single bolt in shear: φRn = φ × Fnv × Ab
+The bolt capacity in tension: φRn = φ × Fnt × Ab
+where Ab = π/4 × d² and φ = 0.75 for bolts
+
+---
+
+### 1F — Weld Properties
+
+| Constant Name | Electrode | FEXX (ksi) | Notes               |
+|---------------|-----------|------------|---------------------|
+| `E60`         | E60XX     | 60         | Low strength        |
+| `E70`         | E70XX     | 70         | Most common         |
+| `E80`         | E80XX     | 80         | Higher strength     |
+| `E90`         | E90XX     | 90         | High strength       |
+
+Fillet weld capacity per linear inch: φRn = 0.75 × 0.6 × FEXX × (throat)
+where throat = 0.707 × weld_size for a fillet weld
+
+**Source:** AISC Steel Construction Manual 16th Ed., Section J2
+
+---
+
+## STEP 2 — Section Property Documents
+
+**What:** CadWolf documents that calculate cross-section properties for standard member shapes.
+Each shape type is a separate document. These documents are called by member design documents.
+
+**Properties each document must output:**
+- `A`   — cross-sectional area [in² or mm²]
+- `Ix`  — moment of inertia about x-axis [in⁴ or mm⁴]
+- `Iy`  — moment of inertia about y-axis [in⁴ or mm⁴]
+- `Sx`  — section modulus about x-axis [in³ or mm³]
+- `Sy`  — section modulus about y-axis [in³ or mm³]
+- `rx`  — radius of gyration about x-axis [in or mm]
+- `ry`  — radius of gyration about y-axis [in or mm]
+- `J`   — torsional constant [in⁴ or mm⁴]
+
+---
+
+### 2A — Round Solid Rod
+
+**Inputs:** `d` — diameter
+
+```
+A   = pi/4 * power(2, d)
+I   = pi/64 * power(4, d)
+S   = pi/32 * power(3, d)
+r   = d/4
+J   = pi/32 * power(4, d)
+```
+
+No lookup needed — pure geometry.
+
+---
+
+### 2B — Round Hollow Tube (HSS Round / Pipe)
+
+**Inputs:** `OD` — outer diameter, `t` — wall thickness
+
+```
+ID  = OD - 2*t
+A   = pi/4 * (power(2, OD) - power(2, ID))
+I   = pi/64 * (power(4, OD) - power(4, ID))
+S   = I / (OD/2)
+r   = sqrt(I/A)
+J   = 2*I
+```
+
+---
+
+### 2C — Square Solid Bar
+
+**Inputs:** `b` — side length
+
+```
+A   = power(2, b)
+I   = power(4, b) / 12
+S   = power(3, b) / 6
+r   = b / sqrt(12)
+J   = 0.1406 * power(4, b)   ← Saint-Venant torsion approximation
+```
+
+---
+
+### 2D — Square Hollow Tube (HSS Rectangular/Square)
+
+**Inputs:** `b` — outer side, `t` — wall thickness
+
+```
+b_i = b - 2*t
+A   = power(2, b) - power(2, b_i)
+I   = (power(4, b) - power(4, b_i)) / 12
+S   = I / (b/2)
+r   = sqrt(I/A)
+```
+
+---
+
+### 2E — Rectangular Hollow Tube
+
+**Inputs:** `b` — width, `h` — height, `t` — wall thickness
+
+```
+b_i = b - 2*t
+h_i = h - 2*t
+A   = b*h - b_i*h_i
+Ix  = (b * power(3, h) - b_i * power(3, h_i)) / 12
+Iy  = (h * power(3, b) - h_i * power(3, b_i)) / 12
+Sx  = Ix / (h/2)
+Sy  = Iy / (b/2)
+rx  = sqrt(Ix/A)
+ry  = sqrt(Iy/A)
+```
+
+---
+
+### 2F — Standard AISC Shapes (Dataset-backed)
+
+For W-shapes, angles, channels — properties come from the AISC shapes database.
+
+**Source:** AISC Steel Construction Manual, or download the shapes database directly:
+URL: https://www.aisc.org/publications/steel-construction-manual-resources/
+File: "AISC Shapes Database v16" — available as Excel/CSV, free download
+
+Import into CadWolf as a Dataset. Columns needed:
+`EDI_Std_Nomenclature, A, d, bf, tf, tw, Ix, Sx, rx, Iy, Sy, ry, J, Cw`
+
+Documents reference this dataset by shape name to pull properties.
+
+---
+
+## STEP 3 — Structural Design Check Documents
+
+**What:** Documents that take a member force and check it against code. One document per
+check type. These are called by the truss design chain. All use ASD (Allowable Stress Design)
+with a user-supplied factor of safety, which maps directly to the user's input.
+
+---
+
+### 3A — Tension Member Design (AISC Chapter D, ASD)
+
+**Document: `tension_member_check`**
+
+**Inputs:**
+- `P`     — axial tension force [kips]
+- `mat`   — material constant (e.g. A36, A572_50)
+- `A_g`   — gross cross-sectional area [in²]
+- `A_e`   — effective net area [in²] (= A_g for continuous members, less for connections)
+- `FS`    — factor of safety (typically 1.67 for yielding, 2.0 for rupture per ASD)
+
+**Checks:**
+```
+[TEXT] Yielding on gross section (AISC D2-1)
+P_allow_yield   = mat.Fy * A_g / FS
+
+[TEXT] Rupture on net section (AISC D2-2)
+P_allow_rupture = mat.Fu * A_e / (FS * 1.2)
+
+[TEXT] Governing allowable tension
+P_allow = min(P_allow_yield, P_allow_rupture)
+
+[TEXT] Utilization ratio (must be <= 1.0)
+UR_tension = P / P_allow
+```
+
+**Source:** AISC Steel Construction Manual 16th Ed., Chapter D
+
+---
+
+### 3B — Compression Member Design / Column Buckling (AISC Chapter E, ASD)
+
+**Document: `compression_member_check`**
+
+**Inputs:**
+- `P`     — axial compression force [kips]
+- `mat`   — material constant
+- `A`     — cross-sectional area [in²]
+- `r`     — governing radius of gyration (min of rx, ry) [in]
+- `L`     — unbraced length [in]
+- `K`     — effective length factor (1.0 for pin-pin truss members)
+- `FS`    — factor of safety
+
+**Checks:**
+```
+[TEXT] Slenderness ratio
+KL_r = K * L / r
+
+[TEXT] Limiting slenderness ratio (AISC E2)
+KL_r_max = 200   ← recommended max per AISC
+
+[TEXT] Elastic buckling stress (Euler)
+Fe = power(2, pi) * mat.E / power(2, KL_r)
+
+[TEXT] 4.71 * sqrt(E/Fy) — transition between elastic and inelastic
+transition = 4.71 * sqrt(mat.E / mat.Fy)
+
+[TEXT] Critical stress — inelastic or elastic buckling
+Fcr = IfElse(KL_r, "<=", transition,
+       power(0.658, mat.Fy/Fe) * mat.Fy,
+       0.877 * Fe)
+
+[TEXT] Allowable compressive force
+P_allow = Fcr * A / FS
+
+[TEXT] Utilization ratio (must be <= 1.0)
+UR_compression = P / P_allow
+```
+
+**Source:** AISC Steel Construction Manual 16th Ed., Chapter E
+
+---
+
+### 3C — Bolt Shear Check (AISC Chapter J, ASD)
+
+**Document: `bolt_shear_check`**
+
+**Inputs:**
+- `V`        — shear force per bolt [kips]
+- `bolt`     — bolt constant (e.g. A325_half)
+- `d_bolt`   — bolt diameter [in]
+- `n_shear`  — number of shear planes (1 = single shear, 2 = double shear)
+- `FS`       — factor of safety (typically 2.0 for ASD bolts)
+
+```
+[TEXT] Bolt cross-sectional area
+A_b = pi/4 * power(2, d_bolt)
+
+[TEXT] Allowable shear per bolt
+V_allow = bolt.Fnv * A_b * n_shear / FS
+
+[TEXT] Utilization ratio
+UR_bolt_shear = V / V_allow
+```
+
+---
+
+### 3D — Bolt Tension Check (AISC Chapter J, ASD)
+
+**Document: `bolt_tension_check`**
+
+**Inputs:**
+- `T`        — tension force per bolt [kips]
+- `bolt`     — bolt constant
+- `d_bolt`   — bolt diameter [in]
+- `FS`       — factor of safety
+
+```
+A_b      = pi/4 * power(2, d_bolt)
+T_allow  = bolt.Fnt * A_b / FS
+UR_bolt_tension = T / T_allow
+```
+
+---
+
+### 3E — Combined Bolt Shear and Tension (AISC J3-2)
+
+**Document: `bolt_combined_check`**
+
+**Inputs:** `V`, `T`, `bolt`, `d_bolt`, `FS`
+
+```
+A_b      = pi/4 * power(2, d_bolt)
+fv       = V / A_b
+ft       = T / A_b
+[TEXT] Modified tensile stress accounting for shear (AISC Eq J3-3a)
+Fnt_mod  = 1.3 * bolt.Fnt - (bolt.Fnt / bolt.Fnv) * fv
+Fnt_mod  = min(Fnt_mod, bolt.Fnt)
+T_allow  = Fnt_mod * A_b / FS
+UR_combined = T / T_allow
+```
+
+---
+
+### 3F — Fillet Weld Check (AISC J2)
+
+**Document: `fillet_weld_check`**
+
+**Inputs:**
+- `P`        — force on weld [kips]
+- `weld_size`— weld leg size [in]
+- `L_weld`   — total weld length [in]
+- `electrode`— weld constant (e.g. E70)
+- `FS`       — factor of safety
+
+```
+[TEXT] Throat thickness
+throat   = 0.707 * weld_size
+
+[TEXT] Weld throat area
+A_weld   = throat * L_weld
+
+[TEXT] Allowable weld force
+P_allow  = 0.6 * electrode.FEXX * A_weld / FS
+
+[TEXT] Utilization ratio
+UR_weld  = P / P_allow
+```
+
+---
+
+### 3G — Member Sizing (Back-calculate required section)
+
+**Document: `size_member_for_force`**
+
+**Inputs:** `P`, `mat`, `member_type` (tension or compression), `L`, `K`, `FS`
+
+This document works backwards — given a force, what is the minimum section required?
+
+For tension: `A_required = P * FS / mat.Fy`
+For compression: iterate (or use closed-form approximation) to find minimum A and r satisfying
+both the buckling and stress checks. Use `bisect` or `incSearch` to solve.
+
+---
+
+## STEP 4 — Truss Analysis and Design Documents
+
+**What:** Documents that take geometry and loads, find member forces, then size every member
+and connection. These are the core of the AI's design capability.
+
+---
+
+### 4A — Truss Analysis: Method of Joints (2D)
+
+**Document: `truss_method_of_joints_2D`**
+
+**Purpose:** Given a 2D truss with defined nodes, members, supports, and applied loads —
+solve for all member forces and support reactions using Method of Joints.
+
+**Inputs (as vectors/matrices):**
+- `nodes`    — N×2 matrix of [x, y] coordinates for each node [in or m]
+- `members`  — M×2 matrix of [i_node, j_node] connectivity (0-indexed)
+- `supports` — S×3 matrix of [node_id, fix_x, fix_y] (1 = fixed DOF)
+- `loads`    — L×3 matrix of [node_id, Fx, Fy] applied at free nodes [kips or kN]
+
+**Process:**
+1. Compute member angles from geometry using `atan2`
+2. Determine free nodes (not fully fixed)
+3. For each free node in order, assemble 2-equation system (ΣFx=0, ΣFy=0)
+4. Solve using `gaussE`
+5. Extract member forces (positive = tension, negative = compression)
+6. Back-calculate reactions from solved forces
+
+**Output:**
+- `F_members` — vector of member forces [kips or kN]
+- `reactions` — vector of support reactions
+
+**Training data needed:** 10-20 solved examples of increasing complexity, each written as a
+full CadWolf document with text blocks explaining each step.
+
+---
+
+### 4B — Truss Analysis: Matrix Stiffness Method (2D and 3D)
+
+**Document: `truss_matrix_stiffness_2D`** and **`truss_matrix_stiffness_3D`**
+
+**Purpose:** Assemble the global stiffness matrix and solve for all displacements and member
+forces simultaneously. Handles any truss — determinate or indeterminate.
+
+**Inputs:** Same as 4A, plus:
+- `areas`    — M×1 vector of cross-sectional areas for each member [in² or mm²]
+- `E_mod`    — elastic modulus (scalar, from material constant)
+
+**Process:**
+1. For each member, compute local stiffness matrix: k = (AE/L) × [1,-1;-1,1]
+2. Transform to global coordinates using angle θ
+3. Assemble into global stiffness matrix K (size 2N×2N for 2D, 3N×3N for 3D)
+4. Apply boundary conditions (remove rows/cols for fixed DOFs)
+5. Solve K_reduced × d = F using `gaussE`
+6. Back-calculate member forces from displacements
+
+**Output:**
+- `displacements` — nodal displacement vector
+- `F_members`     — member force vector
+- `reactions`     — support reaction vector
+
+**Source for method:** Matrix Structural Analysis, McGuire, Gallagher & Ziemian (2nd Ed.)
+Available free: https://matrixanalysis.com
+
+---
+
+### 4C — Full Truss Design Chain
+
+**Document: `design_truss`**
+
+**Purpose:** The master document. Takes user inputs, calls all sub-documents in sequence,
+and outputs a complete design.
+
+**Flow:**
+1. Accept user inputs: node coordinates, member connectivity, loads, material, section shape, bolt type, FS
+2. Call `truss_matrix_stiffness_2D` → get member forces
+3. For each member:
+   a. Call `size_member_for_force` → get required section dimensions
+   b. Call `tension_member_check` or `compression_member_check` → verify UR ≤ 1.0
+4. For each connection:
+   a. Call `bolt_shear_check` and/or `bolt_tension_check`
+   b. Size number of bolts required
+5. Report: member sizes, bolt counts, utilization ratios, governing checks
+6. Output part tree data: member list with sizes and lengths, connection list with bolt counts
+
+---
+
+## STEP 5 — Training Data: Truss Examples
+
+**What:** A library of hand-solved truss examples written as CadWolf documents. These are the
+primary training data for the AI.
+
+---
+
+### 5A — Simple 2D Examples (Method of Joints)
+
+Build these first. Each is a fully self-contained CadWolf document with text blocks
+explaining every step.
+
+**Examples to build:**
+
+| Example | Description                               | Nodes | Members |
+|---------|-------------------------------------------|-------|---------|
+| T01     | Simple triangle, vertical load at apex    | 3     | 3       |
+| T02     | 4-node Pratt truss, midspan load          | 4     | 5       |
+| T03     | Warren truss, uniform panel loads         | 6     | 9       |
+| T04     | Howe truss, asymmetric loading            | 6     | 9       |
+| T05     | K-truss, multiple load points             | 8     | 13      |
+| T06     | Cantilever truss, tip load                | 5     | 7       |
+| T07     | Bowstring truss, curved top chord         | 7     | 11      |
+| T08     | Double diagonal truss (indeterminate)     | 6     | 10      |
+
+Each document must contain:
+- Text block describing the truss geometry
+- Equation blocks for node coordinates
+- Equation blocks for member angles and lengths
+- Text block explaining the method being used
+- Equation blocks for the joint-by-joint solution
+- Equation blocks for verification (sum of reactions = sum of applied loads)
+- Final summary of member forces in a table
+
+---
+
+### 5B — Simple 2D Examples (Matrix Stiffness Method)
+
+Solve the SAME trusses as 5A using the matrix stiffness method. This gives the AI paired
+examples — same problem, two methods. Results must agree.
+
+---
+
+### 5C — Member Design Examples
+
+For each member in each truss above, write a design check document:
+- T01_M1_tension — member 1 of truss T01, tension check
+- T01_M2_compression — member 2 of truss T01, compression check with buckling
+- etc.
+
+These become the training data for the AI to learn when to apply which check.
+
+---
+
+### 5D — Connection Design Examples
+
+For each truss, write a connection design document for at least two joints:
+- A heavily loaded joint (worst case)
+- A lightly loaded joint (typical case)
+
+Each connection document should cover:
+- Force in each member framing into the joint
+- Bolt shear check
+- Bolt tension check if applicable
+- Fitting/gusset plate bearing check
+
+---
+
+### 5E — 3D Truss Examples
+
+After 2D is solid, build 3D examples using the matrix stiffness method (Method of Joints
+becomes unwieldy in 3D). Start simple:
+
+| Example | Description                              |
+|---------|------------------------------------------|
+| T3D_01  | 3D tetrahedron, single apex load         |
+| T3D_02  | Space frame, 4 support points            |
+| T3D_03  | Tower truss, lateral and vertical loads  |
+
+---
+
+### 5F — CAD Integration
+
+For each truss example, create an Onshape model of the geometry and link it to the CadWolf
+document via a CAD reference block. This allows:
+- Mass properties to flow into the calculation
+- Visual verification of the truss geometry
+- Future generative design workflow (AI proposes geometry, CAD updates, analysis re-runs)
+
+**Onshape is free for public documents:** https://www.onshape.com
+
+---
+
+## Document Naming Convention
+
+Use a consistent naming scheme so the AI can learn to navigate the document library:
+
+```
+materials/          — Step 1 (built-in, not documents)
+sections/
+  section_round_rod.cw
+  section_round_tube.cw
+  section_square_bar.cw
+  section_square_tube.cw
+  section_rect_tube.cw
+  section_aisc_shapes.cw
+checks/
+  check_tension.cw
+  check_compression.cw
+  check_bolt_shear.cw
+  check_bolt_tension.cw
+  check_bolt_combined.cw
+  check_weld_fillet.cw
+  size_member.cw
+analysis/
+  truss_method_of_joints_2D.cw
+  truss_matrix_stiffness_2D.cw
+  truss_matrix_stiffness_3D.cw
+design/
+  design_truss.cw
+examples/
+  2D/
+    T01_triangle_vertical_load.cw
+    T02_pratt_4node.cw
+    T03_warren_uniform.cw
+    ...
+  3D/
+    T3D_01_tetrahedron.cw
+    ...
+  member_checks/
+    T01_M1_tension.cw
+    T01_M2_compression.cw
+    ...
+  connections/
+    T01_joint_A.cw
+    T01_joint_B.cw
+    ...
+```
+
+---
+
+## Data Sources Summary
+
+| Item                        | Source                                    | URL / Notes                                          |
+|-----------------------------|-------------------------------------------|------------------------------------------------------|
+| Steel material properties   | AISC Steel Construction Manual 16th Ed.   | aisc.org — Table 2-4, free to view                   |
+| Bolt capacities             | AISC SCM 16th Ed.                         | aisc.org — Table J3-2                                |
+| Weld properties             | AISC SCM 16th Ed.                         | aisc.org — Section J2                                |
+| AISC shapes database        | AISC SCM Resources page                   | aisc.org/publications — free Excel/CSV download      |
+| Aluminum properties         | Aluminum Design Manual                    | aluminum.org                                         |
+| Stainless steel             | AISC Design Guide 27                      | aisc.org/design-guide-27                             |
+| Titanium / aerospace        | MMPDS (formerly MIL-HDBK-5)              | mmpds.org — subscription, or use published tables    |
+| Matrix stiffness method     | McGuire, Gallagher & Ziemian             | matrixanalysis.com — free PDF                        |
+| Column buckling             | AISC SCM 16th Ed.                         | aisc.org — Chapter E                                 |
+| Tension members             | AISC SCM 16th Ed.                         | aisc.org — Chapter D                                 |
+| Connection design           | AISC SCM 16th Ed.                         | aisc.org — Chapter J                                 |
+
+---
+
+## Implementation Order
+
+1. Step 1 — Code the material and bolt constants into the platform. Test by referencing
+   `A36.Fy` in a document and confirming it returns 36 ksi.
+
+2. Step 2 — Build the section property documents. Test each one against a known value
+   (e.g. a 2" diameter round rod should give A = 3.1416 in²).
+
+3. Step 3 — Build the design check documents. Test each against a hand-calculated example
+   from the AISC manual.
+
+4. Step 4A — Build the Method of Joints document. Test against a textbook truss with known
+   solution.
+
+5. Step 4B — Build the Matrix Stiffness document. Test against the same truss — results must
+   match 4A exactly.
+
+6. Step 5A/5B — Build training examples, starting with T01. Each example validates the
+   documents from Steps 2-4 as a side effect.
+
+7. Step 4C — Build the master design chain. Test end-to-end with T01 geometry and confirm
+   it produces reasonable member sizes and bolt counts.
+
+8. Step 5C/5D — Build member and connection design examples.
+
+9. Step 5E — Extend to 3D.
+
+10. Step 5F — Link to Onshape models.
+
+---
+
+## Notes for AI Training
+
+- Every example document should have text blocks explaining the engineering reasoning,
+  not just the equations. The AI needs to learn the narrative, not just the math.
+- Variable names must be consistent across all documents. If the member force is `F_member`
+  in the analysis document, it must be `F_member` in the design check document.
+- Units must be explicit on every physical quantity. Never leave a force as a bare number.
+- Positive = tension, negative = compression. This convention must be consistent everywhere.
+- Each example should end with a verification block that checks equilibrium.
+  This teaches the AI to always verify its own work.

@@ -1,0 +1,162 @@
+[
+  { "material": "A36", "category": "steel", "grade": "ASTM A36", "property": "yield_strength", "value": 36, "units": "ksi", "name": "A36_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A36", "category": "steel", "grade": "ASTM A36", "property": "ultimate_strength", "value": 58, "units": "ksi", "name": "A36_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A36", "category": "steel", "grade": "ASTM A36", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A36_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A36", "category": "steel", "grade": "ASTM A36", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A36_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A572_42", "category": "steel", "grade": "A572 Gr42", "property": "yield_strength", "value": 42, "units": "ksi", "name": "A572_42_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A572_42", "category": "steel", "grade": "A572 Gr42", "property": "ultimate_strength", "value": 60, "units": "ksi", "name": "A572_42_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A572_42", "category": "steel", "grade": "A572 Gr42", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A572_42_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A572_42", "category": "steel", "grade": "A572 Gr42", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A572_42_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A572_50", "category": "steel", "grade": "A572 Gr50", "property": "yield_strength", "value": 50, "units": "ksi", "name": "A572_50_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A572_50", "category": "steel", "grade": "A572 Gr50", "property": "ultimate_strength", "value": 65, "units": "ksi", "name": "A572_50_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A572_50", "category": "steel", "grade": "A572 Gr50", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A572_50_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A572_50", "category": "steel", "grade": "A572 Gr50", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A572_50_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A572_60", "category": "steel", "grade": "A572 Gr60", "property": "yield_strength", "value": 60, "units": "ksi", "name": "A572_60_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A572_60", "category": "steel", "grade": "A572 Gr60", "property": "ultimate_strength", "value": 75, "units": "ksi", "name": "A572_60_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A572_60", "category": "steel", "grade": "A572 Gr60", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A572_60_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A572_60", "category": "steel", "grade": "A572 Gr60", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A572_60_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A992", "category": "steel", "grade": "A992", "property": "yield_strength", "value": 50, "units": "ksi", "name": "A992_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A992", "category": "steel", "grade": "A992", "property": "ultimate_strength", "value": 65, "units": "ksi", "name": "A992_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A992", "category": "steel", "grade": "A992", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A992_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A992", "category": "steel", "grade": "A992", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A992_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A500B_rect", "category": "steel", "grade": "A500 Gr B (rectangular)", "property": "yield_strength", "value": 46, "units": "ksi", "name": "A500B_rect_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500B_rect", "category": "steel", "grade": "A500 Gr B (rectangular)", "property": "ultimate_strength", "value": 58, "units": "ksi", "name": "A500B_rect_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500B_rect", "category": "steel", "grade": "A500 Gr B (rectangular)", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A500B_rect_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A500B_rect", "category": "steel", "grade": "A500 Gr B (rectangular)", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A500B_rect_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A500B_round", "category": "steel", "grade": "A500 Gr B (round)", "property": "yield_strength", "value": 42, "units": "ksi", "name": "A500B_round_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500B_round", "category": "steel", "grade": "A500 Gr B (round)", "property": "ultimate_strength", "value": 58, "units": "ksi", "name": "A500B_round_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500B_round", "category": "steel", "grade": "A500 Gr B (round)", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A500B_round_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A500B_round", "category": "steel", "grade": "A500 Gr B (round)", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A500B_round_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A500C_rect", "category": "steel", "grade": "A500 Gr C (rectangular)", "property": "yield_strength", "value": 50, "units": "ksi", "name": "A500C_rect_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500C_rect", "category": "steel", "grade": "A500 Gr C (rectangular)", "property": "ultimate_strength", "value": 62, "units": "ksi", "name": "A500C_rect_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500C_rect", "category": "steel", "grade": "A500 Gr C (rectangular)", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A500C_rect_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A500C_rect", "category": "steel", "grade": "A500 Gr C (rectangular)", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A500C_rect_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A500C_round", "category": "steel", "grade": "A500 Gr C (round)", "property": "yield_strength", "value": 46, "units": "ksi", "name": "A500C_round_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500C_round", "category": "steel", "grade": "A500 Gr C (round)", "property": "ultimate_strength", "value": 62, "units": "ksi", "name": "A500C_round_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A500C_round", "category": "steel", "grade": "A500 Gr C (round)", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A500C_round_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A500C_round", "category": "steel", "grade": "A500 Gr C (round)", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A500C_round_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A53B", "category": "steel", "grade": "A53 Gr B", "property": "yield_strength", "value": 35, "units": "ksi", "name": "A53B_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A53B", "category": "steel", "grade": "A53 Gr B", "property": "ultimate_strength", "value": 60, "units": "ksi", "name": "A53B_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A53B", "category": "steel", "grade": "A53 Gr B", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A53B_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A53B", "category": "steel", "grade": "A53 Gr B", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A53B_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A1085", "category": "steel", "grade": "A1085", "property": "yield_strength", "value": 50, "units": "ksi", "name": "A1085_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A1085", "category": "steel", "grade": "A1085", "property": "ultimate_strength", "value": 65, "units": "ksi", "name": "A1085_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A1085", "category": "steel", "grade": "A1085", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A1085_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A1085", "category": "steel", "grade": "A1085", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A1085_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "A514", "category": "steel", "grade": "A514", "property": "yield_strength", "value": 100, "units": "ksi", "name": "A514_Fy", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A514", "category": "steel", "grade": "A514", "property": "ultimate_strength", "value": 110, "units": "ksi", "name": "A514_Fu", "source": "AISC SCM 16th Ed, Table 2-4" },
+  { "material": "A514", "category": "steel", "grade": "A514", "property": "elastic_modulus", "value": 29000, "units": "ksi", "name": "A514_E", "source": "AISC SCM 16th Ed" },
+  { "material": "A514", "category": "steel", "grade": "A514", "property": "shear_modulus", "value": 11200, "units": "ksi", "name": "A514_G", "source": "AISC SCM 16th Ed" },
+
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "yield_strength", "value": 35, "units": "ksi", "name": "AL6061_T6_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "ultimate_strength", "value": 42, "units": "ksi", "name": "AL6061_T6_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "elastic_modulus", "value": 10100, "units": "ksi", "name": "AL6061_T6_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "shear_modulus", "value": 3770, "units": "ksi", "name": "AL6061_T6_G", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "shear_yield_strength", "value": 20, "units": "ksi", "name": "AL6061_T6_Fsy", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "shear_ultimate_strength", "value": 27, "units": "ksi", "name": "AL6061_T6_Fsu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "bearing_yield_strength", "value": 56, "units": "ksi", "name": "AL6061_T6_Fbry", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6061_T6", "category": "aluminum", "grade": "6061-T6", "property": "bearing_ultimate_strength", "value": 67, "units": "ksi", "name": "AL6061_T6_Fbru", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "AL6063_T5", "category": "aluminum", "grade": "6063-T5", "property": "yield_strength", "value": 16, "units": "ksi", "name": "AL6063_T5_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6063_T5", "category": "aluminum", "grade": "6063-T5", "property": "ultimate_strength", "value": 22, "units": "ksi", "name": "AL6063_T5_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6063_T5", "category": "aluminum", "grade": "6063-T5", "property": "elastic_modulus", "value": 10100, "units": "ksi", "name": "AL6063_T5_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6063_T5", "category": "aluminum", "grade": "6063-T5", "property": "shear_modulus", "value": 3770, "units": "ksi", "name": "AL6063_T5_G", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "AL6063_T6", "category": "aluminum", "grade": "6063-T6", "property": "yield_strength", "value": 25, "units": "ksi", "name": "AL6063_T6_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6063_T6", "category": "aluminum", "grade": "6063-T6", "property": "ultimate_strength", "value": 30, "units": "ksi", "name": "AL6063_T6_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6063_T6", "category": "aluminum", "grade": "6063-T6", "property": "elastic_modulus", "value": 10100, "units": "ksi", "name": "AL6063_T6_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL6063_T6", "category": "aluminum", "grade": "6063-T6", "property": "shear_modulus", "value": 3770, "units": "ksi", "name": "AL6063_T6_G", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "AL7075_T6", "category": "aluminum", "grade": "7075-T6", "property": "yield_strength", "value": 73, "units": "ksi", "name": "AL7075_T6_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL7075_T6", "category": "aluminum", "grade": "7075-T6", "property": "ultimate_strength", "value": 83, "units": "ksi", "name": "AL7075_T6_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL7075_T6", "category": "aluminum", "grade": "7075-T6", "property": "elastic_modulus", "value": 10400, "units": "ksi", "name": "AL7075_T6_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL7075_T6", "category": "aluminum", "grade": "7075-T6", "property": "shear_modulus", "value": 3900, "units": "ksi", "name": "AL7075_T6_G", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL7075_T6", "category": "aluminum", "grade": "7075-T6", "property": "shear_yield_strength", "value": 44, "units": "ksi", "name": "AL7075_T6_Fsy", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL7075_T6", "category": "aluminum", "grade": "7075-T6", "property": "shear_ultimate_strength", "value": 48, "units": "ksi", "name": "AL7075_T6_Fsu", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "AL2024_T3", "category": "aluminum", "grade": "2024-T3", "property": "yield_strength", "value": 50, "units": "ksi", "name": "AL2024_T3_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T3", "category": "aluminum", "grade": "2024-T3", "property": "ultimate_strength", "value": 70, "units": "ksi", "name": "AL2024_T3_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T3", "category": "aluminum", "grade": "2024-T3", "property": "elastic_modulus", "value": 10600, "units": "ksi", "name": "AL2024_T3_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T3", "category": "aluminum", "grade": "2024-T3", "property": "shear_modulus", "value": 4000, "units": "ksi", "name": "AL2024_T3_G", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T3", "category": "aluminum", "grade": "2024-T3", "property": "shear_ultimate_strength", "value": 41, "units": "ksi", "name": "AL2024_T3_Fsu", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "AL5052_H32", "category": "aluminum", "grade": "5052-H32", "property": "yield_strength", "value": 23, "units": "ksi", "name": "AL5052_H32_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL5052_H32", "category": "aluminum", "grade": "5052-H32", "property": "ultimate_strength", "value": 33, "units": "ksi", "name": "AL5052_H32_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL5052_H32", "category": "aluminum", "grade": "5052-H32", "property": "elastic_modulus", "value": 10200, "units": "ksi", "name": "AL5052_H32_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL5052_H32", "category": "aluminum", "grade": "5052-H32", "property": "shear_modulus", "value": 3850, "units": "ksi", "name": "AL5052_H32_G", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "AL2024_T4", "category": "aluminum", "grade": "2024-T4", "property": "yield_strength", "value": 40, "units": "ksi", "name": "AL2024_T4_Fty", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T4", "category": "aluminum", "grade": "2024-T4", "property": "ultimate_strength", "value": 62, "units": "ksi", "name": "AL2024_T4_Ftu", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T4", "category": "aluminum", "grade": "2024-T4", "property": "elastic_modulus", "value": 10600, "units": "ksi", "name": "AL2024_T4_E", "source": "Aluminum Design Manual 2020" },
+  { "material": "AL2024_T4", "category": "aluminum", "grade": "2024-T4", "property": "shear_modulus", "value": 4000, "units": "ksi", "name": "AL2024_T4_G", "source": "Aluminum Design Manual 2020" },
+
+  { "material": "SS304", "category": "stainless_steel", "grade": "304", "property": "yield_strength", "value": 30, "units": "ksi", "name": "SS304_Fy", "source": "AISC Design Guide 27" },
+  { "material": "SS304", "category": "stainless_steel", "grade": "304", "property": "ultimate_strength", "value": 75, "units": "ksi", "name": "SS304_Fu", "source": "AISC Design Guide 27" },
+  { "material": "SS304", "category": "stainless_steel", "grade": "304", "property": "elastic_modulus", "value": 28000, "units": "ksi", "name": "SS304_E", "source": "AISC Design Guide 27" },
+  { "material": "SS304", "category": "stainless_steel", "grade": "304", "property": "shear_modulus", "value": 10800, "units": "ksi", "name": "SS304_G", "source": "AISC Design Guide 27" },
+
+  { "material": "SS316", "category": "stainless_steel", "grade": "316", "property": "yield_strength", "value": 30, "units": "ksi", "name": "SS316_Fy", "source": "AISC Design Guide 27" },
+  { "material": "SS316", "category": "stainless_steel", "grade": "316", "property": "ultimate_strength", "value": 75, "units": "ksi", "name": "SS316_Fu", "source": "AISC Design Guide 27" },
+  { "material": "SS316", "category": "stainless_steel", "grade": "316", "property": "elastic_modulus", "value": 28000, "units": "ksi", "name": "SS316_E", "source": "AISC Design Guide 27" },
+  { "material": "SS316", "category": "stainless_steel", "grade": "316", "property": "shear_modulus", "value": 10800, "units": "ksi", "name": "SS316_G", "source": "AISC Design Guide 27" },
+
+  { "material": "SS17_4_H900", "category": "stainless_steel", "grade": "17-4 PH H900", "property": "yield_strength", "value": 170, "units": "ksi", "name": "SS17_4_H900_Fy", "source": "ASTM A564" },
+  { "material": "SS17_4_H900", "category": "stainless_steel", "grade": "17-4 PH H900", "property": "ultimate_strength", "value": 190, "units": "ksi", "name": "SS17_4_H900_Fu", "source": "ASTM A564" },
+  { "material": "SS17_4_H900", "category": "stainless_steel", "grade": "17-4 PH H900", "property": "elastic_modulus", "value": 28500, "units": "ksi", "name": "SS17_4_H900_E", "source": "ASTM A564" },
+
+  { "material": "SS17_4_H1025", "category": "stainless_steel", "grade": "17-4 PH H1025", "property": "yield_strength", "value": 145, "units": "ksi", "name": "SS17_4_H1025_Fy", "source": "ASTM A564" },
+  { "material": "SS17_4_H1025", "category": "stainless_steel", "grade": "17-4 PH H1025", "property": "ultimate_strength", "value": 155, "units": "ksi", "name": "SS17_4_H1025_Fu", "source": "ASTM A564" },
+  { "material": "SS17_4_H1025", "category": "stainless_steel", "grade": "17-4 PH H1025", "property": "elastic_modulus", "value": 28500, "units": "ksi", "name": "SS17_4_H1025_E", "source": "ASTM A564" },
+
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "yield_strength", "value": 120, "units": "ksi", "name": "Ti6Al4V_Fty", "source": "MMPDS-17" },
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "ultimate_strength", "value": 130, "units": "ksi", "name": "Ti6Al4V_Ftu", "source": "MMPDS-17" },
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "elastic_modulus", "value": 16500, "units": "ksi", "name": "Ti6Al4V_E", "source": "MMPDS-17" },
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "shear_modulus", "value": 6200, "units": "ksi", "name": "Ti6Al4V_G", "source": "MMPDS-17" },
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "shear_ultimate_strength", "value": 80, "units": "ksi", "name": "Ti6Al4V_Fsu", "source": "MMPDS-17" },
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "bearing_yield_strength", "value": 178, "units": "ksi", "name": "Ti6Al4V_Fbry", "source": "MMPDS-17" },
+  { "material": "Ti6Al4V", "category": "titanium", "grade": "Ti-6Al-4V", "property": "bearing_ultimate_strength", "value": 210, "units": "ksi", "name": "Ti6Al4V_Fbru", "source": "MMPDS-17" },
+
+  { "material": "Ti3Al2_5V", "category": "titanium", "grade": "Ti-3Al-2.5V", "property": "yield_strength", "value": 70, "units": "ksi", "name": "Ti3Al2_5V_Fty", "source": "MMPDS-17" },
+  { "material": "Ti3Al2_5V", "category": "titanium", "grade": "Ti-3Al-2.5V", "property": "ultimate_strength", "value": 80, "units": "ksi", "name": "Ti3Al2_5V_Ftu", "source": "MMPDS-17" },
+  { "material": "Ti3Al2_5V", "category": "titanium", "grade": "Ti-3Al-2.5V", "property": "elastic_modulus", "value": 15500, "units": "ksi", "name": "Ti3Al2_5V_E", "source": "MMPDS-17" },
+  { "material": "Ti3Al2_5V", "category": "titanium", "grade": "Ti-3Al-2.5V", "property": "shear_modulus", "value": 5800, "units": "ksi", "name": "Ti3Al2_5V_G", "source": "MMPDS-17" },
+
+  { "material": "A307", "category": "bolt", "grade": "A307", "property": "nominal_tensile_stress", "value": 45, "units": "ksi", "name": "A307_Fnt", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "A307", "category": "bolt", "grade": "A307", "property": "nominal_shear_stress", "value": 27, "units": "ksi", "name": "A307_Fnv", "source": "AISC SCM 16th Ed, Table J3-2" },
+
+  { "material": "A325", "category": "bolt", "grade": "A325 / F3125 Group A", "property": "nominal_tensile_stress", "value": 90, "units": "ksi", "name": "A325_Fnt", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "A325", "category": "bolt", "grade": "A325 / F3125 Group A", "property": "nominal_shear_stress_threads_excluded", "value": 54, "units": "ksi", "name": "A325_Fnv_X", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "A325", "category": "bolt", "grade": "A325 / F3125 Group A", "property": "nominal_shear_stress_threads_included", "value": 44, "units": "ksi", "name": "A325_Fnv_N", "source": "AISC SCM 16th Ed, Table J3-2" },
+
+  { "material": "A490", "category": "bolt", "grade": "A490 / F3125 Group B", "property": "nominal_tensile_stress", "value": 113, "units": "ksi", "name": "A490_Fnt", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "A490", "category": "bolt", "grade": "A490 / F3125 Group B", "property": "nominal_shear_stress_threads_excluded", "value": 68, "units": "ksi", "name": "A490_Fnv_X", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "A490", "category": "bolt", "grade": "A490 / F3125 Group B", "property": "nominal_shear_stress_threads_included", "value": 56, "units": "ksi", "name": "A490_Fnv_N", "source": "AISC SCM 16th Ed, Table J3-2" },
+
+  { "material": "F3043", "category": "bolt", "grade": "F3043 (twist-off A490 equivalent)", "property": "nominal_tensile_stress", "value": 113, "units": "ksi", "name": "F3043_Fnt", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "F3043", "category": "bolt", "grade": "F3043 (twist-off A490 equivalent)", "property": "nominal_shear_stress_threads_excluded", "value": 68, "units": "ksi", "name": "F3043_Fnv_X", "source": "AISC SCM 16th Ed, Table J3-2" },
+  { "material": "F3043", "category": "bolt", "grade": "F3043 (twist-off A490 equivalent)", "property": "nominal_shear_stress_threads_included", "value": 56, "units": "ksi", "name": "F3043_Fnv_N", "source": "AISC SCM 16th Ed, Table J3-2" },
+
+  { "material": "NAS6703", "category": "bolt", "grade": "NAS6703 (aerospace A286)", "property": "ultimate_shear_strength", "value": 95, "units": "ksi", "name": "NAS6703_Fsu", "source": "NAS 6703 specification" },
+  { "material": "NAS6703", "category": "bolt", "grade": "NAS6703 (aerospace A286)", "property": "ultimate_tensile_strength", "value": 160, "units": "ksi", "name": "NAS6703_Ftu", "source": "NAS 6703 specification" },
+
+  { "material": "NAS1103", "category": "bolt", "grade": "NAS1103 (aerospace alloy steel)", "property": "ultimate_shear_strength", "value": 95, "units": "ksi", "name": "NAS1103_Fsu", "source": "NAS 1103 specification" },
+  { "material": "NAS1103", "category": "bolt", "grade": "NAS1103 (aerospace alloy steel)", "property": "ultimate_tensile_strength", "value": 160, "units": "ksi", "name": "NAS1103_Ftu", "source": "NAS 1103 specification" },
+
+  { "material": "E60", "category": "weld", "grade": "E60XX", "property": "electrode_strength", "value": 60, "units": "ksi", "name": "E60_FEXX", "source": "AISC SCM 16th Ed, Section J2" },
+  { "material": "E70", "category": "weld", "grade": "E70XX", "property": "electrode_strength", "value": 70, "units": "ksi", "name": "E70_FEXX", "source": "AISC SCM 16th Ed, Section J2" },
+  { "material": "E80", "category": "weld", "grade": "E80XX", "property": "electrode_strength", "value": 80, "units": "ksi", "name": "E80_FEXX", "source": "AISC SCM 16th Ed, Section J2" },
+  { "material": "E90", "category": "weld", "grade": "E90XX", "property": "electrode_strength", "value": 90, "units": "ksi", "name": "E90_FEXX", "source": "AISC SCM 16th Ed, Section J2" },
+  { "material": "E100", "category": "weld", "grade": "E100XX", "property": "electrode_strength", "value": 100, "units": "ksi", "name": "E100_FEXX", "source": "AISC SCM 16th Ed, Section J2" },
+  { "material": "E110", "category": "weld", "grade": "E110XX", "property": "electrode_strength", "value": 110, "units": "ksi", "name": "E110_FEXX", "source": "AISC SCM 16th Ed, Section J2" }
+]
