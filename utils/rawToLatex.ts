@@ -93,13 +93,13 @@ function findClose(s: string): number {
   return s.length - 1; // unmatched — treat end as close
 }
 
-/** Split an argument string by commas at paren depth 0. */
+/** Split an argument string by commas at paren/bracket depth 0. */
 function splitArgs(s: string): string[] {
   const args: string[] = [];
   let depth = 0, start = 0;
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === "(") depth++;
-    else if (s[i] === ")") depth--;
+    if (s[i] === "(" || s[i] === "[") depth++;
+    else if (s[i] === ")" || s[i] === "]") depth--;
     else if (s[i] === "," && depth === 0) {
       args.push(s.slice(start, i).trim());
       start = i + 1;
@@ -153,12 +153,12 @@ function expandFunctions(expr: string): string {
       const trueVal = args[3];
       const falseVal = args[4] ?? "0";
       tex = `\\begin{cases} ${trueVal} & \\textit{if } ${condition} \\\\ ${falseVal} & \\textit{otherwise} \\end{cases}`;
-    } else if (fnName === "root" && args.length === 2) {
+    } else if (fnName.toLowerCase() === "root" && args.length === 2) {
       // root(n, x)  →  \sqrt[n]{x}
       tex = `\\sqrt[${args[0]}]{${args[1]}}`;
-    } else if (fnName === "power" && args.length === 2) {
+    } else if (fnName.toLowerCase() === "power" && args.length === 2) {
       // power(exp, base)  →  {base}^{exp}  (exponent is first arg, base is second)
-      tex = `{${args[1]}}^{${args[0]}}`;
+      tex = `\\left(${args[1]}\\right)^{${args[0]}}`;
     } else if (fnName === "abs" && args.length === 1) {
       // abs(x)  →  \left|x\right|
       tex = `\\left|${args[0]}\\right|`;
@@ -320,10 +320,63 @@ function applySubstitutions(expr: string): string {
   return expr;
 }
 
+// ─── Matrix literal → \begin{bmatrix} ───────────────────────────────────────
+
+/**
+ * If expr is a top-level matrix literal "[a,b;c,d]", convert it to a LaTeX
+ * bmatrix. Each cell is recursively converted via exprToLatex.
+ * Returns null if expr is not a top-level matrix literal.
+ */
+function tryMatrixToLatex(expr: string): string | null {
+  const s = expr.trim();
+  if (!s.startsWith("[") || !s.endsWith("]")) return null;
+
+  // Confirm the opening "[" matches the closing "]" at the top level
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === "[" || s[i] === "(") depth++;
+    else if (s[i] === "]" || s[i] === ")") depth--;
+    if (depth === 0 && i < s.length - 1) return null; // closes before end — not a simple matrix
+  }
+
+  const inner = s.slice(1, -1);
+
+  // Split by ";" at bracket depth 0 to get rows
+  const rowStrs: string[] = [];
+  let cur = "";
+  let d = 0;
+  for (let i = 0; i < inner.length; i++) {
+    if (inner[i] === "[" || inner[i] === "(") { d++; cur += inner[i]; }
+    else if (inner[i] === "]" || inner[i] === ")") { d--; cur += inner[i]; }
+    else if (inner[i] === ";" && d === 0) { rowStrs.push(cur); cur = ""; }
+    else { cur += inner[i]; }
+  }
+  rowStrs.push(cur);
+
+  const rows = rowStrs.map((row) => {
+    // Split each row by "," at depth 0
+    const cells: string[] = [];
+    let cell = "";
+    let cd = 0;
+    for (let i = 0; i < row.length; i++) {
+      if (row[i] === "[" || row[i] === "(") { cd++; cell += row[i]; }
+      else if (row[i] === "]" || row[i] === ")") { cd--; cell += row[i]; }
+      else if (row[i] === "," && cd === 0) { cells.push(cell.trim()); cell = ""; }
+      else { cell += row[i]; }
+    }
+    cells.push(cell.trim());
+    return cells.map((c) => exprToLatex(c)).join(" & ");
+  });
+
+  return `\\begin{bmatrix}${rows.join(" \\\\ ")}\\end{bmatrix}`;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 function exprToLatex(expr: string): string {
   expr = expr.trim();
+  const matTex = tryMatrixToLatex(expr);
+  if (matTex !== null) return matTex;
   expr = expandFunctions(expr);   // root(…), power(…), sin(…), …
   expr = expandDivision(expr);    // (a)/(b) → \frac{a}{b}
   expr = applySubstitutions(expr); // Greek, ^, *

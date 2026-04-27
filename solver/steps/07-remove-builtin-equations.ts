@@ -579,6 +579,29 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         }
       }
 
+      // ── Special case: sqrt(x) — output units = x_units ^ 0.5 ──────────────
+      if (parsed.name === "sqrt") {
+        const args: Matrix[] = complexArgs.map((ca) => ca.real);
+        const realResult = await fn(args, ctx);
+        tokens[i] = encodeResult(realResult);
+        keyArray[i] = 0;
+
+        const xBase = complexArgs[0]?.baseUnits;
+        if (xBase?.some((v) => v !== 0)) {
+          const outputBase = xBase.map((v) => v / 2);
+          if (outputBase.some((v) => v !== 0)) {
+            const unitStr = baseArrayToUnitString(outputBase);
+            tokens.splice(i + 1, 0, unitStr);
+            keyArray.splice(i + 1, 0, 1);
+            i++;
+            if (!ctx.solution.units) {
+              derivedSolution = { ...ctx.solution, units: unitStr, baseUnits: outputBase as UnitBaseArray };
+            }
+          }
+        }
+        continue;
+      }
+
       // ── Standard path: pass real parts as args ───────────────────────────
       const args: Matrix[] = complexArgs.map((ca) => ca.real);
 

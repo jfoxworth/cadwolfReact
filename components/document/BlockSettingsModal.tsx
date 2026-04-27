@@ -14,6 +14,15 @@ const WIDTHS = [
   { label: "Full", value: "full" },
 ];
 
+const FONT_SIZES = [
+  { label: "XS",   value: "0.75em"  },
+  { label: "SM",   value: "0.875em" },
+  { label: "MD",   value: "1em"     },
+  { label: "LG",   value: "1.25em"  },
+  { label: "XL",   value: "1.5em"   },
+  { label: "2XL",  value: "2em"     },
+];
+
 const MODEL_OPTIONS: { label: string; value: ModelView }[] = [
   { label: "Equation",   value: "equation"   },
   { label: "Numerical",  value: "numerical"  },
@@ -66,6 +75,7 @@ export default function BlockSettingsModal({
 
   const isEquation = block.type === "EQUATION";
   const currentWidth = (block.definition.width as string) ?? "full";
+  const currentFontSize = (block.definition.fontSize as string) ?? "1em";
   const atTop    = !moveInfo || moveInfo.currentIndex === 0;
   const atBottom = !moveInfo || moveInfo.currentIndex === moveInfo.total - 1;
 
@@ -104,6 +114,29 @@ export default function BlockSettingsModal({
                     "text-left px-2 py-1 text-xs rounded border transition-colors",
                     modelView === value
                       ? "border-blue-400 bg-blue-50 text-blue-700 font-medium"
+                      : "border-gray-200 text-gray-500 hover:text-gray-800 hover:border-gray-400",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Font Size (equation blocks only) ── */}
+        {isEquation && (
+          <section>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Font Size</p>
+            <div className="flex gap-1 flex-wrap">
+              {FONT_SIZES.map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => onDefinitionChange(block.id, { ...block.definition, fontSize: value })}
+                  className={[
+                    "px-2 py-0.5 text-xs rounded border",
+                    currentFontSize === value
+                      ? "border-blue-400 bg-blue-50 text-blue-700"
                       : "border-gray-200 text-gray-500 hover:text-gray-800 hover:border-gray-400",
                   ].join(" ")}
                 >

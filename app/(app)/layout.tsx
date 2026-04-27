@@ -5,6 +5,8 @@ import VerificationBanner from "@/components/VerificationBanner";
 import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { db } from "@/utils/db";
 import { SideMenuAddProvider } from "@/context/SideMenuAddContext";
+import { ChatProvider } from "@/context/ChatContext";
+import ChatPanel from "@/components/chat/ChatPanel";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSessionUserOrNull();
@@ -21,17 +23,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     sideMenuUser = { id: session.userId, name: session.userName, email: session.userEmail, username: session.userUsername ?? null };
   }
 
+  const allowedChatUserId = process.env.ALLOWED_CHAT_USER_ID
+    ? parseInt(process.env.ALLOWED_CHAT_USER_ID)
+    : null;
+  const showChat = allowedChatUserId !== null && session?.userId === allowedChatUserId;
+
   return (
     <SideMenuAddProvider>
-      <div className="flex min-h-screen bg-gray-50">
-        <HexBackground />
-        {/* SideMenuNew is position:fixed — takes no layout space */}
-        <SideMenuNew user={sideMenuUser} />
-        <main className="w-full h-screen overflow-y-auto">
-          {session && !emailVerified && <VerificationBanner email={session.userEmail} />}
-          {children}
-        </main>
-      </div>
+      <ChatProvider>
+        <div className="flex min-h-screen bg-gray-50">
+          <HexBackground />
+          {/* SideMenuNew is position:fixed — takes no layout space */}
+          <SideMenuNew user={sideMenuUser} />
+          <main className="w-full h-screen overflow-y-auto">
+            {session && !emailVerified && <VerificationBanner email={session.userEmail} />}
+            {children}
+          </main>
+          {showChat && <ChatPanel />}
+        </div>
+      </ChatProvider>
     </SideMenuAddProvider>
   );
 }
