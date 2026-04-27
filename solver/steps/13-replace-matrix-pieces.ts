@@ -129,16 +129,20 @@ export const replaceMatrixPieces: StepFn = async (ctx: SolveContext): Promise<So
         if (numRows === 1) {
           // Row vector: return element at column ri
           const val = mat.real[`0-${ri}`] ?? 0;
-          replacement = String(val);
+          replacement = mat.baseArray
+            ? encodeMatrix({ "0-0": val }, "1x1", undefined, mat.baseArray)
+            : String(val);
         } else if (numCols === 1) {
           // Column vector: return element at row ri
           const val = mat.real[`${ri}-0`] ?? 0;
-          replacement = String(val);
+          replacement = mat.baseArray
+            ? encodeMatrix({ "0-0": val }, "1x1", undefined, mat.baseArray)
+            : String(val);
         } else {
           // 2-D matrix: bracket-per-dimension — M[j] selects column j
           const colReal: Record<string, number> = {};
           for (let r = 0; r < numRows; r++) colReal[`${r}-0`] = mat.real[`${r}-${ri}`] ?? 0;
-          replacement = encodeMatrix(colReal, `${numRows}x1`);
+          replacement = encodeMatrix(colReal, `${numRows}x1`, undefined, mat.baseArray);
         }
 
       } else if (rowParts.length === 2) {
@@ -156,13 +160,13 @@ export const replaceMatrixPieces: StepFn = async (ctx: SolveContext): Promise<So
           const sliceReal: Record<string, number> = {};
           let col = 0;
           for (let c = startC; c <= stopC; c++) sliceReal[`0-${col++}`] = mat.real[`0-${c}`] ?? 0;
-          replacement = col > 0 ? encodeMatrix(sliceReal, `1x${col}`) : "0";
+          replacement = col > 0 ? encodeMatrix(sliceReal, `1x${col}`, undefined, mat.baseArray) : "0";
         } else if (numCols === 1) {
           // Column vector: slice rows
           const sliceReal: Record<string, number> = {};
           let row = 0;
           for (let r = startC; r <= stopC; r++) sliceReal[`${row++}-0`] = mat.real[`${r}-0`] ?? 0;
-          replacement = row > 0 ? encodeMatrix(sliceReal, `${row}x1`) : "0";
+          replacement = row > 0 ? encodeMatrix(sliceReal, `${row}x1`, undefined, mat.baseArray) : "0";
         } else {
           // 2-D matrix: slice rows, return sub-matrix with all columns
           const sliceReal: Record<string, number> = {};
@@ -171,7 +175,7 @@ export const replaceMatrixPieces: StepFn = async (ctx: SolveContext): Promise<So
             for (let c = 0; c < numCols; c++) sliceReal[`${row}-${c}`] = mat.real[`${r}-${c}`] ?? 0;
             row++;
           }
-          replacement = row > 0 ? encodeMatrix(sliceReal, `${row}x${numCols}`) : "0";
+          replacement = row > 0 ? encodeMatrix(sliceReal, `${row}x${numCols}`, undefined, mat.baseArray) : "0";
         }
 
       } else {
@@ -189,7 +193,9 @@ export const replaceMatrixPieces: StepFn = async (ctx: SolveContext): Promise<So
         const ci = (await evalIndex(colSpec[0]));
         if (ri === null || ci === null) { i++; continue; }
         const val = mat.real[`${ri}-${ci}`] ?? 0;
-        replacement = String(val);
+        replacement = mat.baseArray
+          ? encodeMatrix({ "0-0": val }, "1x1", undefined, mat.baseArray)
+          : String(val);
 
       } else if (rowSpec.length === 1 && colSpec.length === 2) {
         // M[i, j:k] — row slice within a single row (empty bound = full extent, 0-based)
@@ -200,7 +206,7 @@ export const replaceMatrixPieces: StepFn = async (ctx: SolveContext): Promise<So
         const sliceReal: Record<string, number> = {};
         let col = 0;
         for (let c = startC; c <= stopC; c++) sliceReal[`0-${col++}`] = mat.real[`${ri}-${c}`] ?? 0;
-        replacement = col > 0 ? encodeMatrix(sliceReal, `1x${col}`) : "0";
+        replacement = col > 0 ? encodeMatrix(sliceReal, `1x${col}`, undefined, mat.baseArray) : "0";
 
       } else if (rowSpec.length === 2 && colSpec.length === 1) {
         // M[i:j, k] or M[:, k] — column slice (empty row range = all rows, 0-based)
@@ -211,7 +217,25 @@ export const replaceMatrixPieces: StepFn = async (ctx: SolveContext): Promise<So
         const sliceReal: Record<string, number> = {};
         let row = 0;
         for (let r = startR; r <= stopR; r++) sliceReal[`${row++}-0`] = mat.real[`${r}-${ci}`] ?? 0;
-        replacement = row > 0 ? encodeMatrix(sliceReal, `${row}x1`) : "0";
+        replacement = row > 0 ? encodeMatrix(sliceReal, `${row}x1`, undefined, mat.baseArray) : "0";
+
+      } else if (rowSpec.length === 2 && colSpec.length === 2) {
+        // M[i:j, k:l] — 2D submatrix slice
+        const startR = rowSpec[0].length === 0 ? 0           : await evalIndex(rowSpec[0]);
+        const stopR  = rowSpec[1].length === 0 ? numRows - 1 : await evalIndex(rowSpec[1]);
+        const startC = colSpec[0].length === 0 ? 0           : await evalIndex(colSpec[0]);
+        const stopC  = colSpec[1].length === 0 ? numCols - 1 : await evalIndex(colSpec[1]);
+        if (startR === null || stopR === null || startC === null || stopC === null) { i++; continue; }
+        const sliceReal: Record<string, number> = {};
+        let row = 0;
+        for (let r = startR; r <= stopR; r++) {
+          let col = 0;
+          for (let c = startC; c <= stopC; c++) sliceReal[`${row}-${col++}`] = mat.real[`${r}-${c}`] ?? 0;
+          row++;
+        }
+        const sliceRows = row;
+        const sliceCols = startC <= stopC ? stopC - startC + 1 : 0;
+        replacement = sliceRows > 0 && sliceCols > 0 ? encodeMatrix(sliceReal, `${sliceRows}x${sliceCols}`, undefined, mat.baseArray) : "0";
 
       } else {
         i++; continue;
