@@ -1,10 +1,23 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { resolveFileRoute, TYPE_ROUTE } from "@/utils/resolveRoute";
 import { db } from "@/utils/db";
 import { fileToItem, componentToBlock } from "@/utils/transformers";
 import DocumentWrapper from "@/components/document/documentWrapper";
 import { checkPermission } from "@/utils/checkPermission";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const resolved = await resolveFileRoute("document", slug, 0);
+  if (!resolved) return {};
+  const file = await db.file.findUnique({ where: { id: resolved.id }, select: { name: true } });
+  return { title: file ? `Document — ${file.name}` : "Document" };
+}
 
 // Detect old-style imported components (those with inputFile pointing to a different file).
 // Returns { regularComponents, legacyImports } where legacyImports is a list of

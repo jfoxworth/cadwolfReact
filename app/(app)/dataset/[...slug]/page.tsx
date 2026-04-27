@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { db } from "@/utils/db";
 import { checkPermission } from "@/utils/checkPermission";
@@ -7,6 +8,25 @@ import type { Dataset, DatasetParser } from "@/types/dataset";
 import type { File } from "@prisma/client";
 
 const NANOID_RE = /^[A-Za-z0-9_-]{10}$/;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const single = slug.length === 1 ? slug[0] : null;
+  let fileId: number | null = null;
+  if (single && /^\d+$/.test(single)) {
+    fileId = Number(single);
+  } else if (single && NANOID_RE.test(single)) {
+    const f = await db.file.findUnique({ where: { slug: single }, select: { id: true } });
+    if (f) fileId = f.id;
+  }
+  if (!fileId) return { title: "Dataset" };
+  const file = await db.file.findUnique({ where: { id: fileId }, select: { name: true } });
+  return { title: file ? `Dataset — ${file.name}` : "Dataset" };
+}
 
 function fileToDataset(file: File): Dataset {
   let itemData: Record<string, unknown> = {};

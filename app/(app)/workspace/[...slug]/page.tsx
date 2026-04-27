@@ -1,10 +1,23 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { resolveFileRoute, TYPE_ROUTE } from "@/utils/resolveRoute";
 import { db } from "@/utils/db";
 import { fileToItem } from "@/utils/transformers";
 import WorkspaceWrapper from "@/components/workspace/workspaceWrapper";
 import { checkPermission } from "@/utils/checkPermission";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const resolved = await resolveFileRoute("workspace", slug, 0);
+  if (!resolved) return {};
+  const file = await db.file.findUnique({ where: { id: resolved.id }, select: { name: true } });
+  return { title: file ? `Workspace — ${file.name}` : "Workspace" };
+}
 
 export default async function WorkspacePage({
   params,

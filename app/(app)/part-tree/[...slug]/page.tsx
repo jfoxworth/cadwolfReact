@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import type { File } from "@prisma/client";
 import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { resolveFileRoute, TYPE_ROUTE } from "@/utils/resolveRoute";
@@ -8,6 +9,18 @@ import { checkPermission } from "@/utils/checkPermission";
 import PartTreeWrapper from "@/components/part-tree/PartTreeWrapper";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const resolved = await resolveFileRoute("part-tree", slug, 0);
+  if (!resolved) return {};
+  const file = await db.file.findUnique({ where: { id: resolved.id }, select: { name: true } });
+  return { title: file ? `Part Tree — ${file.name}` : "Part Tree" };
+}
 
 async function fetchDescendants(rootId: number): Promise<File[]> {
   const all: File[] = [];
