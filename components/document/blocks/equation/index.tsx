@@ -66,6 +66,7 @@ export default function EquationBlock({
     raw?: string;
     displayEq?: string;
     displayOptions?: { showMatrix?: boolean };
+    fontSize?: string;
   };
 
   const [editing, setEditing] = useState(false);
@@ -319,6 +320,7 @@ export default function EquationBlock({
     <div
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      style={def.fontSize ? { fontSize: def.fontSize } : undefined}
       className={[
         "relative flex flex-col items-center rounded px-2 py-2 group",
         isSelected ? "bg-blue-50 ring-1 ring-blue-300" : isSolving ? "bg-gray-100" : "hover:bg-gray-50",

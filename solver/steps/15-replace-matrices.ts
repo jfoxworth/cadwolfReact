@@ -70,25 +70,47 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
     for (let r = 0; r < cellGroups.length; r++) {
       if (cellGroups[r].length > numCols) numCols = cellGroups[r].length;
       for (let c = 0; c < cellGroups[r].length; c++) {
-        const cellExpr = cellGroups[r][c].join(" ").trim();
+        const rawCellTokens = cellGroups[r][c];
+
+        // Replace any MATRIX tokens in the cell with their numeric SI values.
+        // MATRIX tokens are produced by step 10 (variable substitution) and
+        // step 12 (constants). splitText in the sub-pipeline would mangle their
+        // encoded format (the JSON contains characters splitText splits on),
+        // so we decode them here and substitute plain numbers.
+        // Units are propagated through * and / operators across all MATRIX tokens.
+        let inferredUnits: number[] | undefined;
+        let pendingOp = "*"; // treat first token as implicitly multiplied
+        const resolvedTokens = rawCellTokens.map((tok) => {
+          if (tok.startsWith("MATRIX::")) {
+            const mat = decodeMatrix(tok);
+            const ba = mat?.baseArray?.some(v => v !== 0) ? mat.baseArray : null;
+            if (ba) {
+              if (!inferredUnits) {
+                inferredUnits = [...ba];
+              } else if (pendingOp === "*") {
+                inferredUnits = inferredUnits.map((v, idx) => v + (ba[idx] ?? 0));
+              } else if (pendingOp === "/") {
+                inferredUnits = inferredUnits.map((v, idx) => v - (ba[idx] ?? 0));
+              }
+              // for + and -, units stay the same (operands must be compatible)
+            }
+            pendingOp = "*";
+            return String(mat?.real["0-0"] ?? 0);
+          }
+          if (tok === "*" || tok === "/" || tok === "+" || tok === "-") pendingOp = tok;
+          return tok;
+        });
+        if (!cellBaseUnits && inferredUnits?.some(v => v !== 0)) {
+          cellBaseUnits = inferredUnits;
+        }
+
+        const cellExpr = resolvedTokens.join(" ").trim();
         if (!cellExpr) { real[`${r}-${c}`] = 0; continue; }
 
         // Fast path: plain numeric literal — avoids a full sub-pipeline run
         const fastN = parseFloat(cellExpr);
         if (!isNaN(fastN) && /^-?[\d.]+([eE][+\-]?\d+)?$/.test(cellExpr.replace(/\s/g, ""))) {
           real[`${r}-${c}`] = fastN;
-          continue;
-        }
-
-        // Fast path: MATRIX token (encoded by steps 10/16) — decode directly.
-        // Running a sub-pipeline on a MATRIX token string would mangle it via
-        // splitText, so we decode and extract the 1×1 scalar value directly.
-        if (cellExpr.startsWith("MATRIX::")) {
-          const mat = decodeMatrix(cellExpr);
-          real[`${r}-${c}`] = mat ? (mat.real["0-0"] ?? 0) : 0;
-          if (!cellBaseUnits && mat?.baseArray?.some(v => v !== 0)) {
-            cellBaseUnits = mat.baseArray;
-          }
           continue;
         }
 

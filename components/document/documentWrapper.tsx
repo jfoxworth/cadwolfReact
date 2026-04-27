@@ -1033,6 +1033,7 @@ export default function DocumentWrapper({
 
   // ── Block editing ────────────────────────────────────────────────────────
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const selectedBlockIdRef = useRef<string | null>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [openSettingsId, setOpenSettingsId] = useState<string | null>(null);
   const [blockModelViews, setBlockModelViews] = useState<Record<string, ModelView>>({});
@@ -1082,6 +1083,7 @@ export default function DocumentWrapper({
       );
       editor.setEditable(false);
       setEditingBlockId(null);
+      selectedBlockIdRef.current = nextSelectedId;
       setSelectedBlockId(nextSelectedId);
     },
     [editor, editingBlockId],
@@ -1096,6 +1098,7 @@ export default function DocumentWrapper({
       if (editingBlockId) {
         closeEditor(id);
       } else {
+        selectedBlockIdRef.current = id;
         setSelectedBlockId(id);
       }
     },
@@ -1480,8 +1483,9 @@ export default function DocumentWrapper({
         .filter((b) => b._status !== "deleted")
         .sort((a, b) => a.order - b.order);
 
-      const selIdx = selectedBlockId
-        ? sorted.findIndex((b) => b.id === selectedBlockId)
+      const currentSelectedId = selectedBlockIdRef.current;
+      const selIdx = currentSelectedId
+        ? sorted.findIndex((b) => b.id === currentSelectedId)
         : sorted.length - 1;
 
       // New block gets the order immediately after the selected block
@@ -1508,9 +1512,10 @@ export default function DocumentWrapper({
       };
 
       setVirtualBlocks([...shifted, newBlock]);
+      selectedBlockIdRef.current = newBlock.id;
       setSelectedBlockId(newBlock.id);
     },
-    [virtualBlocks, selectedBlockId],
+    [virtualBlocks],
   );
 
   // ── Side-menu Add + Save ──────────────────────────────────────────────────
