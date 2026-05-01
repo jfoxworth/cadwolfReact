@@ -24,17 +24,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath } = await req.json();
+  const { messages, pagePath, pageContext } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // Inject page context into the first user message so Claude knows where the user is
-  const messagesWithContext = pagePath
+  // Inject page path + live page content into the first user message
+  const contextPrefix = [
+    pagePath ? `[User is on page: ${pagePath}]` : null,
+    pageContext ? `[Current page contents:\n${pageContext}\n]` : null,
+  ].filter(Boolean).join("\n");
+
+  const messagesWithContext = contextPrefix
     ? messages.map((msg: { role: string; content: string }, i: number) =>
         i === 0 && msg.role === "user"
-          ? { ...msg, content: `[User is on page: ${pagePath}]\n\n${msg.content}` }
+          ? { ...msg, content: `${contextPrefix}\n\n${msg.content}` }
           : msg
       )
     : messages;

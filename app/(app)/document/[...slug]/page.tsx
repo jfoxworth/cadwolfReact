@@ -166,16 +166,7 @@ export default async function DocumentPage({
   // Combine existing + newly migrated imports
   const allFileImports = [...existingFileImports, ...migratedImports];
 
-  // Filter out already-corrupted _v2 components whose LHS matches a known import alias.
-  // This handles records that were saved without inputFile before the solve-data filter was added.
-  const importAliases = new Set(allFileImports.map((fi) => fi.localAlias.toLowerCase()));
-  const cleanRegularComponents = regularComponents.filter((c) => {
-    let raw: Record<string, unknown> = {};
-    try { raw = JSON.parse(c.content ?? "{}"); } catch { /* ignore */ }
-    if (raw._v2 !== true) return true;
-    const lhs = ((raw.raw as string) ?? "").split("=")[0].trim().toLowerCase();
-    return !importAliases.has(lhs);
-  });
+  const cleanRegularComponents = regularComponents;
 
   // Enrich imports with source file slugs
   const sourceIds = [...new Set(allFileImports.map((i) => i.sourceFileId))];

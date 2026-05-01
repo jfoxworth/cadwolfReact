@@ -41,6 +41,7 @@ interface Props {
   onRenameItem: (itemId: string, name: string) => Promise<void>;
   onDeleteItem: (itemId: string) => Promise<void>;
   onLinkCad: (itemId: string) => void;
+  onToggleAnalysis: (itemId: string, isAnalysis: boolean) => void;
   canEdit: boolean;
   resolvingId?: string | null;
   onResolve?: (item: Item) => void;
@@ -65,6 +66,7 @@ interface TreeNodeProps {
   onRenameItem: (itemId: string, name: string) => Promise<void>;
   onDeleteItem: (itemId: string) => Promise<void>;
   onLinkCad: (itemId: string) => void;
+  onToggleAnalysis: (itemId: string, isAnalysis: boolean) => void;
   canEdit: boolean;
   resolvingId?: string | null;
   onResolve?: (item: Item) => void;
@@ -83,6 +85,7 @@ interface EllipsisMenuProps {
   onDeleteItem?: () => void;
   onLinkCad?: () => void;
   onResolve?: () => void;
+  onToggleAnalysis?: () => void;
 }
 
 function EllipsisMenu({
@@ -94,6 +97,7 @@ function EllipsisMenu({
   onDeleteItem,
   onLinkCad,
   onResolve,
+  onToggleAnalysis,
 }: EllipsisMenuProps) {
   const [open, setOpen] = useState(false);
 
@@ -208,6 +212,16 @@ function EllipsisMenu({
             </button>
           )}
 
+          {/* Toggle analysis flag */}
+          {onToggleAnalysis && item.type === "DOCUMENT" && (
+            <button
+              className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+              onClick={() => { close(); onToggleAnalysis(); }}
+            >
+              {item.isAnalysis ? "Mark as physical part" : "Mark as analysis"}
+            </button>
+          )}
+
           {/* Display description */}
           <button
             className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
@@ -314,6 +328,7 @@ function TreeNode({
   onRenameItem,
   onDeleteItem,
   onLinkCad,
+  onToggleAnalysis,
   canEdit,
   resolvingId,
   onResolve,
@@ -386,7 +401,7 @@ function TreeNode({
           ) : null}
         </span>
 
-        <ItemIcon type={item.type} />
+        <ItemIcon type={item.type} isAnalysis={item.isAnalysis} />
 
         {isEditingTitle ? (
           <input
@@ -511,6 +526,7 @@ function TreeNode({
               : undefined
           }
           onResolve={onResolve && item.type === "DOCUMENT" ? () => onResolve(item) : undefined}
+          onToggleAnalysis={item.type === "DOCUMENT" && canEdit ? () => onToggleAnalysis(item.id, !item.isAnalysis) : undefined}
         />
       </div>
 
@@ -544,6 +560,7 @@ function TreeNode({
               onRenameItem={onRenameItem}
               onDeleteItem={onDeleteItem}
               onLinkCad={onLinkCad}
+              onToggleAnalysis={onToggleAnalysis}
               canEdit={canEdit}
               resolvingId={resolvingId}
               onResolve={onResolve}
@@ -573,6 +590,7 @@ export default function PartTreeNav({
   onRenameItem,
   onDeleteItem,
   onLinkCad,
+  onToggleAnalysis,
   canEdit,
   resolvingId,
   onResolve,
@@ -749,6 +767,7 @@ export default function PartTreeNav({
             onRenameItem={onRenameItem}
             onDeleteItem={onDeleteItem}
             onLinkCad={onLinkCad}
+            onToggleAnalysis={onToggleAnalysis}
             canEdit={canEdit}
             resolvingId={resolvingId}
             onResolve={onResolve}

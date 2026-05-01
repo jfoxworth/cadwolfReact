@@ -15,6 +15,7 @@ const WIDTHS = [
 ];
 
 const FONT_SIZES = [
+  { label: "XXS",  value: "0.5em"   },
   { label: "XS",   value: "0.75em"  },
   { label: "SM",   value: "0.875em" },
   { label: "MD",   value: "1em"     },

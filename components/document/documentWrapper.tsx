@@ -50,6 +50,7 @@ import ImageBlock from "./blocks/image";
 import VideoBlock from "./blocks/video";
 import LineBreakBlock from "./blocks/lineBreak";
 import { useSolver } from "./hooks/useSolver";
+import { useChat } from "@/context/ChatContext";
 
 export type SelectBlockFn = (id: string | null) => void;
 export type StartEditingFn = (id: string, html: string) => void;
@@ -443,6 +444,7 @@ function renderBlock({
       {inner}
       {canEdit && block.type !== "LINE_BREAK" && (
         <div className="absolute top-1 right-1 z-10">
+          <span className="text-xs text-gray-400 mr-1 select-none">{block.order}</span>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSettings?.(block.id); }}
             title="Block settings"
@@ -597,7 +599,6 @@ export default function DocumentWrapper({
           if (!key) return fi;
 
           const fetched = sourceValues[key];
-          const changed = fetched.value !== fi.value || fetched.units !== fi.units;
           return {
             ...fi,
             value: fetched.value,
@@ -772,6 +773,48 @@ export default function DocumentWrapper({
   );
 
   const { results: solverResults, solvingIds, solve } = useSolver(solverBlocks, solverImportedFunctions, initialCadParts);
+
+  // Debug: expose blocks on window for console inspection
+  if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
+
+  const { setPageContext } = useChat();
+  useEffect(() => {
+    const lines = virtualBlocks
+      .filter((b) => b._status !== "deleted")
+      .map((b) => {
+        const def = b.definition as Record<string, unknown>;
+        switch (b.type) {
+          case "EQUATION": {
+            const raw = def.raw as string | undefined;
+            if (!raw) return null;
+            const sol = b.solution as { real?: Record<string, number>; size?: string; units?: string; errors?: string[] } | undefined;
+            if (sol?.errors && sol.errors.length > 0) return `${raw} [ERROR: ${sol.errors[0]}]`;
+            if (!sol?.real) return raw;
+            if (sol.size === "1x1") {
+              const val = sol.real["0-0"] ?? 0;
+              return `${raw} = ${val}${sol.units ? ` ${sol.units}` : ""}`;
+            }
+            return `${raw} [${sol.size}]`;
+          }
+          case "HEADER":
+            return `# ${def.text as string ?? ""}`;
+          case "TEXT":
+            return def.text as string ?? null;
+          case "SLIDER":
+            return `${def.variableName} = ${def.value}${def.unit ? ` ${def.unit}` : ""} (slider, range ${def.min}–${def.max})`;
+          case "DROPDOWN":
+          case "SELECT_BLOCK": {
+            const opts = def.options as string[] | undefined;
+            const idx = def.selectedIndex as number | undefined ?? 0;
+            return `${def.variableName} = ${opts?.[idx] ?? ""} (dropdown)`;
+          }
+          default:
+            return `[${b.type}]`;
+        }
+      })
+      .filter(Boolean);
+    setPageContext(lines.join("\n"));
+  }, [virtualBlocks, solverResults, setPageContext]);
 
   // Re-solve with updated cadParts when localImportedCad changes (e.g. after a refresh).
   // Skip the initial mount — initialCadParts already seeds the solver.
@@ -1198,7 +1241,9 @@ export default function DocumentWrapper({
       } else if (changedBlock && INPUT_BLOCK_TYPES.has(changedBlock.type as BlockType)) {
         solve(solverInput, blockId);
       } else if (changedBlock?.type === "EQUATION") {
-        solve(solverInput, blockId);
+        const oldRaw = (changedBlock.definition as { raw?: string }).raw;
+        const newRaw = (newDef as { raw?: string }).raw;
+        if (oldRaw !== newRaw) solve(solverInput, blockId);
       }
       // Other types (PLOT, CARD, IMAGE, VIDEO, etc.) don't participate in the solver.
     },
@@ -1298,11 +1343,15 @@ export default function DocumentWrapper({
   // ── Delete block ─────────────────────────────────────────────────────────
   const handleDeleteBlock = useCallback(
     (blockId: string) => {
-      setVirtualBlocks((prev) =>
-        prev.map((b) =>
-          b.id === blockId ? { ...b, _status: "deleted" as const } : b,
-        ),
-      );
+      setVirtualBlocks((prev) => {
+        const target = prev.find((b) => b.id === blockId);
+        if (!target) return prev;
+        return prev.map((b) => {
+          if (b.id === blockId) return { ...b, _status: "deleted" as const };
+          if (b._status !== "deleted" && b.order > target.order) return { ...b, order: b.order - 1, _status: b._status === "new" ? "new" : "modified" as const };
+          return b;
+        });
+      });
       setSelectedBlockId((prev) => (prev === blockId ? null : prev));
     },
     [],
@@ -1343,6 +1392,8 @@ export default function DocumentWrapper({
             if (res.ok) {
               const saved = await res.json();
               refIdUpdates[block.id] = String(saved.id ?? saved.refId ?? "");
+            } else {
+              throw new Error(`Failed to save new block (order ${block.order}): ${res.status}`);
             }
           } else if (block._status === "modified" && block.refId) {
             await fetch(`/api/component/${block.refId}`, {
@@ -1492,13 +1543,14 @@ export default function DocumentWrapper({
       const insertAfterOrder = sorted[selIdx]?.order ?? -1;
       const newOrder = insertAfterOrder + 1;
 
-      // Shift all blocks at or after the new order up by 1
+      // Shift all blocks at or after the new order up by 1 in local state only.
+      // The server handles the DB shift atomically in POST /api/component — do NOT
+      // mark these as "modified" or they'll be double-incremented on save.
       const shifted = virtualBlocks.map((b) => {
         if (b._status === "deleted" || b.order < newOrder) return b;
         return {
           ...b,
           order: b.order + 1,
-          _status: (b._status === "new" ? "new" : "modified") as VirtualBlock["_status"],
         };
       });
 

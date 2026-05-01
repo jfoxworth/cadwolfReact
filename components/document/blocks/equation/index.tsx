@@ -83,6 +83,9 @@ export default function EquationBlock({
   );
   // Solution portion of the display (RHS); empty until solver runs
   const [solutionTex, setSolutionTex] = useState<string>("");
+  const [showMatrix, setShowMatrix] = useState<boolean | undefined>(
+    (block.definition as { displayOptions?: { showMatrix?: boolean } }).displayOptions?.showMatrix,
+  );
   const storedErrors = (block.solution as { errors?: string[] } | undefined)?.errors ?? [];
   const [errors, setErrors] = useState<string[]>(storedErrors);
 
@@ -93,6 +96,8 @@ export default function EquationBlock({
   );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const showMatrixPrefRef = useRef<boolean | undefined>(showMatrix);
+  useEffect(() => { showMatrixPrefRef.current = showMatrix; }, [showMatrix]);
 
   // Sync solver results into local state
   useEffect(() => {
@@ -108,24 +113,10 @@ export default function EquationBlock({
       return;
     }
 
-    // Non-scalar: determine showMatrix preference
-    const storedPref = def.displayOptions?.showMatrix;
-
-    if (storedPref === undefined) {
-      // Auto-set based on size and save it so it persists
-      const autoVal = autoShowMatrix(matrixSize);
-      onDefinitionChange?.(block.id, {
-        ...block.definition,
-        displayOptions: { ...(def.displayOptions ?? {}), showMatrix: autoVal },
-      });
-      setSolutionTex(
-        autoVal ? result.display.solution : `\\text{[${matrixSize}]}`,
-      );
-    } else {
-      setSolutionTex(
-        storedPref ? result.display.solution : `\\text{[${matrixSize}]}`,
-      );
-    }
+    // Non-scalar: determine showMatrix preference (use ref to avoid stale closure)
+    const storedPref = showMatrixPrefRef.current;
+    const show = storedPref === undefined ? autoShowMatrix(matrixSize) : storedPref;
+    setSolutionTex(show ? result.display.solution : `\\text{[${matrixSize}]}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
@@ -179,6 +170,7 @@ export default function EquationBlock({
   function handleShowMatrixChange(val: string) {
     const newPref: ShowMatrix =
       val === "true" ? true : val === "false" ? false : undefined;
+    setShowMatrix(newPref);
     onDefinitionChange?.(block.id, {
       ...block.definition,
       displayOptions: { ...(def.displayOptions ?? {}), showMatrix: newPref },
@@ -205,10 +197,9 @@ export default function EquationBlock({
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
   if (editing) {
-    const currentShowMatrix = def.displayOptions?.showMatrix;
     const showMatrixSelectVal =
-      currentShowMatrix === true ? "true" : currentShowMatrix === false ? "false" : "auto";
-    const hasMatrix = !!result?.display.matrixSize;
+      showMatrix === true ? "true" : showMatrix === false ? "false" : "auto";
+    const hasMatrix = !!result?.solution?.size && result.solution.size !== "1x1";
 
     return (
       <div className="rounded-md border border-blue-400 bg-blue-50 p-3">

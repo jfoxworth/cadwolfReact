@@ -18,7 +18,7 @@ export async function PUT(
   if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, itemData, description, quantity, parentId, needsUpdate, clearImportNeedsUpdate } = body;
+  const { name, itemData, description, quantity, isAnalysis, parentId, needsUpdate, clearImportNeedsUpdate } = body;
 
   // Moving to a new parent requires edit permission on the target
   if (parentId !== undefined) {
@@ -26,14 +26,15 @@ export async function PUT(
     if (!canEditTarget) return NextResponse.json({ error: "No edit permission on destination" }, { status: 403 });
   }
 
-  // Merge patch fields (description, quantity) into the existing itemData JSON
+  // Merge patch fields (description, quantity, isAnalysis) into the existing itemData JSON
   let mergedItemData = itemData;
-  if ((description !== undefined || quantity !== undefined) && mergedItemData === undefined) {
+  if ((description !== undefined || quantity !== undefined || isAnalysis !== undefined) && mergedItemData === undefined) {
     const existing = await db.file.findUnique({ where: { id: fileId }, select: { itemData: true } });
     let parsed: Record<string, unknown> = {};
     try { parsed = JSON.parse(existing?.itemData ?? "{}"); } catch { /* ignore */ }
     if (description !== undefined) parsed.description = description;
     if (quantity !== undefined) parsed.systemCount = quantity;
+    if (isAnalysis !== undefined) parsed.isAnalysis = isAnalysis;
     mergedItemData = JSON.stringify(parsed);
   }
 

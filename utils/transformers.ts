@@ -136,6 +136,7 @@ export function fileToItem(f: File): Item {
       if (!raw) return undefined;
       return raw.startsWith("http") ? raw : `https://cadwolf.s3.amazonaws.com/${raw}`;
     })(),
+    isAnalysis:  typeof itemData.isAnalysis === "boolean" ? itemData.isAnalysis : undefined,
     lockedBy:    f.lockedBy ?? null,
     lockedAt:    f.lockedAt?.toISOString() ?? null,
     createdAt:   f.createdAt?.toISOString() ?? new Date().toISOString(),

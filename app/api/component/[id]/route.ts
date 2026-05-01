@@ -53,16 +53,5 @@ export async function DELETE(
     data: { deletedAt: new Date() },
   });
 
-  // Shift later siblings down by 1
-  await db.component.updateMany({
-    where: {
-      fileId: component.fileId,
-      inEdit: 1,
-      deletedAt: null,
-      order: { gt: component.order },
-    },
-    data: { order: { decrement: 1 } },
-  });
-
   return NextResponse.json({ deleted: true });
 }

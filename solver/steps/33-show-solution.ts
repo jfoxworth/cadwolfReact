@@ -54,15 +54,11 @@ export const showSolution: StepFn = async (ctx: SolveContext): Promise<SolveCont
     const matMultiplier = ctx.solution.multiplier;
     const matUnits = ctx.solution.units ? ` \\, ${rawToLatex(ctx.solution.units)}` : "";
 
-    if (autoShowMatrix(ctx.solution.size)) {
-      solution = formatMatrix(ctx.solution.real, ctx.solution.size, matMultiplier);
-      if (hasImag) {
-        solution += ` + ${formatMatrix(ctx.solution.imag, ctx.solution.size, matMultiplier)}i`;
-      }
-      solution += matUnits;
-    } else {
-      solution = `\\text{[${ctx.solution.size}]}${matUnits}`;
+    solution = formatMatrix(ctx.solution.real, ctx.solution.size);
+    if (hasImag) {
+      solution += ` + ${formatMatrix(ctx.solution.imag, ctx.solution.size)}i`;
     }
+    solution += matUnits;
   } else {
     // solution.multiplier holds the conversion factor from the input unit to the SI
     // canonical unit (set by step 22). Always apply it so the displayed value and unit

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -14,6 +14,7 @@ interface ChatContextType {
   toggleChat: () => void;
   sendMessage: (content: string, pagePath?: string) => Promise<void>;
   clearMessages: () => void;
+  setPageContext: (context: string | null) => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -22,6 +23,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const pageContextRef = useRef<string | null>(null);
+  const setPageContext = useCallback((context: string | null) => {
+    pageContextRef.current = context;
+  }, []);
 
   const toggleChat = useCallback(() => setIsOpen((v) => !v), []);
   const clearMessages = useCallback(() => setMessages([]), []);
@@ -39,7 +44,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages, pagePath }),
+        body: JSON.stringify({ messages: nextMessages, pagePath, pageContext: pageContextRef.current }),
       });
 
       if (!response.ok || !response.body) {
@@ -83,7 +88,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [messages]);
 
   return (
-    <ChatContext.Provider value={{ isOpen, messages, isLoading, toggleChat, sendMessage, clearMessages }}>
+    <ChatContext.Provider value={{ isOpen, messages, isLoading, toggleChat, sendMessage, clearMessages, setPageContext }}>
       {children}
     </ChatContext.Provider>
   );

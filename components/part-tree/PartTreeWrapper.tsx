@@ -49,6 +49,10 @@ function computeCadDisplayValues(
   isRoot = false,
 ): EqValue {
   if (item.type === "DOCUMENT") {
+    if (item.isAnalysis) {
+      out.set(item.id, { value: null, unit: null });
+      return { value: null, unit: null };
+    }
     const cad = item.importedCad;
     if (!cad || cad.length === 0) {
       out.set(item.id, { value: null, unit: null });
@@ -104,6 +108,10 @@ function computeDisplayValues(
   isRoot = false,
 ): EqValue {
   if (item.type === "DOCUMENT") {
+    if (item.isAnalysis) {
+      out.set(item.id, { value: null, unit: null });
+      return { value: null, unit: null };
+    }
     const raw = rawValues.get(item.id);
     if (!raw || raw.value === null) {
       out.set(item.id, { value: null, unit: null });
@@ -438,6 +446,15 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
     }
   }, []);
 
+  async function handleToggleAnalysis(itemId: string, isAnalysis: boolean) {
+    await fetch(`/api/file/${itemId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isAnalysis }),
+    });
+    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, isAnalysis } : i));
+  }
+
   async function handleDeleteItem(itemId: string) {
     const res = await fetch(`/api/file/${itemId}`, { method: "DELETE" });
     if (!res.ok) return;
@@ -527,6 +544,7 @@ export default function PartTreeWrapper({ data, userId, canEdit }: Props) {
             onRenameItem={handleRenameItem}
             onDeleteItem={handleDeleteItem}
             onLinkCad={setCadModalItemId}
+            onToggleAnalysis={handleToggleAnalysis}
             canEdit={canEdit}
             resolvingId={resolvingId}
             onResolve={handleResolve}
