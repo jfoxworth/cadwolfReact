@@ -2,6 +2,13 @@
 
 CadWolf is a web-based engineering calculation platform that lets engineers write, solve, and share structured calculation documents. Calculations are organized into workspaces containing documents made up of blocks — equations, sliders, datasets, plots, loops, and more — that solve in sequence with full unit awareness and symbolic math support. Documents can be linked to CAD assemblies (Onshape, Autodesk Fusion) so that parameter changes in the model flow directly into the calculation.
 
+CADWOLF is undergoing a number of AI integrations and changes to the database and front end to accompish this task. These changes include, but are not limited to :
+
+- A bot that lets the user ask about the best method to achieve tasks, the validity of equations on the page, etc
+- RAG for when a user makes queries
+- Agentic AI that will design systems based on existing structures, iterate on existing designs, and check for optimizations
+
+
 ---
 
 ## Technology
@@ -73,7 +80,7 @@ The full platform reference used to prompt the CadWolf AI assistant is publicly 
 
 **[https://cadwolf.com/ai-context](https://cadwolf.com/ai-context)**
 
-This page documents platform structure, all built-in functions, the unit system, constants, CAD integration, and solver behavior. External AI systems can fetch this URL to gain full context about the CadWolf platform.
+This page documents platform structure, all built-in functions, the unit system, constants, CAD integration, and solver behavior. External AI systems can fetch this URL to gain full context about the CadWolf platform. This will change throughout development and the system prompt will be cached
 
 ---
 

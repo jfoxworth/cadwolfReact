@@ -37,7 +37,7 @@ export default function ComboView({ def, solverResults, revision }: Props) {
 
   const traces = series
     .filter((s) => s.x || s.y || (s.xValues && s.xValues.length > 0))
-    .map((s) => {
+    .map((s, idx) => {
       const liveX = solverResults && s.x ? getVar(s.x, solverResults) : { values: [], units: "" };
       const liveY = solverResults && s.y ? getVar(s.y, solverResults) : { values: [], units: "" };
       const xVals = s.x ? liveX.values : (s.xValues ?? []);
@@ -52,6 +52,9 @@ export default function ComboView({ def, solverResults, revision }: Props) {
           type: "bar" as const,
           marker: { color: s.color ?? "#2563eb" },
           yaxis: onY2 ? "y2" : "y",
+          // Plotly only auto-groups bars sharing one y-axis; without this, a bar series on y2
+          // renders centered on the same x position as y1 bars and hides them.
+          offsetgroup: String(idx),
         };
       }
       // line or scatter

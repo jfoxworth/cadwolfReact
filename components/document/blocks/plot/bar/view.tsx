@@ -38,7 +38,7 @@ export default function BarView({ def, solverResults, revision }: Props) {
 
   const traces = series
     .filter((s) => s.x || s.y || (s.xValues && s.xValues.length > 0))
-    .map((s) => {
+    .map((s, idx) => {
       const liveX = solverResults && s.x ? getVar(s.x, solverResults) : { values: [], units: "" };
       const liveY = solverResults && s.y ? getVar(s.y, solverResults) : { values: [], units: "" };
       const xVals = s.x ? liveX.values : (s.xValues ?? []);
@@ -58,6 +58,9 @@ export default function BarView({ def, solverResults, revision }: Props) {
         text: textPos !== "none" ? (orientation === "h" ? traceX : traceY).map(String) : undefined,
         textposition: textPos !== "none" ? textPos : undefined,
         yaxis: s.yAxis === "y2" ? "y2" : "y",
+        // Plotly only auto-groups bars sharing one y-axis; without this, a series on y2
+        // renders centered on the same x position as y1 bars and hides them.
+        offsetgroup: String(idx),
       };
     });
 
