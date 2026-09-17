@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
 import { resolveColors } from "../colorSchemes";
+import { resolveY2Axis } from "../y2Axis";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -56,6 +57,7 @@ export default function BarView({ def, solverResults, revision }: Props) {
         marker: { color: s.color ?? "#2563eb" },
         text: textPos !== "none" ? (orientation === "h" ? traceX : traceY).map(String) : undefined,
         textposition: textPos !== "none" ? textPos : undefined,
+        yaxis: s.yAxis === "y2" ? "y2" : "y",
       };
     });
 
@@ -65,6 +67,7 @@ export default function BarView({ def, solverResults, revision }: Props) {
   const yUnits = solverResults && firstY ? getVar(firstY, solverResults).units : "";
   const yRange = def.yMin !== undefined && def.yMax !== undefined ? [def.yMin, def.yMax] as [number, number] : undefined;
   const xRange = def.xMin !== undefined && def.xMax !== undefined ? [def.xMin, def.xMax] as [number, number] : undefined;
+  const { hasY2, yaxis2Layout } = resolveY2Axis(series, def);
 
   // For horizontal bars, axis labels are swapped
   const xAxisLabel = orientation === "h"
@@ -107,7 +110,8 @@ export default function BarView({ def, solverResults, revision }: Props) {
           linecolor: "#d1d5db",
           ...(yRange ? { range: yRange } : {}),
         },
-        margin: { t: def.title ? 50 : 20, r: 20, b: 60, l: 70 },
+        ...(yaxis2Layout ? { yaxis2: yaxis2Layout } : {}),
+        margin: { t: def.title ? 50 : 20, r: hasY2 ? 80 : 20, b: 60, l: 70 },
         autosize: true,
         paper_bgcolor: "white",
         plot_bgcolor: "#f9fafb",

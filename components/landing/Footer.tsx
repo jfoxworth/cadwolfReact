@@ -1,8 +1,8 @@
 const links = [
   { label: "About Us", href: "/about" },
-  { label: "Examples", href: "/Workspace/Examples/" },
-  { label: "Homework", href: "/Homework" },
-  { label: "Projects", href: "/Workspace/Projects" },
+  { label: "Examples", href: "/workspace/Examples/" },
+  { label: "Homework", href: "/workspace/Homework" },
+  { label: "Projects", href: "/workspace/Projects" },
   { label: "Tutorials", href: "/Tutorials" },
 ];
 

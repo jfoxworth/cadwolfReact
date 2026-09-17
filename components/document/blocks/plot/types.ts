@@ -20,7 +20,7 @@ export interface PlotSeries {
   yValues?: number[];
   /** Combo chart: which trace type this series renders as */
   seriesType?: ComboSeriesType;
-  /** Combo chart: which Y axis ("y1" = primary, "y2" = secondary) */
+  /** Which Y axis this series plots against ("y1" = primary/left, "y2" = secondary/right) */
   yAxis?: "y1" | "y2";
 }
 
@@ -65,6 +65,8 @@ export interface BubbleSeries {
   xValues?: number[];
   yValues?: number[];
   sizeValues?: number[];
+  /** Which Y axis this series plots against ("y1" = primary/left, "y2" = secondary/right) */
+  yAxis?: "y1" | "y2";
 }
 
 // ─── Heatmap ──────────────────────────────────────────────────────────────────
@@ -102,7 +104,7 @@ export interface PlotDefinition extends PieOptions, HeatmapOptions {
   barMode?: BarMode;
   barOrientation?: BarOrientation;
   barTextPosition?: BarTextPosition;
-  // Combo chart specific
+  // Secondary (right) Y axis — usable by any series-based chart type, not just combo
   y2Label?: string;
   // Surface plot specific
   surfaceOpacity?: number;
@@ -113,7 +115,7 @@ export interface PlotDefinition extends PieOptions, HeatmapOptions {
   yMax?: number;
   xMin?: number;
   xMax?: number;
-  /** Combo chart: limits for the secondary (right) Y axis */
+  /** Limits for the secondary (right) Y axis */
   y2Min?: number;
   y2Max?: number;
 }

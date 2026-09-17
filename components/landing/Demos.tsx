@@ -3,7 +3,7 @@ const demos = [
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/Workspace1.png",
     title: "Workspace Example",
     tag: "Workspaces",
-    href: "https://www.cadwolf.com/Workspace/Examples/",
+    href: "https://www.cadwolf.com/workspace/Examples/",
   },
   {
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/QE1.png",

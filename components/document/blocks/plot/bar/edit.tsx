@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { PlotDefinition, PlotSeries, BarMode, BarOrientation, BarTextPosition } from "../types";
+import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): PlotSeries {
   return { x: "", y: "", label: "", color: "#2563eb" };
@@ -41,7 +42,7 @@ function SeriesRow({ series, index, varNames, onChange, onRemove }: SeriesRowPro
           <VarSelect value={series.y} onChange={(v) => up({ y: v })} varNames={varNames} />
         </label>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <label className="flex flex-col gap-0.5">
           <span className="text-xs text-gray-500">Label (legend)</span>
           <input type="text" value={series.label ?? ""} onChange={(e) => up({ label: e.target.value })} placeholder="optional"
@@ -54,6 +55,13 @@ function SeriesRow({ series, index, varNames, onChange, onRemove }: SeriesRowPro
               className="h-8 w-10 cursor-pointer rounded border border-gray-300 p-0.5" />
             <span className="text-xs text-gray-400 font-mono">{series.color ?? "#2563eb"}</span>
           </div>
+        </label>
+        <label className="flex flex-col gap-0.5">
+          <span className="text-xs text-gray-500">Y axis</span>
+          <select value={series.yAxis ?? "y1"} onChange={(e) => up({ yAxis: e.target.value as "y1" | "y2" })}
+            className="rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-400 focus:outline-none bg-white">
+            {Y_AXIS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </label>
       </div>
     </div>
@@ -114,16 +122,21 @@ export default function BarEdit({ draft, varNames, onChange }: Props) {
       </div>
 
       {/* ── Axis labels + legend ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-600">X-axis label</span>
           <input type="text" value={draft.xLabel ?? ""} onChange={(e) => onChange({ xLabel: e.target.value })}
             placeholder="auto" className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-600">Y-axis label</span>
+          <span className="text-xs font-medium text-gray-600">Y1 label (left)</span>
           <input type="text" value={draft.yLabel ?? ""} onChange={(e) => onChange({ yLabel: e.target.value })}
             placeholder="auto" className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-600">Y2 label (right)</span>
+          <input type="text" value={draft.y2Label ?? ""} onChange={(e) => onChange({ y2Label: e.target.value })}
+            placeholder="optional" className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
         <label className="flex items-center gap-2 pt-5 cursor-pointer">
           <input type="checkbox" checked={draft.showLegend ?? true} onChange={(e) => onChange({ showLegend: e.target.checked })} className="rounded" />
@@ -134,13 +147,13 @@ export default function BarEdit({ draft, varNames, onChange }: Props) {
       {/* ── Axis limits ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-600">Y min</span>
+          <span className="text-xs font-medium text-gray-600">Y1 min (left)</span>
           <input type="number" value={draft.yMin ?? ""} placeholder="auto"
             onChange={(e) => onChange({ yMin: e.target.value === "" ? undefined : Number(e.target.value) })}
             className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-600">Y max</span>
+          <span className="text-xs font-medium text-gray-600">Y1 max (left)</span>
           <input type="number" value={draft.yMax ?? ""} placeholder="auto"
             onChange={(e) => onChange({ yMax: e.target.value === "" ? undefined : Number(e.target.value) })}
             className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
@@ -155,6 +168,18 @@ export default function BarEdit({ draft, varNames, onChange }: Props) {
           <span className="text-xs font-medium text-gray-600">X max</span>
           <input type="number" value={draft.xMax ?? ""} placeholder="auto"
             onChange={(e) => onChange({ xMax: e.target.value === "" ? undefined : Number(e.target.value) })}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-600">Y2 min (right)</span>
+          <input type="number" value={draft.y2Min ?? ""} placeholder="auto"
+            onChange={(e) => onChange({ y2Min: e.target.value === "" ? undefined : Number(e.target.value) })}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-600">Y2 max (right)</span>
+          <input type="number" value={draft.y2Max ?? ""} placeholder="auto"
+            onChange={(e) => onChange({ y2Max: e.target.value === "" ? undefined : Number(e.target.value) })}
             className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
       </div>

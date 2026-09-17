@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { PlotDefinition, PlotSeries, ComboSeriesType, BarMode } from "../types";
+import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): PlotSeries {
   return { x: "", y: "", label: "", seriesType: "bar", yAxis: "y1", color: "#2563eb", lineWidth: 2, markerSize: 6 };
@@ -56,8 +57,7 @@ function SeriesRow({ series, index, varNames, onChange, onRemove }: SeriesRowPro
           <span className="text-xs text-gray-500">Y axis</span>
           <select value={series.yAxis ?? "y1"} onChange={(e) => up({ yAxis: e.target.value as "y1" | "y2" })}
             className="rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-400 focus:outline-none bg-white">
-            <option value="y1">Left (Y1)</option>
-            <option value="y2">Right (Y2)</option>
+            {Y_AXIS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-0.5">

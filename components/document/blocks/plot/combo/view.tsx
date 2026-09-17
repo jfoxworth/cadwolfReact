@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
 import { resolveColors } from "../colorSchemes";
+import { resolveY2Axis } from "../y2Axis";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -32,7 +33,7 @@ export default function ComboView({ def, solverResults, revision }: Props) {
   const height   = def.height ?? 400;
   const barMode  = def.barMode ?? "group";
   const colorway = resolveColors(def.colorScheme);
-  const hasY2    = series.some((s) => s.yAxis === "y2");
+  const { hasY2, yaxis2Layout } = resolveY2Axis(series, def);
 
   const traces = series
     .filter((s) => s.x || s.y || (s.xValues && s.xValues.length > 0))
@@ -68,7 +69,6 @@ export default function ComboView({ def, solverResults, revision }: Props) {
   const firstX = series[0]?.x ?? "";
   const xUnits = solverResults && firstX ? getVar(firstX, solverResults).units : "";
   const yRange  = def.yMin  !== undefined && def.yMax  !== undefined ? [def.yMin,  def.yMax]  as [number, number] : undefined;
-  const y2Range = def.y2Min !== undefined && def.y2Max !== undefined ? [def.y2Min, def.y2Max] as [number, number] : undefined;
   const xRange  = def.xMin  !== undefined && def.xMax  !== undefined ? [def.xMin,  def.xMax]  as [number, number] : undefined;
 
   if (traces.length === 0) {
@@ -104,16 +104,7 @@ export default function ComboView({ def, solverResults, revision }: Props) {
           linecolor: "#d1d5db",
           ...(yRange ? { range: yRange } : {}),
         },
-        ...(hasY2 ? {
-          yaxis2: {
-            title: { text: def.y2Label ?? "" },
-            overlaying: "y",
-            side: "right",
-            automargin: true,
-            showgrid: false,
-            ...(y2Range ? { range: y2Range } : {}),
-          },
-        } : {}),
+        ...(yaxis2Layout ? { yaxis2: yaxis2Layout } : {}),
         margin: { t: def.title ? 50 : 20, r: hasY2 ? 80 : 20, b: 60, l: 70 },
         autosize: true,
         paper_bgcolor: "white",

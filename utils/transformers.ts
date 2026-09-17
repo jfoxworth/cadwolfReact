@@ -253,6 +253,13 @@ export function componentToBlock(c: Component): Block {
       const xaxes = (plotObj.Chart_xaxesobj as Record<string, unknown>[]) ?? [];
       const yaxes = (plotObj.Chart_yaxesobj as Record<string, unknown>[]) ?? [];
 
+      // Old-format axis limits are often the literal string "null" rather than absent
+      const parseAxisLimit = (v: unknown): number | undefined => {
+        if (v === undefined || v === null || v === "null") return undefined;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : undefined;
+      };
+
       const series = chartDataObj.map((d) => {
         // PointData: { "0": { x: 0, y: 54 }, "1": { x: 1, y: 55 }, ... }
         const pointData = (d.PointData ?? {}) as Record<string, Record<string, number>>;
@@ -273,6 +280,8 @@ export function componentToBlock(c: Component): Block {
           mode,
           xValues,
           yValues,
+          // Old format: per-series axis index (0 = primary, 1 = secondary/opposite)
+          yAxis: Number(d.yaxis ?? 0) === 1 ? "y2" as const : "y1" as const,
         };
       });
 
@@ -281,7 +290,11 @@ export function componentToBlock(c: Component): Block {
         rawChartType === "pie"                                    ? "pie"     :
         rawChartType === "donut"                                  ? "donut"   :
         rawChartType === "area"                                   ? "area"    :
+        rawChartType === "column" || rawChartType === "bar"        ? "bar"     :
         ["heatmap", "heat_map", "heatmap"].includes(rawChartType) ? "heatmap" : "line";
+
+      // Old format: a second Chart_yaxesobj entry (Axis_num 1, usually Axis_opposite) is the secondary axis
+      const secondaryYAxis = yaxes.find((a) => Number(a.Axis_num) === 1);
 
       if (plotType === "heatmap") {
         // Old heatmap data: zVar is typically stored as ydata_name on the first series entry
@@ -320,6 +333,11 @@ export function componentToBlock(c: Component): Block {
           yLabel: (yaxes[0]?.Axis_label as string) || "",
           height: 400,
           series,
+          ...(secondaryYAxis ? {
+            y2Label: (secondaryYAxis.Axis_label as string) || "",
+            y2Min: parseAxisLimit(secondaryYAxis.Axis_min),
+            y2Max: parseAxisLimit(secondaryYAxis.Axis_max),
+          } : {}),
         };
       }
     } else {

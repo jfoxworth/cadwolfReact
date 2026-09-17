@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { PlotDefinition, PlotSeries } from "../types";
+import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): PlotSeries {
   return { x: "", y: "", label: "", mode: "lines", color: "#2563eb", lineWidth: 2, markerSize: 6 };
@@ -41,7 +42,7 @@ function SeriesRow({ series, index, varNames, onChange, onRemove }: SeriesRowPro
           <VarSelect value={series.y} onChange={(v) => up({ y: v })} varNames={varNames} />
         </label>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <label className="flex flex-col gap-0.5">
           <span className="text-xs text-gray-500">Label (legend)</span>
           <input type="text" value={series.label ?? ""} onChange={(e) => up({ label: e.target.value })} placeholder="optional"
@@ -54,6 +55,13 @@ function SeriesRow({ series, index, varNames, onChange, onRemove }: SeriesRowPro
             <option value="lines">Lines</option>
             <option value="markers">Markers</option>
             <option value="lines+markers">Lines + Markers</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-0.5">
+          <span className="text-xs text-gray-500">Y axis</span>
+          <select value={series.yAxis ?? "y1"} onChange={(e) => up({ yAxis: e.target.value as "y1" | "y2" })}
+            className="rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-400 focus:outline-none bg-white">
+            {Y_AXIS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </label>
       </div>
@@ -104,16 +112,21 @@ export default function LineEdit({ draft, varNames, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-600">X-axis label</span>
           <input type="text" value={draft.xLabel ?? ""} onChange={(e) => onChange({ xLabel: e.target.value })}
             placeholder="auto" className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-600">Y-axis label</span>
+          <span className="text-xs font-medium text-gray-600">Y1 label (left)</span>
           <input type="text" value={draft.yLabel ?? ""} onChange={(e) => onChange({ yLabel: e.target.value })}
             placeholder="auto" className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-600">Y2 label (right)</span>
+          <input type="text" value={draft.y2Label ?? ""} onChange={(e) => onChange({ y2Label: e.target.value })}
+            placeholder="optional" className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
         <label className="flex items-center gap-2 pt-5 cursor-pointer">
           <input type="checkbox" checked={draft.showLegend ?? true} onChange={(e) => onChange({ showLegend: e.target.checked })} className="rounded" />
@@ -124,13 +137,13 @@ export default function LineEdit({ draft, varNames, onChange }: Props) {
       {/* ── Axis limits ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-600">Y min</span>
+          <span className="text-xs font-medium text-gray-600">Y1 min (left)</span>
           <input type="number" value={draft.yMin ?? ""} placeholder="auto"
             onChange={(e) => onChange({ yMin: e.target.value === "" ? undefined : Number(e.target.value) })}
             className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-600">Y max</span>
+          <span className="text-xs font-medium text-gray-600">Y1 max (left)</span>
           <input type="number" value={draft.yMax ?? ""} placeholder="auto"
             onChange={(e) => onChange({ yMax: e.target.value === "" ? undefined : Number(e.target.value) })}
             className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
@@ -145,6 +158,18 @@ export default function LineEdit({ draft, varNames, onChange }: Props) {
           <span className="text-xs font-medium text-gray-600">X max</span>
           <input type="number" value={draft.xMax ?? ""} placeholder="auto"
             onChange={(e) => onChange({ xMax: e.target.value === "" ? undefined : Number(e.target.value) })}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-600">Y2 min (right)</span>
+          <input type="number" value={draft.y2Min ?? ""} placeholder="auto"
+            onChange={(e) => onChange({ y2Min: e.target.value === "" ? undefined : Number(e.target.value) })}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-600">Y2 max (right)</span>
+          <input type="number" value={draft.y2Max ?? ""} placeholder="auto"
+            onChange={(e) => onChange({ y2Max: e.target.value === "" ? undefined : Number(e.target.value) })}
             className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
         </label>
       </div>
