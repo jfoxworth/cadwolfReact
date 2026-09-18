@@ -24,15 +24,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext } = await req.json();
+  const { messages, pagePath, pageContext, selectedBlockContext } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // Inject page path + live page content into the first user message
+  // Inject page path + selected-block context + live page content into the first user message.
+  // Selected-block context is listed separately, ahead of the full page dump, since it's a
+  // higher-priority (but not authoritative — verify it's actually relevant) hint about intent.
   const contextPrefix = [
     pagePath ? `[User is on page: ${pagePath}]` : null,
+    selectedBlockContext || null,
     pageContext ? `[Current page contents:\n${pageContext}\n]` : null,
   ].filter(Boolean).join("\n");
 

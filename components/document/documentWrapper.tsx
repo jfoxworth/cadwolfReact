@@ -470,6 +470,63 @@ function renderBlock({
   );
 }
 
+/** One-line plain-text summary of a block's content — used both for the full-page AI context
+ *  dump and for the single-block summary shown when a block is selected. */
+function blockToContextLine(b: VirtualBlock): string | null {
+  const def = b.definition as Record<string, unknown>;
+  switch (b.type) {
+    case "EQUATION": {
+      const raw = def.raw as string | undefined;
+      if (!raw) return null;
+      const sol = b.solution as { real?: Record<string, number>; size?: string; units?: string; errors?: string[] } | undefined;
+      if (sol?.errors && sol.errors.length > 0) return `${raw} [ERROR: ${sol.errors[0]}]`;
+      if (!sol?.real) return raw;
+      if (sol.size === "1x1") {
+        const val = sol.real["0-0"] ?? 0;
+        return `${raw} = ${val}${sol.units ? ` ${sol.units}` : ""}`;
+      }
+      return `${raw} [${sol.size}]`;
+    }
+    case "HEADER":
+      return `# ${def.text as string ?? ""}`;
+    case "TEXT":
+      return def.text as string ?? null;
+    case "SLIDER":
+      return `${def.variableName} = ${def.value}${def.unit ? ` ${def.unit}` : ""} (slider, range ${def.min}–${def.max})`;
+    case "DROPDOWN":
+    case "SELECT_BLOCK": {
+      const opts = def.options as string[] | undefined;
+      const idx = def.selectedIndex as number | undefined ?? 0;
+      return `${def.variableName} = ${opts?.[idx] ?? ""} (dropdown)`;
+    }
+    default:
+      return `[${b.type}]`;
+  }
+}
+
+const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
+  TEXT: "Text",
+  HEADER: "Header",
+  EQUATION: "Equation",
+  SYMBOLIC_EQUATION: "Symbolic Equation",
+  SLIDER: "Slider",
+  SELECT_BLOCK: "Select",
+  DROPDOWN: "Dropdown",
+  FOR_LOOP: "For Loop",
+  IF_ELSE: "If/Else",
+  WHILE_LOOP: "While Loop",
+  CARD: "Card",
+  IMAGE: "Image",
+  VIDEO: "Video",
+  LINE_BREAK: "Line Break",
+  PLOT: "Plot",
+};
+
+/** Strip HTML tags for a plain-text preview (used for text-block chip names). */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 interface LockInfo {
   lockedBy: number | null;
   lockedAt: string | null;
@@ -777,41 +834,11 @@ export default function DocumentWrapper({
   // Debug: expose blocks on window for console inspection
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
 
-  const { setPageContext } = useChat();
+  const { setPageContext, setSelectedBlock } = useChat();
   useEffect(() => {
     const lines = virtualBlocks
       .filter((b) => b._status !== "deleted")
-      .map((b) => {
-        const def = b.definition as Record<string, unknown>;
-        switch (b.type) {
-          case "EQUATION": {
-            const raw = def.raw as string | undefined;
-            if (!raw) return null;
-            const sol = b.solution as { real?: Record<string, number>; size?: string; units?: string; errors?: string[] } | undefined;
-            if (sol?.errors && sol.errors.length > 0) return `${raw} [ERROR: ${sol.errors[0]}]`;
-            if (!sol?.real) return raw;
-            if (sol.size === "1x1") {
-              const val = sol.real["0-0"] ?? 0;
-              return `${raw} = ${val}${sol.units ? ` ${sol.units}` : ""}`;
-            }
-            return `${raw} [${sol.size}]`;
-          }
-          case "HEADER":
-            return `# ${def.text as string ?? ""}`;
-          case "TEXT":
-            return def.text as string ?? null;
-          case "SLIDER":
-            return `${def.variableName} = ${def.value}${def.unit ? ` ${def.unit}` : ""} (slider, range ${def.min}–${def.max})`;
-          case "DROPDOWN":
-          case "SELECT_BLOCK": {
-            const opts = def.options as string[] | undefined;
-            const idx = def.selectedIndex as number | undefined ?? 0;
-            return `${def.variableName} = ${opts?.[idx] ?? ""} (dropdown)`;
-          }
-          default:
-            return `[${b.type}]`;
-        }
-      })
+      .map(blockToContextLine)
       .filter(Boolean);
     setPageContext(lines.join("\n"));
   }, [virtualBlocks, solverResults, setPageContext]);
@@ -1081,6 +1108,60 @@ export default function DocumentWrapper({
   const [openSettingsId, setOpenSettingsId] = useState<string | null>(null);
   const [blockModelViews, setBlockModelViews] = useState<Record<string, ModelView>>({});
   const [htmlOverrides, setHtmlOverrides] = useState<Record<string, string>>({});
+
+  // Tell the chat which block (if any) is currently selected, so it can show a chip and use it
+  // as a hint about what the user means — see prompts/cadwolf-assistant.md's guidance on this.
+  useEffect(() => {
+    if (!selectedBlockId) {
+      setSelectedBlock(null);
+      return;
+    }
+    const idx = virtualBlocks.findIndex((b) => b.id === selectedBlockId && b._status !== "deleted");
+    if (idx === -1) {
+      setSelectedBlock(null);
+      return;
+    }
+    const block = virtualBlocks[idx];
+    const def = block.definition as Record<string, unknown>;
+
+    let name: string;
+    if (block.type === "EQUATION" || block.type === "SYMBOLIC_EQUATION") {
+      name = block.name || "unnamed";
+    } else if (block.type === "HEADER") {
+      name = (def.text as string) || "Untitled";
+    } else if (block.type === "TEXT") {
+      const plain = stripHtml((def.text as string) ?? "");
+      name = plain ? (plain.length > 40 ? `${plain.slice(0, 40)}…` : plain) : "Empty text block";
+    } else {
+      name = block.name || BLOCK_TYPE_LABELS[block.type];
+    }
+
+    // Location = the nearest preceding header's text. For a selected header itself, "nearest
+    // preceding header" must mean an actual ancestor (strictly lower level) — a same-or-deeper
+    // level header before it is a sibling/cousin section, not its parent. With no ancestor (i.e.
+    // it's top-level), or for non-header blocks before any header at all, fall back to the
+    // document's own title.
+    let location = document.name;
+    const myLevel = block.type === "HEADER" ? ((def.level as number | undefined) ?? 2) : null;
+    for (let i = idx - 1; i >= 0; i--) {
+      const prior = virtualBlocks[i];
+      if (prior._status === "deleted" || prior.type !== "HEADER") continue;
+      const priorDef = prior.definition as Record<string, unknown>;
+      if (myLevel !== null && ((priorDef.level as number | undefined) ?? 2) >= myLevel) continue;
+      location = (priorDef.text as string) || location;
+      break;
+    }
+
+    setSelectedBlock(
+      {
+        type: BLOCK_TYPE_LABELS[block.type],
+        name,
+        location,
+        contextLine: blockToContextLine(block) ?? "",
+      },
+      () => setSelectedBlockId(null),
+    );
+  }, [selectedBlockId, virtualBlocks, setSelectedBlock]);
 
   // Single shared TipTap editor for all rich-text blocks
   const editor = useEditor({

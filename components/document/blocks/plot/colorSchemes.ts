@@ -5,6 +5,9 @@ export interface ColorScheme {
   colors: string[];
 }
 
+/** Shared base font for every plot's layout — spread `font: PLOT_FONT` into each chart type's layout. */
+export const PLOT_FONT = { family: "Helvetica, Arial, sans-serif", color: "#2c3e50" };
+
 // ─── Schemes from colors.json ─────────────────────────────────────────────────
 
 const fromJson: Record<string, ColorScheme> = {
@@ -51,4 +54,30 @@ export const COLOR_SCHEME_OPTIONS: { value: string; label: string }[] = [
 export function resolveColors(scheme?: string): string[] | undefined {
   if (!scheme || scheme === "default") return undefined;
   return COLOR_SCHEMES[scheme]?.colors;
+}
+
+/**
+ * Resolve one series' trace color. A plot-level color scheme, when set, is authoritative — it
+ * overrides any per-series color, the same way a theme picker works in any other charting tool
+ * (pick a scheme, everything recolors). Per-series manual colors only apply when the scheme is
+ * "Default" (no colorway) — that's the mode for hand-picking colors series by series.
+ */
+export function seriesColor(explicit: string | undefined, index: number, colorway: string[] | undefined): string {
+  if (colorway && colorway.length > 0) return colorway[index % colorway.length];
+  if (explicit) return explicit;
+  return "#2563eb";
+}
+
+/** Add an alpha channel to a color string — colors here may be "#rrggbb" (schemes.ts entries
+ *  and the color picker) or "rgb(r, g, b)" (colors.json schemes), so hex-suffix tricks alone
+ *  don't work for all of them. */
+export function withAlpha(color: string, alpha: number): string {
+  if (color.startsWith("#")) {
+    const hex = Math.round(alpha * 255).toString(16).padStart(2, "0");
+    return `${color}${hex}`;
+  }
+  if (color.startsWith("rgb(")) {
+    return `rgba(${color.slice(4, -1)}, ${alpha})`;
+  }
+  return color;
 }

@@ -3,7 +3,8 @@ import type { PlotDefinition, PlotSeries } from "../types";
 import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): PlotSeries {
-  return { x: "", y: "", label: "", mode: "markers", color: "#2563eb", markerSize: 8 };
+  // No hardcoded color here — leaving it unset lets the chart's color scheme apply.
+  return { x: "", y: "", label: "", mode: "markers", markerSize: 8 };
 }
 
 function VarSelect({ value, onChange, varNames }: { value: string; onChange: (v: string) => void; varNames: string[] }) {

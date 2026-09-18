@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
+import { PLOT_FONT } from "../colorSchemes";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -86,6 +87,7 @@ export default function SurfaceView({ def, solverResults, revision }: Props) {
         },
         margin: { t: def.title ? 50 : 30, r: 20, b: 20, l: 20 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
       }}
       style={{ width: "100%", height }}

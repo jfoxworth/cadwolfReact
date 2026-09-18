@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
+import { PLOT_FONT } from "../colorSchemes";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -79,6 +80,7 @@ export default function HeatmapView({ def, solverResults, revision }: Props) {
         yaxis: { title: { text: def.yLabel || def.hmYVar || "" }, automargin: true },
         margin: { t: def.title ? 50 : 20, r: 60, b: 60, l: 70 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
       }}
       style={{ width: "100%", height }}

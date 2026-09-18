@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
-import { resolveColors } from "../colorSchemes";
+import { resolveColors, seriesColor, PLOT_FONT } from "../colorSchemes";
 import { resolveY2Axis } from "../y2Axis";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -44,13 +44,14 @@ export default function ComboView({ def, solverResults, revision }: Props) {
       const yVals = s.y ? liveY.values : (s.yValues ?? []);
       const seriesType = s.seriesType ?? "bar";
       const onY2 = s.yAxis === "y2";
+      const color = seriesColor(s.color, idx, colorway);
 
       if (seriesType === "bar") {
         return {
           x: xVals, y: yVals,
           name: s.label || s.y || s.x,
           type: "bar" as const,
-          marker: { color: s.color ?? "#2563eb" },
+          marker: { color },
           yaxis: onY2 ? "y2" : "y",
           // Plotly only auto-groups bars sharing one y-axis; without this, a bar series on y2
           // renders centered on the same x position as y1 bars and hides them.
@@ -63,8 +64,8 @@ export default function ComboView({ def, solverResults, revision }: Props) {
         name: s.label || s.y || s.x,
         type: "scatter" as const,
         mode: (seriesType === "scatter" ? "markers" : (s.mode ?? "lines")) as "lines" | "markers" | "lines+markers",
-        line: { color: s.color ?? "#2563eb", width: s.lineWidth ?? 2 },
-        marker: { color: s.color ?? "#2563eb", size: s.markerSize ?? 6 },
+        line: { color, width: s.lineWidth ?? 2 },
+        marker: { color, size: s.markerSize ?? 6 },
         yaxis: onY2 ? "y2" : "y",
       };
     });
@@ -110,6 +111,7 @@ export default function ComboView({ def, solverResults, revision }: Props) {
         ...(yaxis2Layout ? { yaxis2: yaxis2Layout } : {}),
         margin: { t: def.title ? 50 : 20, r: hasY2 ? 80 : 20, b: 60, l: 70 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
         plot_bgcolor: "#f9fafb",
         ...(colorway ? { colorway } : {}),

@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
-import { resolveColors } from "../colorSchemes";
+import { resolveColors, seriesColor, PLOT_FONT } from "../colorSchemes";
 import { resolveY2Axis } from "../y2Axis";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -35,7 +35,7 @@ export default function ScatterView({ def, solverResults, revision }: Props) {
 
   const traces = series
     .filter((s) => s.x || s.y || (s.xValues && s.xValues.length > 0))
-    .map((s) => {
+    .map((s, idx) => {
       const liveX = solverResults && s.x ? getVar(s.x, solverResults) : { values: [], units: "" };
       const liveY = solverResults && s.y ? getVar(s.y, solverResults) : { values: [], units: "" };
       const xVals = s.x ? liveX.values : (s.xValues ?? []);
@@ -46,7 +46,7 @@ export default function ScatterView({ def, solverResults, revision }: Props) {
         name: s.label || s.y || s.x,
         mode: "markers" as const,
         type: "scatter" as const,
-        marker: { color: s.color ?? "#2563eb", size: s.markerSize ?? 8 },
+        marker: { color: seriesColor(s.color, idx, colorway), size: s.markerSize ?? 8 },
         yaxis: s.yAxis === "y2" ? "y2" : "y",
       };
     });
@@ -94,6 +94,7 @@ export default function ScatterView({ def, solverResults, revision }: Props) {
         ...(yaxis2Layout ? { yaxis2: yaxis2Layout } : {}),
         margin: { t: def.title ? 50 : 20, r: hasY2 ? 80 : 20, b: 60, l: 70 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
         plot_bgcolor: "#f9fafb",
         ...(colorway ? { colorway } : {}),

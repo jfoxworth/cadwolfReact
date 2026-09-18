@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
-import { resolveColors } from "../colorSchemes";
+import { resolveColors, seriesColor, PLOT_FONT } from "../colorSchemes";
 import { resolveY2Axis } from "../y2Axis";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -42,7 +42,7 @@ export default function BubbleView({ def, solverResults, revision }: Props) {
       const xVals    = s.x    ? liveX.values    : (s.xValues    ?? []);
       const yVals    = s.y    ? liveY.values    : (s.yValues    ?? []);
       const sizeVals = s.size ? liveSize.values : (s.sizeValues ?? []);
-      const color = s.color ?? (colorway?.[idx % (colorway?.length ?? 1)] ?? "#2563eb");
+      const color = seriesColor(s.color, idx, colorway);
       return {
         x: xVals,
         y: yVals,
@@ -105,6 +105,7 @@ export default function BubbleView({ def, solverResults, revision }: Props) {
         ...(yaxis2Layout ? { yaxis2: yaxis2Layout } : {}),
         margin: { t: def.title ? 50 : 20, r: hasY2 ? 80 : 20, b: 60, l: 70 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
         plot_bgcolor: "#f9fafb",
         ...(colorway ? { colorway } : {}),

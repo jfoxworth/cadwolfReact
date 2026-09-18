@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
-import { resolveColors } from "../colorSchemes";
+import { resolveColors, seriesColor, withAlpha, PLOT_FONT } from "../colorSchemes";
 import { resolveY2Axis } from "../y2Axis";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -40,11 +40,12 @@ export default function AreaView({ def, solverResults, revision }: Props) {
 
   const traces = series
     .filter((s) => s.x || s.y || (s.xValues && s.xValues.length > 0))
-    .map((s) => {
+    .map((s, idx) => {
       const liveX = solverResults && s.x ? getVar(s.x, solverResults) : { values: [], units: "" };
       const liveY = solverResults && s.y ? getVar(s.y, solverResults) : { values: [], units: "" };
       const xVals = s.x ? liveX.values : (s.xValues ?? []);
       const yVals = s.y ? liveY.values : (s.yValues ?? []);
+      const color = seriesColor(s.color, idx, colorway);
 
       return {
         x: xVals,
@@ -54,8 +55,8 @@ export default function AreaView({ def, solverResults, revision }: Props) {
         mode: "lines" as const,
         fill: stackgroup ? ("tonexty" as const) : ("tozeroy" as const),
         ...(stackgroup ? { stackgroup, ...(groupnorm ? { groupnorm } : {}) } : {}),
-        line: { color: s.color ?? undefined, width: s.lineWidth ?? 2 },
-        fillcolor: s.color ? `${s.color}55` : undefined,
+        line: { color, width: s.lineWidth ?? 2 },
+        fillcolor: withAlpha(color, 0.33),
         yaxis: s.yAxis === "y2" ? "y2" : "y",
       };
     });
@@ -107,6 +108,7 @@ export default function AreaView({ def, solverResults, revision }: Props) {
         ...(yaxis2Layout ? { yaxis2: yaxis2Layout } : {}),
         margin: { t: def.title ? 50 : 20, r: hasY2 ? 80 : 20, b: 60, l: 70 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
         plot_bgcolor: "#f9fafb",
         ...(colorway ? { colorway } : {}),

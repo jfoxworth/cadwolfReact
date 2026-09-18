@@ -3,7 +3,8 @@ import type { PlotDefinition, BubbleSeries } from "../types";
 import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): BubbleSeries {
-  return { x: "", y: "", size: "", label: "", color: "#2563eb", maxBubbleSize: 40 };
+  // No hardcoded color here — leaving it unset lets the chart's color scheme apply.
+  return { x: "", y: "", size: "", label: "", maxBubbleSize: 40 };
 }
 
 function VarSelect({ value, onChange, varNames }: { value: string; onChange: (v: string) => void; varNames: string[] }) {

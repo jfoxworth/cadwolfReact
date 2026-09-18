@@ -3,7 +3,8 @@ import type { PlotDefinition, PlotSeries, ComboSeriesType, BarMode } from "../ty
 import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): PlotSeries {
-  return { x: "", y: "", label: "", seriesType: "bar", yAxis: "y1", color: "#2563eb", lineWidth: 2, markerSize: 6 };
+  // No hardcoded color here — leaving it unset lets the chart's color scheme apply.
+  return { x: "", y: "", label: "", seriesType: "bar", yAxis: "y1", lineWidth: 2, markerSize: 6 };
 }
 
 function VarSelect({ value, onChange, varNames }: { value: string; onChange: (v: string) => void; varNames: string[] }) {

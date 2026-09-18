@@ -3,7 +3,8 @@ import type { PlotDefinition, PlotSeries, BarMode, BarOrientation, BarTextPositi
 import { Y_AXIS_OPTIONS } from "../y2Axis";
 
 function emptySeries(): PlotSeries {
-  return { x: "", y: "", label: "", color: "#2563eb" };
+  // No hardcoded color here — leaving it unset lets the chart's color scheme apply.
+  return { x: "", y: "", label: "" };
 }
 
 function VarSelect({ value, onChange, varNames }: { value: string; onChange: (v: string) => void; varNames: string[] }) {

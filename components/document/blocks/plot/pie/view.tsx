@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import type { PlotDefinition } from "../types";
 import type { SolveResult } from "@/solver/types";
-import { resolveColors } from "../colorSchemes";
+import { resolveColors, PLOT_FONT } from "../colorSchemes";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -75,6 +75,7 @@ export default function PieView({ def, solverResults, hole = 0, revision }: Prop
         showlegend: def.showLegend ?? true,
         margin: { t: def.title ? 50 : 20, r: 20, b: 20, l: 20 },
         autosize: true,
+        font: PLOT_FONT,
         paper_bgcolor: "white",
         ...(colorway ? { colorway } : {}),
       }}
