@@ -1260,7 +1260,7 @@ export default function DocumentWrapper({
   }, []);
 
   // Tell the chat which block (if any) is currently selected, so it can show a chip and use it
-  // as a hint about what the user means — see prompts/cadwolf-assistant.md's guidance on this.
+  // as a hint about what the user means — see prompts/document.md's guidance on this.
   useEffect(() => {
     if (!selectedBlockId) {
       setSelectedBlock(null);

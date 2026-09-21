@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function AiContextPage() {
   const content = readFileSync(
-    join(process.cwd(), "prompts", "cadwolf-assistant.md"),
+    join(process.cwd(), "prompts", "document.md"),
     "utf-8",
   );
 
