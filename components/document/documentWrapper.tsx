@@ -18,6 +18,7 @@ import BlockSettingsModal from "@/components/document/BlockSettingsModal";
 import type { ModelView } from "@/components/document/blocks/equation";
 import { useSideMenuAdd, type AddItem } from "@/context/SideMenuAddContext";
 import { BLOCK_TYPE_TO_COMPONENT_ID } from "@/utils/transformers";
+import { blockToContextLine } from "@/utils/blockToText";
 import { rawToLatex } from "@/utils/rawToLatex";
 import type { SolverLocation, TocSettings, FunctionSettings, ImportedFunction } from "@/types/item";
 import type { ImportedFunction as SolverImportedFunction } from "@/solver/types";
@@ -483,108 +484,6 @@ function renderBlock({
 
 /** Format an EQUATION block as "raw = value units" (or with an error/size note) — shared by the
  *  EQUATION case below and by CARD, which displays another equation block's value by reference. */
-function formatEquationLine(b: VirtualBlock): string | null {
-  const def = b.definition as Record<string, unknown>;
-  const raw = def.raw as string | undefined;
-  if (!raw) return null;
-  const sol = b.solution as { real?: Record<string, number>; size?: string; units?: string; errors?: string[] } | undefined;
-  if (sol?.errors && sol.errors.length > 0) return `${raw} [ERROR: ${sol.errors[0]}]`;
-  if (!sol?.real) return raw;
-  if (sol.size === "1x1") {
-    const val = sol.real["0-0"] ?? 0;
-    return `${raw} = ${val}${sol.units ? ` ${sol.units}` : ""}`;
-  }
-  return `${raw} [${sol.size}]`;
-}
-
-/** One-line plain-text summary of a block's content — used both for the full-page AI context
- *  dump and for the single-block summary shown when a block is selected. Every block type
- *  should show real content here — a bare "[TYPE]" tag gives the AI nothing to verify a
- *  selection or reference against. `allBlocks` is only needed by CARD, which is a pure
- *  reference to another block and has no content of its own to describe. */
-function blockToContextLine(b: VirtualBlock, allBlocks?: VirtualBlock[]): string | null {
-  const def = b.definition as Record<string, unknown>;
-  switch (b.type) {
-    case "EQUATION":
-      return formatEquationLine(b);
-    case "SYMBOLIC_EQUATION":
-      return def.expression as string ?? null;
-    case "HEADER":
-      return `# ${def.text as string ?? ""}`;
-    case "TEXT":
-      return def.text as string ?? null;
-    case "SLIDER":
-      return `${def.variableName} = ${def.value}${def.unit ? ` ${def.unit}` : ""} (slider, range ${def.min}–${def.max})`;
-    case "DROPDOWN":
-    case "SELECT_BLOCK": {
-      const opts = def.options as string[] | undefined;
-      const idx = def.selectedIndex as number | undefined ?? 0;
-      return `${def.variableName} = ${opts?.[idx] ?? ""} (dropdown)`;
-    }
-    case "FOR_LOOP":
-      return `for ${def.variable} = ${def.start} to ${def.end} step ${def.step}`;
-    case "WHILE_LOOP":
-      return `while ${def.lhs} ${def.operator} ${def.rhs}`;
-    case "IF_ELSE": {
-      const branches = (def.branches as {
-        type: string;
-        conditions: { flagText: string; conditionText: string; dependentText: string; blockOption: string }[];
-        children?: { definition?: { raw?: string } }[];
-      }[]) ?? [];
-      const parts = branches.map((br) => {
-        const label = br.type === "else" || br.conditions.length === 0
-          ? br.type
-          : `${br.type} (${br.conditions
-              .map((c, i) => (i === 0 ? `${c.flagText} ${c.conditionText} ${c.dependentText}` : `${c.blockOption} ${c.flagText} ${c.conditionText} ${c.dependentText}`))
-              .join(" ")})`;
-        // Include each branch's equations — a summary of the condition alone isn't enough
-        // context to propose an edit against (same reasoning CARD needed allBlocks for).
-        const eqs = (br.children ?? []).map((c) => c.definition?.raw).filter(Boolean).join("; ");
-        return eqs ? `${label} {${eqs}}` : label;
-      });
-      return parts.length ? parts.join(" / ") : null;
-    }
-    case "IMAGE": {
-      const label = (def.alt as string) || (def.caption as string) || (def.src as string) || "";
-      return label ? `Image: ${label}` : "Image (no source)";
-    }
-    case "VIDEO": {
-      const label = (def.caption as string) || (def.src as string) || "";
-      return label ? `Video: ${label}` : "Video (no source)";
-    }
-    case "PLOT": {
-      const plotType = (def.plotType as string) ?? "line";
-      if (plotType === "pie" || plotType === "donut") {
-        return `${plotType} chart of ${def.valuesVar ?? "(no data)"}`;
-      }
-      if (plotType === "heatmap" || plotType === "surface") {
-        const axes = [def.hmXVar, def.hmYVar].filter(Boolean).join(", ");
-        return `${plotType} of ${def.hmZVar ?? "(no data)"}${axes ? ` (axes: ${axes})` : ""}`;
-      }
-      if (plotType === "bubble") {
-        const series = (def.bubbleSeries as { x?: string; y?: string; size?: string }[]) ?? [];
-        const vars = series.map((s) => `${s.x ?? "?"} vs ${s.y ?? "?"} (size: ${s.size ?? "?"})`).join(", ");
-        return `bubble chart: ${vars || "(no series)"}`;
-      }
-      const series = (def.series as { x?: string; y?: string }[]) ?? [];
-      const vars = series.map((s) => `${s.x ?? "?"} vs ${s.y ?? "?"}`).join(", ");
-      return `${plotType} chart: ${vars || "(no series)"}`;
-    }
-    case "CARD": {
-      const targetId = def.equationBlockId as string | undefined;
-      const target = targetId ? allBlocks?.find((ob) => ob.id === targetId) : undefined;
-      if (!target) return "Card (no equation linked)";
-      const line = formatEquationLine(target);
-      return line ? `Card showing: ${line}` : "Card (linked equation has no value)";
-    }
-    case "LINE_BREAK":
-      // Decorative divider — genuinely no content to show, unlike the other types below.
-      return null;
-    default:
-      return `[${b.type}]`;
-  }
-}
-
 interface ProposedBranch {
   type: "if" | "elseif" | "else";
   conditions?: ConditionDef[];

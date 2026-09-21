@@ -3,6 +3,7 @@ import { db } from "@/utils/db";
 import { componentToBlock } from "@/utils/transformers";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
+import { embedComponent, deleteComponentEmbeddings } from "@/utils/embedComponent";
 
 // PUT /api/component/[id] — save block content/definition
 export async function PUT(
@@ -31,6 +32,13 @@ export async function PUT(
     },
   });
 
+  // Fire-and-forget, same as the create path — see that route's comment.
+  if (content !== undefined) {
+    embedComponent(db, component).catch((err) => {
+      console.error(`embedComponent failed for component ${component.id}:`, err);
+    });
+  }
+
   return NextResponse.json(componentToBlock(component));
 }
 
@@ -51,6 +59,10 @@ export async function DELETE(
   await db.component.update({
     where: { id: numId },
     data: { deletedAt: new Date() },
+  });
+
+  deleteComponentEmbeddings(db, numId).catch((err) => {
+    console.error(`deleteComponentEmbeddings failed for component ${numId}:`, err);
   });
 
   return NextResponse.json({ deleted: true });

@@ -67,8 +67,34 @@ model Component {
   createdAt       DateTime? @map("created_at")
   updatedAt       DateTime? @map("updated_at")
   file            File      @relation(fields: [fileId], references: [id])
+  blockEmbeddings BlockEmbedding[]
 
   @@map("components")
+}
+
+// RAG embeddings: one or more chunks per Component (see utils/blockToText.ts's
+// chunkTextBlock — most blocks are a single chunk; an oversized TEXT block can split into
+// several). The vector column itself is Unsupported here since Prisma's query builder can't
+// read/write it directly — all embedding reads/writes go through $queryRaw/$executeRaw.
+// provider/model are recorded per row so a future provider switch is a clean, verifiable
+// cutover (re-embed everything, confirm, then switch retrieval over) rather than silently
+// mixing vectors from incompatible embedding spaces in the same similarity search.
+model BlockEmbedding {
+  id          Int       @id @default(autoincrement())
+  componentId Int       @map("component_id")
+  fileId      Int       @map("file_id")
+  chunkIndex  Int       @default(0) @map("chunk_index")
+  chunkText   String    @map("chunk_text")
+  embedding   Unsupported("vector(1024)")
+  provider    String    @default("voyage")
+  model       String    @default("voyage-4-lite")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([componentId, chunkIndex])
+  @@index([fileId])
+  @@map("block_embeddings")
 }
 
 model Bibliography {

@@ -3,6 +3,7 @@ import { db } from "@/utils/db";
 import { componentToBlock } from "@/utils/transformers";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
+import { embedComponent } from "@/utils/embedComponent";
 
 // POST /api/component — add a block to a document
 export async function POST(req: NextRequest) {
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
       name: name ?? null,
       inEdit: 1,
     },
+  });
+
+  // Fire-and-forget: keep the RAG index current without making the save wait on it, or
+  // making it fail if Voyage is unavailable — the component itself is already saved, which
+  // is what actually matters; a stale/missing embedding just means it won't surface in
+  // search until the next successful (re-)embed.
+  embedComponent(db, component).catch((err) => {
+    console.error(`embedComponent failed for component ${component.id}:`, err);
   });
 
   return NextResponse.json(componentToBlock(component), { status: 201 });
