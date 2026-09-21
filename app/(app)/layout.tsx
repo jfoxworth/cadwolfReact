@@ -35,7 +35,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <HexBackground />
           {/* SideMenuNew is position:fixed — takes no layout space */}
           <SideMenuNew user={sideMenuUser} />
-          <main className="w-full h-screen overflow-y-auto">
+          {/* min-w floor (not min-w-0) so the docked chat column can never squeeze main's
+              content past this point — below it the page gains a horizontal scrollbar
+              instead, since flex siblings can't overlap but an unbounded floor could crush
+              main to an unusable sliver next to the chat column. */}
+          <main className="flex-1 min-w-[1000px] h-screen overflow-y-auto">
             {session && !emailVerified && <VerificationBanner email={session.userEmail} />}
             {children}
           </main>

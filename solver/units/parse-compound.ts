@@ -88,7 +88,13 @@ export function termsToUnitString(terms: UnitTerm[]): string {
   };
 
   const lhs = pos.map((t) => fmt(t)).join("*") || "1";
-  const rhs = neg.map((t) => fmt(t, true)).join("*");
+  // Join with "/", not "*": parseCompound treats "/" as "stays negative until the
+  // next delimiter" but "*" resets the running sign back to positive. Joining two+
+  // negative terms with "*" (e.g. "kg/m*s" for kg·m⁻¹·s⁻¹) silently flips every term
+  // after the first back to positive when this string is re-parsed. A chain of "/"
+  // (e.g. "kg/m/s") parses correctly — this only ever showed up with 2+ negative
+  // terms, which is exactly why single-negative-term units never exposed it.
+  const rhs = neg.map((t) => fmt(t, true)).join("/");
 
   return rhs ? `${lhs}/${rhs}` : lhs;
 }

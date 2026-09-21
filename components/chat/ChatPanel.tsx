@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState, KeyboardEvent } from "react";
+import { usePathname } from "next/navigation";
 import { Bot, X, Send, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useChat } from "@/context/ChatContext";
+import { useChat, type BlockProposal } from "@/context/ChatContext";
+
+// Mirrors derivePageType() in app/api/chat/route.ts — same fallback ("workspace" for an
+// unrecognized path) and the same four route segments (utils/resolveRoute.ts's TYPE_ROUTE
+// values), duplicated locally rather than imported since that file also imports the Prisma
+// client (@/utils/db), which can't be pulled into a client bundle.
+const PAGE_TYPES = new Set(["document", "dataset", "part-tree", "workspace"]);
+function derivePageType(pathname: string | null): string {
+  const segment = pathname?.split("/").filter(Boolean)[0];
+  return segment && PAGE_TYPES.has(segment) ? segment : "workspace";
+}
 
 // Hexagon geometry/technique reproduced from the main nav hexagons
 // (components/side-menu/SideMenuNew.tsx: HEX_CLIP / HexNav)
@@ -14,10 +25,74 @@ const HEX_BOTTOM = 24; // matches the old bottom-6 toggle position
 const HEX_RIGHT = 24; // matches the old right-6 toggle position
 const LINE_GAP = 30; // same connecting-line gap used between nav hexagons and their sub-clusters
 const LINE_BOTTOM = HEX_BOTTOM + HEX_H;
-const WINDOW_BOTTOM = LINE_BOTTOM + LINE_GAP;
-const WINDOW_W = 480;
-const WINDOW_CORNER = 28; // chamfer size cut from the two top corners
-const WINDOW_CLIP = `polygon(${WINDOW_CORNER}px 0%, calc(100% - ${WINDOW_CORNER}px) 0%, 100% ${WINDOW_CORNER}px, 100% 100%, 0% 100%, 0% ${WINDOW_CORNER}px)`;
+const WINDOW_W = 600;
+
+// The original 4 block tools are the only ones with an edit-vs-add distinction
+// (targetBlockId present/absent) — every tool added since is a one-shot action, so this set
+// is what gates showing that "· edit"/"· add" suffix at the render site below.
+const BLOCK_TOOLS = new Set<BlockProposal["tool"]>([
+  "equation_block", "symbolic_equation_block", "text_block", "header_block", "if_else_block",
+]);
+
+const PROPOSAL_LABELS: Record<BlockProposal["tool"], string> = {
+  equation_block: "Equation",
+  symbolic_equation_block: "Symbolic equation",
+  text_block: "Text",
+  header_block: "Header",
+  if_else_block: "If/Else",
+  create_file: "New file",
+  rename_file: "Rename",
+  move_file: "Move",
+  delete_file: "Delete",
+  configure_dataset_parsers: "Parser config",
+  edit_dataset_content: "Dataset content",
+  edit_dataset_metadata: "Dataset title/description",
+};
+
+function proposalPreview(p: BlockProposal): string {
+  if (p.tool === "if_else_block") {
+    const input = p.input as { branches?: { type: string; conditions?: { flagText: string; conditionText: string; dependentText: string }[]; equations?: string[] }[] };
+    return (input.branches ?? [])
+      .map((br) => {
+        const cond = br.type === "else" || !br.conditions?.length
+          ? br.type
+          : `${br.type} (${br.conditions.map((c) => `${c.flagText} ${c.conditionText} ${c.dependentText}`).join(" ")})`;
+        return `${cond}: ${(br.equations ?? []).join(", ") || "(no equations)"}`;
+      })
+      .join(" / ");
+  }
+  if (p.tool === "create_file") {
+    const input = p.input as { fileTypeId?: string; name?: string };
+    return `${input.fileTypeId ?? "?"}${input.name ? `: "${input.name}"` : " (default name)"}`;
+  }
+  if (p.tool === "rename_file") {
+    const input = p.input as { targetId?: string; name?: string };
+    return `#${input.targetId ?? "?"} → "${input.name ?? ""}"`;
+  }
+  if (p.tool === "move_file") {
+    const input = p.input as { targetId?: string; destinationId?: string };
+    return `#${input.targetId ?? "?"} → folder #${input.destinationId ?? "?"}`;
+  }
+  if (p.tool === "delete_file") {
+    const input = p.input as { targetId?: string };
+    return `#${input.targetId ?? "?"}`;
+  }
+  if (p.tool === "configure_dataset_parsers") {
+    const input = p.input as { parsers?: { label: string; separator: string }[] };
+    return (input.parsers ?? []).map((parser) => `${parser.label} (${JSON.stringify(parser.separator)})`).join(", ") || "(no parsers)";
+  }
+  if (p.tool === "edit_dataset_content") {
+    const input = p.input as { rawText?: string };
+    const text = input.rawText ?? "";
+    return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+  }
+  if (p.tool === "edit_dataset_metadata") {
+    const input = p.input as { name?: string; description?: string };
+    return [input.name && `title: "${input.name}"`, input.description && `description: "${input.description}"`].filter(Boolean).join(", ");
+  }
+  const input = p.input as { raw?: string; expression?: string; text?: string };
+  return input.raw ?? input.expression ?? input.text ?? "";
+}
 
 // Quick-action suggestions, keyed by the selected block's type label (see BLOCK_TYPE_LABELS in
 // documentWrapper.tsx). Only defined for the block types April can currently act on — an
@@ -45,12 +120,27 @@ const SELECTED_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
-// Shown instead, when nothing is selected — document-wide asks rather than single-block ones.
-const GENERAL_SUGGESTIONS = [
-  "How do I solve the problem in this document?",
-  "Review this document for errors",
-  "Summarize this document",
-];
+// Shown instead, when nothing is selected — page-wide asks rather than single-block ones,
+// keyed by page type since each page type supports different things (documents: block Q&A;
+// workspace: browse + create_file; dataset: read-only Q&A; part-tree: nothing yet).
+const GENERAL_SUGGESTIONS_BY_PAGE_TYPE: Record<string, string[]> = {
+  document: [
+    "How do I solve the problem in this document?",
+    "Review this document for errors",
+    "Summarize this document",
+  ],
+  dataset: [
+    "Summarize this dataset",
+    "How many rows does this have?",
+    "Describe the structure of this dataset",
+  ],
+  workspace: [
+    "Create a new document here",
+    "Create a new dataset here",
+    "What's in this workspace?",
+  ],
+  "part-tree": [],
+};
 
 /** Small hex badge used for the header and per-message assistant avatar — always "lit" green. */
 function HexBadge({ size, iconSize }: { size: number; iconSize: number }) {
@@ -83,11 +173,17 @@ function HexBadge({ size, iconSize }: { size: number; iconSize: number }) {
 }
 
 export default function ChatPanel() {
-  const { isOpen, messages, isLoading, selectedBlock, toggleChat, sendMessage, clearMessages, clearSelectedBlock } = useChat();
+  const {
+    isOpen, messages, isLoading, selectedBlock,
+    toggleChat, sendMessage, clearMessages, clearSelectedBlock,
+    approveProposal, rejectProposal, undoProposal,
+  } = useChat();
   const [input, setInput] = useState("");
   const [hexHover, setHexHover] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pageType = derivePageType(usePathname());
+  const generalSuggestions = GENERAL_SUGGESTIONS_BY_PAGE_TYPE[pageType] ?? [];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -205,11 +301,14 @@ export default function ChatPanel() {
         </div>
       </button>
 
-      {/* Chat panel */}
+      {/* Chat panel — docked column: a normal flex sibling of <main>, not a floating
+          overlay, so it reflows the page instead of covering it. Experimental swap from
+          the popover layout; the chamfered clip-path is dropped here since it assumed a
+          gap around the panel that a flush-docked edge doesn't have. */}
       {isOpen && (
         <div
-          className="fixed right-6 z-50 bg-white border border-gray-200 shadow-2xl flex flex-col overflow-hidden"
-          style={{ bottom: WINDOW_BOTTOM, width: WINDOW_W, height: "75vh", clipPath: WINDOW_CLIP }}
+          className="h-screen shrink-0 border-l border-gray-200 bg-white shadow-2xl flex flex-col overflow-hidden"
+          style={{ width: WINDOW_W }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-900 to-emerald-800 text-white shrink-0">
@@ -242,12 +341,97 @@ export default function ChatPanel() {
                 ) : (
                   <div key={i} className="flex gap-3">
                     <HexBadge size={22} iconSize={11} />
-                    <div className="flex-1 text-sm text-gray-800 prose prose-sm max-w-none pt-0.5">
+                    <div className="flex-1 min-w-0 text-sm text-gray-800 prose prose-sm max-w-none pt-0.5">
                       {msg.content === "" && isLoading ? (
                         <span className="inline-block w-2 h-4 bg-gray-400 animate-pulse" />
                       ) : (
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       )}
+                      {msg.proposals && msg.proposals.length > 0 && (() => {
+                        // Successfully-applied adds (new blocks) get folded into one summary,
+                        // no individual Undo — the user asked for adds to just be visible, not
+                        // individually actionable in chat (edits keep their own Undo below,
+                        // and a *failed* add still gets its own card since that needs attention).
+                        const isAdd = (p: BlockProposal) => !p.input.targetBlockId;
+                        const addedSummary = msg.proposals.filter((p) => isAdd(p) && p.status === "applied");
+                        const individual = msg.proposals.filter((p) => !(isAdd(p) && p.status === "applied"));
+                        return (
+                          <div className="not-prose mt-3 flex flex-col gap-2">
+                            {addedSummary.length > 0 && (
+                              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs">
+                                <p className="mb-1 font-semibold text-emerald-800">
+                                  Added {addedSummary.length} block{addedSummary.length === 1 ? "" : "s"}:
+                                </p>
+                                <ul className="flex flex-col gap-0.5">
+                                  {addedSummary.map((p) => (
+                                    <li key={p.id} className="text-gray-700">
+                                      <span className="font-medium text-emerald-700">{PROPOSAL_LABELS[p.tool]}</span>
+                                      {" — "}
+                                      <span className="font-mono break-words">{proposalPreview(p)}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {individual.map((p) => (
+                              <div key={p.id} className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs">
+                                <div className="mb-1 flex items-center justify-between gap-2">
+                                  <span className="font-semibold text-emerald-800">
+                                    {PROPOSAL_LABELS[p.tool]}
+                                    {BLOCK_TOOLS.has(p.tool) && <> · {p.input.targetBlockId ? "edit" : "add"}</>}
+                                  </span>
+                                  {p.status !== "pending" && (
+                                    <span className={
+                                      p.status === "approved" || p.status === "applied" ? "text-emerald-600" :
+                                      p.status === "failed" ? "text-red-500" : "text-gray-400"
+                                    }>
+                                      {p.status === "approved" || p.status === "applied" ? "Applied" :
+                                       p.status === "failed" ? "Failed" :
+                                       p.status === "undone" ? "Undone" : "Dismissed"}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="whitespace-pre-wrap break-words font-mono text-gray-700">
+                                  {proposalPreview(p)}
+                                </p>
+                                {p.status === "failed" && p.error && (
+                                  <p className="mt-1 text-red-500">{p.error}</p>
+                                )}
+                                {p.status === "pending" && (
+                                  <div className="mt-2 flex gap-2">
+                                    <button
+                                      onClick={() => approveProposal(i, p.id)}
+                                      className="rounded bg-emerald-600 px-2 py-1 text-white hover:bg-emerald-700 transition-colors"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => rejectProposal(i, p.id)}
+                                      className="rounded border border-gray-300 px-2 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                                {/* Document edits only — applied automatically, no click needed;
+                                    this is the only way back until Save clears every flag. Adds
+                                    never reach here since a successfully-applied one is filtered
+                                    into addedSummary above, with no Undo offered. */}
+                                {p.status === "applied" && (
+                                  <div className="mt-2 flex gap-2">
+                                    <button
+                                      onClick={() => undoProposal(i, p.id)}
+                                      className="rounded border border-gray-300 px-2 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
+                                    >
+                                      Undo
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ),
@@ -288,9 +472,9 @@ export default function ChatPanel() {
                 </div>
               ) : null}
             </div>
-          ) : (
+          ) : generalSuggestions.length > 0 ? (
             <div className="flex flex-wrap gap-2 px-4 py-2 border-t border-gray-100 shrink-0">
-              {GENERAL_SUGGESTIONS.map((s) => (
+              {generalSuggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => handleSuggestion(s)}
@@ -301,7 +485,7 @@ export default function ChatPanel() {
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
 
           {/* Input — larger compose area */}
           <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">

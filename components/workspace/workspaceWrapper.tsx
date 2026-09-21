@@ -5,6 +5,11 @@ import WorkspaceView from "./view/WorkspaceView";
 import WorkspaceEdit from "./edit/WorkspaceEdit";
 import type { WorkspacePageData } from "@/types/workspace";
 import type { Item } from "@/types/item";
+import { useChat } from "@/context/ChatContext";
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
 
 export interface CadConn {
   documentId: string;
@@ -23,6 +28,21 @@ interface WorkspaceWrapperProps {
 export default function WorkspaceWrapper({ data, canEdit, canAdmin, userId, canUpload = false }: WorkspaceWrapperProps) {
   const { workspace, items } = data;
   const [cadConns, setCadConns] = useState<Map<string, CadConn>>(new Map());
+  const { setPageContext } = useChat();
+
+  useEffect(() => {
+    const lines = items.map((i: Item) => {
+      const desc = i.description ? stripHtml(i.description) : "";
+      return `- ${i.type} "${i.name}" (id ${i.id})${desc ? `: ${desc}` : ""}`;
+    });
+    setPageContext(
+      [
+        `Workspace "${workspace.name}" contains ${items.length} item${items.length === 1 ? "" : "s"}${items.length ? ":\n" + lines.join("\n") : "."}`,
+        `Current user's permission here — edit: ${canEdit ? "yes" : "no"}, admin: ${canAdmin ? "yes" : "no"}.`,
+      ].join("\n"),
+    );
+    return () => setPageContext(null);
+  }, [workspace, items, canEdit, canAdmin, setPageContext]);
 
   useEffect(() => {
     const docIds = items

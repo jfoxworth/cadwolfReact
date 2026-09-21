@@ -10,6 +10,8 @@ import {
   sizeAtExtraDim,
 } from "@/utils/parseDataset";
 import DatasetActionPanel from "./DatasetActionPanel";
+import { buildDatasetContext } from "./DatasetWrapper";
+import { useChat } from "@/context/ChatContext";
 
 type ActiveTab = "settings" | "input" | "results";
 type ModalKind = "title" | "description";
@@ -103,6 +105,19 @@ export default function DatasetEdit({ dataset }: { dataset: Dataset }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const { setPageContext, registerProposalHandlers } = useChat();
+
+  // DatasetWrapper skips its own context-setting while in edit mode (it only has the
+  // static dataset prop) — this is the live version, re-derived from local state (including
+  // draftTitle/draftDescription, not the static dataset.name/description — those go stale
+  // the moment edit_dataset_metadata applies, the same staleness class rawText/parsers would
+  // hit if read from the prop instead of local state) so the model always sees what's
+  // currently on the page, not just what it loaded with.
+  useEffect(() => {
+    setPageContext(buildDatasetContext({ name: draftTitle, description: draftDescription, rawText, parsers }));
+    return () => setPageContext(null);
+  }, [draftTitle, draftDescription, rawText, parsers, setPageContext]);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveError(null);
@@ -189,6 +204,43 @@ export default function DatasetEdit({ dataset }: { dataset: Dataset }) {
       return next;
     });
   }
+
+  // Register this dataset's proposal handler. Two apply models, matching what each field
+  // already does in the existing UI: configure_dataset_parsers and edit_dataset_content only
+  // ever touch local state (parsers/rawText — ids generated here for parsers, matching
+  // addParser()'s own convention) and jump to the Results tab, with no API call — the user
+  // still has to click Save. edit_dataset_metadata calls the same PUT the title/description
+  // FieldModal already makes, applying for real immediately, since that's what those two
+  // fields already do on their own (no relation to the page's main Save button).
+  useEffect(() => {
+    registerProposalHandlers({
+      onPropose: () => {},
+      onApprove: async (proposal) => {
+        if (proposal.tool === "configure_dataset_parsers") {
+          const proposed = proposal.input.parsers as { label: string; separator: string }[];
+          setParsers(proposed.map((p) => ({ id: crypto.randomUUID(), label: p.label, separator: p.separator })));
+          setActiveTab("results");
+        } else if (proposal.tool === "edit_dataset_content") {
+          setRawText(proposal.input.rawText as string);
+          setActiveTab("results");
+        } else if (proposal.tool === "edit_dataset_metadata") {
+          const name = proposal.input.name as string | undefined;
+          const description = proposal.input.description as string | undefined;
+          if (name === undefined && description === undefined) return;
+          const res = await fetch(`/api/file/${dataset.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...(name !== undefined && { name }), ...(description !== undefined && { description }) }),
+          });
+          if (!res.ok) throw new Error("Couldn't save — check you have edit access here.");
+          if (name !== undefined) setDraftTitle(name);
+          if (description !== undefined) setDraftDescription(description);
+        }
+      },
+      onReject: () => {},
+    });
+    return () => registerProposalHandlers(null);
+  }, [registerProposalHandlers, dataset.id]);
 
   // ── Tab content ──────────────────────────────────────────────────────────
 

@@ -27,6 +27,13 @@ import DescriptionEditor from "./DescriptionEditor";
 import type { Item, ItemType } from "@/types/item";
 import type { CadConn } from "../workspaceWrapper";
 import { useSideMenuAdd, type AddItem } from "@/context/SideMenuAddContext";
+import { useChat } from "@/context/ChatContext";
+
+// fileTypeId values the chat's create_file tool is allowed to create — kept in sync with
+// app/api/chat/tools.ts's WORKSPACE_TOOLS enum. /api/file itself validates nothing, so this
+// is the only thing standing between a tool call and creating something unintended (e.g. a
+// PartTree, which is intentionally out of scope for now).
+const CHAT_CREATABLE_TYPES = new Set(["Document", "Dataset", "Workspace"]);
 
 const TYPE_ROUTE: Record<ItemType, string> = {
   WORKSPACE: "workspace",
@@ -108,28 +115,110 @@ export default function WorkspaceEdit({ items: initialItems, canAdmin, workspace
 
   const { setAddConfig } = useSideMenuAdd();
 
-  const createItem = useCallback(async (label: string) => {
+  // explicitName lets a caller (the chat tool) set a real name up front; the "New" button
+  // omits it and falls back to the existing generated placeholder, unchanged.
+  const createItem = useCallback(async (label: string, explicitName?: string): Promise<Item | undefined> => {
     if (label === "Image") {
       setImageModalOpen(true);
-      return;
+      return undefined;
     }
     const fileTypeId = LABEL_TO_FILE_TYPE[label];
-    if (!fileTypeId) return;
-    const name = `New ${LABEL_TO_DISPLAY[label]} ${randomSuffix()}`;
+    if (!fileTypeId) return undefined;
+    const name = explicitName?.trim() || `New ${LABEL_TO_DISPLAY[label]} ${randomSuffix()}`;
     const res = await fetch("/api/file", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fileTypeId, name, parentId: parseInt(workspaceId, 10), userId }),
     });
-    if (res.ok) {
-      const newItem: Item = await res.json();
-      setItems((prev) => [...prev, newItem]);
-      setPendingScrollId(newItem.id);
-    }
+    if (!res.ok) return undefined;
+    const newItem: Item = await res.json();
+    setItems((prev) => [...prev, newItem]);
+    setPendingScrollId(newItem.id);
+    return newItem;
   }, [workspaceId, userId]);
 
   const createItemRef = useRef(createItem);
   useEffect(() => { createItemRef.current = createItem; }, [createItem]);
+
+  // Rename/move/delete-by-id, callable with any target id (unlike handleSave/handleMove/
+  // handleDelete below, which only ever act on `modal.item`/`moveItem` — these mirror each
+  // one's own existing fetch call and post-success behavior exactly, just parameterized so
+  // the chat proposal handler can drive them without a modal being open.
+  const renameFileById = useCallback(async (id: string, name: string): Promise<boolean> => {
+    const res = await fetch(`/api/file/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) return false;
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, name } : it)));
+    router.refresh();
+    return true;
+  }, [router]);
+
+  const moveFileById = useCallback(async (id: string, destinationId: string): Promise<boolean> => {
+    const res = await fetch(`/api/file/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parentId: Number(destinationId) }),
+    });
+    if (!res.ok) return false;
+    setItems((prev) => prev.filter((it) => it.id !== id));
+    router.refresh();
+    return true;
+  }, [router]);
+
+  const deleteFileById = useCallback(async (id: string): Promise<boolean> => {
+    const res = await fetch(`/api/file/${id}`, { method: "DELETE" });
+    if (!res.ok) return false;
+    setItems((prev) => prev.filter((it) => it.id !== id));
+    return true;
+  }, []);
+
+  // Register this workspace's proposal handler so the chat can create/rename/move/delete a
+  // file on approval — mirrors documentWrapper.tsx's registerProposalHandlers, but there's no
+  // canvas to highlight (onPropose is a no-op) and every one of these applies for real
+  // immediately rather than updating local draft state, since a workspace's file list has no
+  // separate Save step. Depends on `items` (not just refs) so rename/move/delete can validate
+  // a proposal's target/destination ids against the *current* listing, not a stale mount-time
+  // snapshot — never trust an id the model invented.
+  const { registerProposalHandlers } = useChat();
+  useEffect(() => {
+    registerProposalHandlers({
+      onPropose: () => {},
+      onApprove: async (proposal) => {
+        if (proposal.tool === "create_file") {
+          const fileTypeId = proposal.input.fileTypeId as string;
+          const name = proposal.input.name as string | undefined;
+          if (!CHAT_CREATABLE_TYPES.has(fileTypeId)) {
+            throw new Error(`Can't create a file of type "${fileTypeId}" this way.`);
+          }
+          const created = await createItemRef.current(fileTypeId, name);
+          if (!created) throw new Error("Couldn't create the file — check you have edit access here.");
+        } else if (proposal.tool === "rename_file") {
+          const targetId = proposal.input.targetId as string;
+          const name = proposal.input.name as string;
+          if (!items.some((it) => it.id === targetId)) throw new Error("That item isn't in the current listing.");
+          if (!(await renameFileById(targetId, name))) throw new Error("Couldn't rename — check you have edit access here.");
+        } else if (proposal.tool === "move_file") {
+          const targetId = proposal.input.targetId as string;
+          const destinationId = proposal.input.destinationId as string;
+          if (!items.some((it) => it.id === targetId)) throw new Error("That item isn't in the current listing.");
+          const destination = items.find((it) => it.id === destinationId);
+          if (!destination || destination.type !== "WORKSPACE") {
+            throw new Error("The destination must be a folder from the current listing.");
+          }
+          if (!(await moveFileById(targetId, destinationId))) throw new Error("Couldn't move — check you have edit access on both ends.");
+        } else if (proposal.tool === "delete_file") {
+          const targetId = proposal.input.targetId as string;
+          if (!items.some((it) => it.id === targetId)) throw new Error("That item isn't in the current listing.");
+          if (!(await deleteFileById(targetId))) throw new Error("Couldn't delete — this requires admin permission.");
+        }
+      },
+      onReject: () => {},
+    });
+    return () => registerProposalHandlers(null);
+  }, [registerProposalHandlers, items, renameFileById, moveFileById, deleteFileById]);
 
   useEffect(() => {
     const items: AddItem[] = [

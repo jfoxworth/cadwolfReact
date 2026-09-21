@@ -61,7 +61,7 @@ Custom session-based auth via `iron-session` (`utils/session.ts`, `utils/getSess
 
 ### AI chat assistant
 
-`app/api/chat/route.ts` streams responses from the Anthropic API using the system prompt at `prompts/cadwolf-assistant.md`, with the requesting page's path/content injected into the first user message for context. Currently gated to a single allow-listed user via `ALLOWED_CHAT_USER_ID` (still pre-launch/internal).
+`app/api/chat/route.ts` streams responses from the Anthropic API. The system prompt and tool set both vary by page type (`document`/`dataset`/`part-tree`/`workspace`, derived from the requesting page's path): `prompts/_shared.md` plus a page-type-specific file (`prompts/document.md`, etc.) form the system prompt, and `TOOLS_BY_PAGE_TYPE` (`app/api/chat/tools.ts`) selects the tool array. Only Document pages currently have real tools and page-context wiring (`components/document/documentWrapper.tsx`); other page types get a generic prompt and no tools. The requesting page's path/content is injected into the first user message for context. Currently gated to a single allow-listed user via `ALLOWED_CHAT_USER_ID` (still pre-launch/internal).
 
 ### Document blocks
 

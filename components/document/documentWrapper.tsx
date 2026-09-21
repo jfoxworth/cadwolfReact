@@ -42,7 +42,7 @@ import SliderBlock from "./blocks/slider";
 import SelectBlock from "./blocks/selectBlock";
 import DropdownBlock from "./blocks/dropdown";
 import ForLoopBlock, { type ForLoopDef } from "./blocks/forLoop";
-import IfElseBlock from "./blocks/ifElse";
+import IfElseBlock, { type BranchDef, type ConditionDef } from "./blocks/ifElse";
 import WhileLoopBlock, { type WhileLoopDef } from "./blocks/whileLoop";
 import CardBlock, { type EquationOption } from "./blocks/card";
 import PlotBlock from "./blocks/plot";
@@ -50,7 +50,7 @@ import ImageBlock from "./blocks/image";
 import VideoBlock from "./blocks/video";
 import LineBreakBlock from "./blocks/lineBreak";
 import { useSolver } from "./hooks/useSolver";
-import { useChat } from "@/context/ChatContext";
+import { useChat, type BlockProposal } from "@/context/ChatContext";
 
 export type SelectBlockFn = (id: string | null) => void;
 export type StartEditingFn = (id: string, html: string) => void;
@@ -186,6 +186,8 @@ interface RenderBlockOptions {
   onModelViewChange?: (blockId: string, view: ModelView) => void;
   canUpload?: boolean;
   staleVarNames?: Set<string>;
+  /** True while April has an applied, not-yet-Saved add/edit on this block (undo available). */
+  aiApplied?: boolean;
 }
 
 function getBlockLabel(block: VirtualBlock): string {
@@ -242,6 +244,7 @@ function renderBlock({
   onModelViewChange,
   canUpload = false,
   staleVarNames,
+  aiApplied = false,
 }: RenderBlockOptions) {
   if (block._status === "deleted") return null;
 
@@ -440,7 +443,15 @@ function renderBlock({
   const settingsOpen = settingsOpenId === block.id;
 
   return (
-    <div key={block.id} id={block.id} className={`${colSpan} relative group/block`}>
+    <div
+      key={block.id}
+      id={block.id}
+      className={[
+        colSpan,
+        "relative group/block",
+        aiApplied ? "outline outline-2 outline-dashed outline-emerald-400 outline-offset-4 rounded-lg bg-emerald-50/40" : "",
+      ].filter(Boolean).join(" ")}
+    >
       {inner}
       {canEdit && block.type !== "LINE_BREAK" && (
         <div className="absolute top-1 right-1 z-10">
@@ -470,23 +481,34 @@ function renderBlock({
   );
 }
 
+/** Format an EQUATION block as "raw = value units" (or with an error/size note) — shared by the
+ *  EQUATION case below and by CARD, which displays another equation block's value by reference. */
+function formatEquationLine(b: VirtualBlock): string | null {
+  const def = b.definition as Record<string, unknown>;
+  const raw = def.raw as string | undefined;
+  if (!raw) return null;
+  const sol = b.solution as { real?: Record<string, number>; size?: string; units?: string; errors?: string[] } | undefined;
+  if (sol?.errors && sol.errors.length > 0) return `${raw} [ERROR: ${sol.errors[0]}]`;
+  if (!sol?.real) return raw;
+  if (sol.size === "1x1") {
+    const val = sol.real["0-0"] ?? 0;
+    return `${raw} = ${val}${sol.units ? ` ${sol.units}` : ""}`;
+  }
+  return `${raw} [${sol.size}]`;
+}
+
 /** One-line plain-text summary of a block's content — used both for the full-page AI context
- *  dump and for the single-block summary shown when a block is selected. */
-function blockToContextLine(b: VirtualBlock): string | null {
+ *  dump and for the single-block summary shown when a block is selected. Every block type
+ *  should show real content here — a bare "[TYPE]" tag gives the AI nothing to verify a
+ *  selection or reference against. `allBlocks` is only needed by CARD, which is a pure
+ *  reference to another block and has no content of its own to describe. */
+function blockToContextLine(b: VirtualBlock, allBlocks?: VirtualBlock[]): string | null {
   const def = b.definition as Record<string, unknown>;
   switch (b.type) {
-    case "EQUATION": {
-      const raw = def.raw as string | undefined;
-      if (!raw) return null;
-      const sol = b.solution as { real?: Record<string, number>; size?: string; units?: string; errors?: string[] } | undefined;
-      if (sol?.errors && sol.errors.length > 0) return `${raw} [ERROR: ${sol.errors[0]}]`;
-      if (!sol?.real) return raw;
-      if (sol.size === "1x1") {
-        const val = sol.real["0-0"] ?? 0;
-        return `${raw} = ${val}${sol.units ? ` ${sol.units}` : ""}`;
-      }
-      return `${raw} [${sol.size}]`;
-    }
+    case "EQUATION":
+      return formatEquationLine(b);
+    case "SYMBOLIC_EQUATION":
+      return def.expression as string ?? null;
     case "HEADER":
       return `# ${def.text as string ?? ""}`;
     case "TEXT":
@@ -499,9 +521,115 @@ function blockToContextLine(b: VirtualBlock): string | null {
       const idx = def.selectedIndex as number | undefined ?? 0;
       return `${def.variableName} = ${opts?.[idx] ?? ""} (dropdown)`;
     }
+    case "FOR_LOOP":
+      return `for ${def.variable} = ${def.start} to ${def.end} step ${def.step}`;
+    case "WHILE_LOOP":
+      return `while ${def.lhs} ${def.operator} ${def.rhs}`;
+    case "IF_ELSE": {
+      const branches = (def.branches as {
+        type: string;
+        conditions: { flagText: string; conditionText: string; dependentText: string; blockOption: string }[];
+        children?: { definition?: { raw?: string } }[];
+      }[]) ?? [];
+      const parts = branches.map((br) => {
+        const label = br.type === "else" || br.conditions.length === 0
+          ? br.type
+          : `${br.type} (${br.conditions
+              .map((c, i) => (i === 0 ? `${c.flagText} ${c.conditionText} ${c.dependentText}` : `${c.blockOption} ${c.flagText} ${c.conditionText} ${c.dependentText}`))
+              .join(" ")})`;
+        // Include each branch's equations — a summary of the condition alone isn't enough
+        // context to propose an edit against (same reasoning CARD needed allBlocks for).
+        const eqs = (br.children ?? []).map((c) => c.definition?.raw).filter(Boolean).join("; ");
+        return eqs ? `${label} {${eqs}}` : label;
+      });
+      return parts.length ? parts.join(" / ") : null;
+    }
+    case "IMAGE": {
+      const label = (def.alt as string) || (def.caption as string) || (def.src as string) || "";
+      return label ? `Image: ${label}` : "Image (no source)";
+    }
+    case "VIDEO": {
+      const label = (def.caption as string) || (def.src as string) || "";
+      return label ? `Video: ${label}` : "Video (no source)";
+    }
+    case "PLOT": {
+      const plotType = (def.plotType as string) ?? "line";
+      if (plotType === "pie" || plotType === "donut") {
+        return `${plotType} chart of ${def.valuesVar ?? "(no data)"}`;
+      }
+      if (plotType === "heatmap" || plotType === "surface") {
+        const axes = [def.hmXVar, def.hmYVar].filter(Boolean).join(", ");
+        return `${plotType} of ${def.hmZVar ?? "(no data)"}${axes ? ` (axes: ${axes})` : ""}`;
+      }
+      if (plotType === "bubble") {
+        const series = (def.bubbleSeries as { x?: string; y?: string; size?: string }[]) ?? [];
+        const vars = series.map((s) => `${s.x ?? "?"} vs ${s.y ?? "?"} (size: ${s.size ?? "?"})`).join(", ");
+        return `bubble chart: ${vars || "(no series)"}`;
+      }
+      const series = (def.series as { x?: string; y?: string }[]) ?? [];
+      const vars = series.map((s) => `${s.x ?? "?"} vs ${s.y ?? "?"}`).join(", ");
+      return `${plotType} chart: ${vars || "(no series)"}`;
+    }
+    case "CARD": {
+      const targetId = def.equationBlockId as string | undefined;
+      const target = targetId ? allBlocks?.find((ob) => ob.id === targetId) : undefined;
+      if (!target) return "Card (no equation linked)";
+      const line = formatEquationLine(target);
+      return line ? `Card showing: ${line}` : "Card (linked equation has no value)";
+    }
+    case "LINE_BREAK":
+      // Decorative divider — genuinely no content to show, unlike the other types below.
+      return null;
     default:
       return `[${b.type}]`;
   }
+}
+
+interface ProposedBranch {
+  type: "if" | "elseif" | "else";
+  conditions?: ConditionDef[];
+  equations: string[];
+}
+
+/** One entry in aiAppliedBlocks — see that state's own doc comment. */
+interface AiAppliedEntry {
+  proposal: BlockProposal;
+  blockId: string;
+  /** Set only for edits — the block's definition before this proposal changed it, so Undo
+   *  can restore it. Absent for adds, whose Undo is just removing the block. */
+  previousDefinition?: Record<string, unknown>;
+}
+
+/** Converts if_else_block's proposed branches into real BranchDef[] — generating branch/child
+ *  ids the same way defaultBranch()/addChild() (components/document/blocks/ifElse/index.tsx)
+ *  already do, since the model never supplies one. Validates the same structural constraints
+ *  that component's own UI already enforces (addElseIf/addElse/removeBranch): first branch is
+ *  "if", at most one "else" and it must be last. Throws rather than silently coercing a
+ *  malformed proposal — this surfaces as a failure, not a broken block. */
+function mapProposedBranches(branches: ProposedBranch[]): BranchDef[] {
+  if (branches.length === 0 || branches[0].type !== "if") {
+    throw new Error("An if/else block must start with an \"if\" branch.");
+  }
+  const elseIdx = branches.findIndex((b) => b.type === "else");
+  if (elseIdx !== -1 && elseIdx !== branches.length - 1) {
+    throw new Error("The \"else\" branch must be last, and there can only be one.");
+  }
+  if (branches.filter((b) => b.type === "else").length > 1) {
+    throw new Error("Only one \"else\" branch is allowed.");
+  }
+  return branches.map((b) => ({
+    id: crypto.randomUUID(),
+    type: b.type,
+    conditions: b.type === "else" ? [] : (b.conditions ?? []),
+    children: b.equations.map((raw, i): VirtualBlock => ({
+      id: `child-${crypto.randomUUID()}`,
+      refId: "",
+      type: "EQUATION",
+      order: i,
+      definition: { raw },
+      _status: "new",
+    })),
+  }));
 }
 
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
@@ -834,13 +962,16 @@ export default function DocumentWrapper({
   // Debug: expose blocks on window for console inspection
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
 
-  const { setPageContext, setSelectedBlock } = useChat();
+  const { setPageContext, setSelectedBlock, registerProposalHandlers } = useChat();
   useEffect(() => {
     const lines = virtualBlocks
       .filter((b) => b._status !== "deleted")
-      .map(blockToContextLine)
+      .map((b) => blockToContextLine(b, virtualBlocks))
       .filter(Boolean);
     setPageContext(lines.join("\n"));
+    // Clear on unmount so navigating to a page that doesn't set its own context
+    // (or that sets it after a render delay) doesn't inherit this document's stale dump.
+    return () => setPageContext(null);
   }, [virtualBlocks, solverResults, setPageContext]);
 
   // Re-solve with updated cadParts when localImportedCad changes (e.g. after a refresh).
@@ -1108,6 +1239,25 @@ export default function DocumentWrapper({
   const [openSettingsId, setOpenSettingsId] = useState<string | null>(null);
   const [blockModelViews, setBlockModelViews] = useState<Record<string, ModelView>>({});
   const [htmlOverrides, setHtmlOverrides] = useState<Record<string, string>>({});
+  // Blocks April has auto-applied this session (add or edit), keyed by the *proposal's* id
+  // (not the block id — a block id alone can't distinguish "which proposal touched this" and
+  // an add's real block id doesn't exist until it's inserted). Drives the canvas flag and the
+  // chat's per-proposal Undo button; see applyProposalBatch/undoAiProposal below.
+  const [aiAppliedBlocks, setAiAppliedBlocks] = useState<Record<string, AiAppliedEntry>>({});
+  const aiAppliedBlockIds = useMemo(
+    () => new Set(Object.values(aiAppliedBlocks).map((e) => e.blockId)),
+    [aiAppliedBlocks],
+  );
+  // Manually editing a block yourself supersedes reviewing April's version of it.
+  const clearAiFlag = useCallback((blockId: string) => {
+    setAiAppliedBlocks((prev) => {
+      const next = { ...prev };
+      for (const [proposalId, entry] of Object.entries(prev)) {
+        if (entry.blockId === blockId) delete next[proposalId];
+      }
+      return next;
+    });
+  }, []);
 
   // Tell the chat which block (if any) is currently selected, so it can show a chip and use it
   // as a hint about what the user means — see prompts/cadwolf-assistant.md's guidance on this.
@@ -1124,9 +1274,17 @@ export default function DocumentWrapper({
     const block = virtualBlocks[idx];
     const def = block.definition as Record<string, unknown>;
 
+    // Equation/symbolic-equation names come from the left side of "=" in their own content —
+    // block.name (the DB name column) isn't reliably the variable name, same reason
+    // getBlockLabel() above derives it from raw/expression instead of trusting it.
     let name: string;
-    if (block.type === "EQUATION" || block.type === "SYMBOLIC_EQUATION") {
-      name = block.name || "unnamed";
+    if (block.type === "EQUATION") {
+      const raw = (def.raw as string) ?? "";
+      name = raw.split("=")[0].trim() || "Equation";
+    } else if (block.type === "SYMBOLIC_EQUATION") {
+      const expr = (def.expression as string) ?? "";
+      const lhs = expr.split("=")[0]?.trim();
+      name = lhs || (expr ? (expr.length > 40 ? `${expr.slice(0, 40)}…` : expr) : "Symbolic equation");
     } else if (block.type === "HEADER") {
       name = (def.text as string) || "Untitled";
     } else if (block.type === "TEXT") {
@@ -1154,10 +1312,11 @@ export default function DocumentWrapper({
 
     setSelectedBlock(
       {
+        id: block.id,
         type: BLOCK_TYPE_LABELS[block.type],
         name,
         location,
-        contextLine: blockToContextLine(block) ?? "",
+        contextLine: blockToContextLine(block, virtualBlocks) ?? "",
       },
       () => setSelectedBlockId(null),
     );
@@ -1232,6 +1391,8 @@ export default function DocumentWrapper({
   // ── Equation raw string changes ──────────────────────────────────────────
   const handleRawChange = useCallback(
     (blockId: string, newRaw: string, newDisplayEq: string) => {
+      // A manual edit supersedes reviewing April's version of this block, if it had one.
+      clearAiFlag(blockId);
       // Update virtual DOM
       setVirtualBlocks((prev) =>
         prev.map((b) =>
@@ -1252,7 +1413,7 @@ export default function DocumentWrapper({
       );
       solve(buildSolverBlocks([...datasetSolverBlocks, ...importSolverBlocks, ...updatedBlocks]), blockId);
     },
-    [virtualBlocks, datasetSolverBlocks, importSolverBlocks, solve],
+    [virtualBlocks, datasetSolverBlocks, importSolverBlocks, solve, clearAiFlag],
   );
 
   // ── Manual re-solve a single block ──────────────────────────────────────
@@ -1284,6 +1445,8 @@ export default function DocumentWrapper({
   // ── Input block definition change (slider config, dropdown selection, etc.) ──
   const handleDefinitionChange = useCallback(
     (blockId: string, newDef: Record<string, unknown>) => {
+      // A manual edit supersedes reviewing April's version of this block, if it had one.
+      clearAiFlag(blockId);
       setVirtualBlocks((prev) =>
         prev.map((b) =>
           b.id === blockId
@@ -1328,8 +1491,195 @@ export default function DocumentWrapper({
       }
       // Other types (PLOT, CARD, IMAGE, VIDEO, etc.) don't participate in the solver.
     },
+    [virtualBlocks, datasetSolverBlocks, importSolverBlocks, solve, clearAiFlag],
+  );
+
+  // ── Auto-apply a whole message's AI proposals at once ──────────────────────
+  // Called once per assistant message (see onAutoApplyBatch's doc comment in
+  // ChatContext.tsx) rather than per-click — no separate approval step for Document.
+  // Directly builds the final block array in one pass instead of calling
+  // handleRawChange/handleDefinitionChange in a loop: those read `virtualBlocks` from
+  // closure for their solver input, so multiple calls in the same tick would each solve
+  // against a stale set missing the others' changes. Edits mutate their target in place
+  // (order-independent); adds are positioned relative to each other and the existing
+  // document in one pass — this is also the actual ordering fix (the bug wasn't the
+  // click-by-click model per se, it was that an add with no *resolvable* anchor fell back to
+  // "beginning of document," and even a valid shared anchor only self-corrected for
+  // "before", not "after").
+  const applyProposalBatch = useCallback(
+    async (proposals: BlockProposal[]): Promise<{ appliedIds: string[]; failed: { id: string; error: string }[] }> => {
+      const appliedIds: string[] = [];
+      const failed: { id: string; error: string }[] = [];
+      const appliedEntries: Record<string, AiAppliedEntry> = {};
+
+      const deletedBlocks = virtualBlocks.filter((b) => b._status === "deleted");
+      let sequence = virtualBlocks.filter((b) => b._status !== "deleted").sort((a, b) => a.order - b.order);
+      let lastBatchAddedId: string | null = null;
+
+      for (const proposal of proposals) {
+        try {
+          const targetBlockId = proposal.input.targetBlockId as string | undefined;
+          const blockType: BlockType | null =
+            proposal.tool === "equation_block" ? "EQUATION" :
+            proposal.tool === "symbolic_equation_block" ? "SYMBOLIC_EQUATION" :
+            proposal.tool === "header_block" ? "HEADER" :
+            proposal.tool === "if_else_block" ? "IF_ELSE" :
+            proposal.tool === "text_block" ? "TEXT" : null;
+          if (!blockType) throw new Error("Unsupported tool for this page.");
+
+          if (targetBlockId) {
+            // ── Edit an existing block ──
+            const idx = sequence.findIndex((b) => b.id === targetBlockId);
+            if (idx === -1) throw new Error("That block no longer exists.");
+            const target = sequence[idx];
+            const previousDefinition = target.definition;
+            let newDefinition: Record<string, unknown>;
+            if (blockType === "EQUATION") {
+              const raw = (proposal.input.raw as string) ?? "";
+              newDefinition = { ...target.definition, raw, displayEq: rawToLatex(raw) };
+            } else if (blockType === "SYMBOLIC_EQUATION") {
+              newDefinition = { ...target.definition, expression: proposal.input.expression };
+            } else if (blockType === "HEADER") {
+              newDefinition = {
+                ...target.definition,
+                text: proposal.input.text,
+                level: (proposal.input.level as number | undefined) ?? (target.definition.level as number | undefined) ?? 2,
+              };
+            } else if (blockType === "IF_ELSE") {
+              newDefinition = { ...target.definition, branches: mapProposedBranches(proposal.input.branches as ProposedBranch[]) };
+            } else {
+              newDefinition = { ...target.definition, text: proposal.input.text };
+            }
+            const updatedBlock: VirtualBlock = {
+              ...target,
+              definition: newDefinition,
+              _status: target._status === "new" ? "new" : "modified",
+            };
+            sequence = [...sequence.slice(0, idx), updatedBlock, ...sequence.slice(idx + 1)];
+            appliedEntries[proposal.id] = { proposal, blockId: targetBlockId, previousDefinition };
+            appliedIds.push(proposal.id);
+          } else {
+            // ── Insert a new block ──
+            let definition: Record<string, unknown>;
+            if (blockType === "EQUATION") {
+              const raw = (proposal.input.raw as string) ?? "";
+              definition = { raw, displayEq: rawToLatex(raw), width: "full" };
+            } else if (blockType === "SYMBOLIC_EQUATION") {
+              definition = { expression: proposal.input.expression ?? "", width: "full" };
+            } else if (blockType === "HEADER") {
+              definition = { text: proposal.input.text ?? "", level: (proposal.input.level as number | undefined) ?? 2, width: "full" };
+            } else if (blockType === "IF_ELSE") {
+              definition = { branches: mapProposedBranches(proposal.input.branches as ProposedBranch[]) };
+            } else {
+              definition = { text: proposal.input.text ?? "", width: "full" };
+            }
+            const newBlock: VirtualBlock = {
+              id: `new-${crypto.randomUUID()}`,
+              refId: "",
+              type: blockType,
+              order: 0, // placeholder — every block's order is reassigned below
+              definition,
+              _status: "new",
+            };
+
+            const rawAnchorId = proposal.input.anchorBlockId as string | undefined;
+            const position = (proposal.input.position as "before" | "after" | undefined) ?? "after";
+            const resolvedAnchorId = rawAnchorId && sequence.some((b) => b.id === rawAnchorId) ? rawAnchorId : undefined;
+
+            let insertIdx: number;
+            if (resolvedAnchorId) {
+              const anchorIdx = sequence.findIndex((b) => b.id === resolvedAnchorId);
+              insertIdx = position === "before" ? anchorIdx : anchorIdx + 1;
+            } else if (lastBatchAddedId) {
+              // No anchor, or one the model invented/couldn't know (it can't reference a
+              // sibling proposal's block — none exist yet) — continue right after the
+              // previous add from this same batch, preserving presentation order.
+              insertIdx = sequence.findIndex((b) => b.id === lastBatchAddedId) + 1;
+            } else {
+              // First add in the batch with no usable anchor — append at the end. This is
+              // the actual fix: the old fallback landed at the *beginning* instead.
+              insertIdx = sequence.length;
+            }
+
+            sequence = [...sequence.slice(0, insertIdx), newBlock, ...sequence.slice(insertIdx)];
+            lastBatchAddedId = newBlock.id;
+            appliedEntries[proposal.id] = { proposal, blockId: newBlock.id };
+            appliedIds.push(proposal.id);
+          }
+        } catch (err) {
+          failed.push({ id: proposal.id, error: err instanceof Error ? err.message : "Failed to apply." });
+        }
+      }
+
+      // Fresh sequential order values for the whole sequence, rather than shift-by-one
+      // arithmetic per insert — simpler and unambiguous once building a final list at once.
+      const reordered = sequence.map((b, i) => ({ ...b, order: i }));
+      const updatedBlocks = [...deletedBlocks, ...reordered];
+      setVirtualBlocks(updatedBlocks);
+      setAiAppliedBlocks((prev) => ({ ...prev, ...appliedEntries }));
+
+      // Solve from the earliest-order changed equation onward (covers both new and edited
+      // equations); everything downstream re-solves too since solve() marks from that order on.
+      const changedEquationIds = Object.values(appliedEntries)
+        .map((e) => e.blockId)
+        .filter((id) => reordered.find((b) => b.id === id)?.type === "EQUATION");
+      if (changedEquationIds.length > 0) {
+        const earliest = changedEquationIds
+          .map((id) => reordered.find((b) => b.id === id)!)
+          .sort((a, b) => a.order - b.order)[0];
+        solve(buildSolverBlocks([...datasetSolverBlocks, ...importSolverBlocks, ...updatedBlocks]), earliest.id);
+      }
+
+      return { appliedIds, failed };
+    },
     [virtualBlocks, datasetSolverBlocks, importSolverBlocks, solve],
   );
+
+  // Reverses one already-applied proposal. Restores/removes the block directly (not via
+  // handleRawChange/handleDefinitionChange, which always treat a call as a fresh manual edit
+  // and would clear *every* AI flag on that block via clearAiFlag, not just this one entry —
+  // relevant if the same block was AI-edited more than once before Save).
+  const undoAiProposal = useCallback(
+    async (proposal: BlockProposal) => {
+      const entry = aiAppliedBlocks[proposal.id];
+      if (!entry) throw new Error("Nothing to undo — it may already be undone, or superseded by a manual edit.");
+      if (entry.previousDefinition) {
+        setVirtualBlocks((prev) =>
+          prev.map((b) =>
+            b.id === entry.blockId
+              ? { ...b, definition: entry.previousDefinition!, _status: b._status === "new" ? "new" : "modified" }
+              : b,
+          ),
+        );
+        if (entry.proposal.tool === "equation_block") {
+          const updatedBlocks = virtualBlocks.map((b) =>
+            b.id === entry.blockId ? { ...b, definition: entry.previousDefinition! } : b,
+          );
+          solve(buildSolverBlocks([...datasetSolverBlocks, ...importSolverBlocks, ...updatedBlocks]), entry.blockId);
+        }
+      } else {
+        setVirtualBlocks((prev) => prev.filter((b) => b.id !== entry.blockId));
+      }
+      setAiAppliedBlocks((prev) => {
+        const next = { ...prev };
+        delete next[proposal.id];
+        return next;
+      });
+    },
+    [aiAppliedBlocks, virtualBlocks, datasetSolverBlocks, importSolverBlocks, solve],
+  );
+
+  // Register this document's proposal handlers with the chat. Document uses the
+  // auto-apply-batch mode (onAutoApplyBatch/onUndo) — see DocumentProposalHandlers'
+  // doc comment in ChatContext.tsx for why this differs from Workspace/Dataset's
+  // onPropose/onApprove/onReject click-driven mode.
+  useEffect(() => {
+    registerProposalHandlers({
+      onAutoApplyBatch: applyProposalBatch,
+      onUndo: undoAiProposal,
+    });
+    return () => registerProposalHandlers(null);
+  }, [registerProposalHandlers, applyProposalBatch, undoAiProposal]);
 
   // ── Viewer-mode handlers (update state + re-solve, but no dirty marking) ──
   const handleViewerSliderChange = useCallback(
@@ -1499,6 +1849,9 @@ export default function DocumentWrapper({
           })),
       );
       setSaveStatus("saved");
+      // Saving is the actual point of no return — clear every AI flag now that the user has
+      // committed these changes (Undo no longer applies once something's been persisted).
+      setAiAppliedBlocks({});
 
       // Clear this document's own stale flag, then mark its dependents stale.
       await fetch(`/api/file/${document.id}`, {
@@ -1974,6 +2327,7 @@ export default function DocumentWrapper({
                 onModelViewChange: (id, view) => setBlockModelViews((prev) => ({ ...prev, [id]: view })),
                 canUpload,
                 staleVarNames,
+                aiApplied: aiAppliedBlockIds.has(block.id),
               }),
             )}
           </div>
