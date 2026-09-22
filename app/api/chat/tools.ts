@@ -262,6 +262,30 @@ export const DATASET_TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+// Unlike every tool above, there's nothing for the client to apply here — it's information
+// the model needs, not a proposal. app/api/chat/route.ts recognizes this name specifically
+// and executes it server-side (embeds the query, runs a permission-filtered similarity search
+// via utils/searchEmbeddings.ts, feeds the result back to the model as a tool_result within
+// the same turn) — it's never forwarded to the client as a tool_use event the way every other
+// tool is.
+export const SEARCH_TOOL_NAME = "search_documents";
+
+export const SEARCH_TOOL: Anthropic.Tool = {
+  name: SEARCH_TOOL_NAME,
+  description:
+    "Search across every document the user can access — not just the current page's content already in your context. Use this for requests like \"which document talks about X\", \"what did I write about Y\", or anything that needs finding relevant content you don't already have in front of you. Returns the best-matching pieces of content found, each labeled with which document it came from. If nothing relevant is found, say so plainly rather than guessing.",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "A natural-language description of what to search for.",
+      },
+    },
+    required: ["query"],
+  },
+};
+
 export type ProposalToolName =
   | "equation_block"
   | "symbolic_equation_block"
@@ -280,9 +304,10 @@ export type ProposalToolName =
 // Workspace, and now Dataset pages have anything wired up to act on a tool call
 // (documentWrapper.tsx's, WorkspaceEdit.tsx's, and DatasetEdit.tsx's proposal handlers,
 // respectively). Other page types get an empty array until their own tools are designed.
+// search_documents is additive on top of each page's own tools, not a replacement.
 export const TOOLS_BY_PAGE_TYPE: Record<string, Anthropic.Tool[]> = {
-  document: CHAT_TOOLS,
+  document: [...CHAT_TOOLS, SEARCH_TOOL],
   dataset: DATASET_TOOLS,
   "part-tree": [],
-  workspace: WORKSPACE_TOOLS,
+  workspace: [...WORKSPACE_TOOLS, SEARCH_TOOL],
 };

@@ -4,7 +4,8 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { TYPE_ROUTE } from "@/utils/resolveRoute";
-import { TOOLS_BY_PAGE_TYPE } from "./tools";
+import { TOOLS_BY_PAGE_TYPE, SEARCH_TOOL_NAME } from "./tools";
+import { searchDocuments } from "@/utils/searchEmbeddings";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -104,10 +105,51 @@ export async function POST(req: NextRequest) {
           stream.on("text", (text) => emit({ type: "text", text }));
 
           const message = await stream.finalMessage();
-          for (const block of message.content) {
-            if (block.type === "tool_use") {
-              emit({ type: "tool_use", id: block.id, name: block.name, input: block.input });
+          const toolUseBlocks = message.content.filter(
+            (b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use",
+          );
+          const searchCalls = toolUseBlocks.filter((b) => b.name === SEARCH_TOOL_NAME);
+
+          // Every tool call gets emitted to the client — including search_documents, so it's
+          // visible in the transcript like any other call — but search is also executed
+          // server-side below, unlike every other tool (which the client applies itself).
+          for (const block of toolUseBlocks) {
+            emit({ type: "tool_use", id: block.id, name: block.name, input: block.input });
+          }
+
+          if (searchCalls.length > 0) {
+            if (attempt >= MAX_CONTINUATIONS) {
+              emit({ type: "text", text: "\n\n*(Reached this turn's search limit — try asking again if you still need more.)*" });
+              break;
             }
+            // Resolve every tool_use in this message with a matching tool_result — the API
+            // requires one for each before the conversation can continue, even for the
+            // non-search calls, whose real "execution" is the client applying them, not
+            // anything happening here.
+            const toolResults: { type: "tool_result"; tool_use_id: string; content: string }[] = [];
+            for (const block of toolUseBlocks) {
+              if (block.name === SEARCH_TOOL_NAME) {
+                const query = (block.input as { query?: string }).query ?? "";
+                let resultText: string;
+                try {
+                  const results = await searchDocuments(userId, query);
+                  resultText = results.length > 0
+                    ? results.map((r) => `[Document: "${r.fileName}"] ${r.chunkText}`).join("\n\n")
+                    : "No relevant content found.";
+                } catch (err) {
+                  resultText = `Search failed: ${err instanceof Error ? err.message : "unknown error"}`;
+                }
+                toolResults.push({ type: "tool_result", tool_use_id: block.id, content: resultText });
+              } else {
+                toolResults.push({ type: "tool_result", tool_use_id: block.id, content: "Proposed to the user for review." });
+              }
+            }
+            currentMessages = [
+              ...currentMessages,
+              { role: "assistant", content: message.content },
+              { role: "user", content: toolResults },
+            ];
+            continue;
           }
 
           if (message.stop_reason !== "max_tokens") break;
