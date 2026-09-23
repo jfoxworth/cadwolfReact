@@ -130,12 +130,19 @@ export default memo(function HeaderBlock({
     );
   }
 
-  // ── View mode ──────────────────────────────────────────────────────────────
+  // ── View mode — still selectable (for chat context), just not editable ─────
   if (!edit) {
     return (
-      <Tag className={`${textStyles[displayLevel]} ${marginStyles[displayLevel]}`}>
-        {displayText}
-      </Tag>
+      <div
+        onClick={() => onSelect?.(isSelected ? null : block.id)}
+        className={`rounded-md transition-all px-3 cursor-pointer ${
+          isSelected ? "ring-2 ring-blue-200 bg-blue-50/30" : "hover:bg-gray-50"
+        }`}
+      >
+        <Tag className={`${textStyles[displayLevel]} ${marginStyles[displayLevel]}`}>
+          {displayText}
+        </Tag>
+      </div>
     );
   }
 

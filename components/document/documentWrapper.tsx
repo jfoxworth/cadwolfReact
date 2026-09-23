@@ -18,7 +18,7 @@ import BlockSettingsModal from "@/components/document/BlockSettingsModal";
 import type { ModelView } from "@/components/document/blocks/equation";
 import { useSideMenuAdd, type AddItem } from "@/context/SideMenuAddContext";
 import { BLOCK_TYPE_TO_COMPONENT_ID } from "@/utils/transformers";
-import { blockToContextLine } from "@/utils/blockToText";
+import { blockToContextLine, buildDocumentPageContext, buildSelectedBlockWindowContext } from "@/utils/blockToText";
 import { rawToLatex } from "@/utils/rawToLatex";
 import type { SolverLocation, TocSettings, FunctionSettings, ImportedFunction } from "@/types/item";
 import type { ImportedFunction as SolverImportedFunction } from "@/solver/types";
@@ -167,7 +167,7 @@ interface RenderBlockOptions {
   isSelected: boolean;
   isEditing: boolean;
   sharedEditor: Editor | null;
-  onSelect: SelectBlockFn;
+  onSelect?: SelectBlockFn;
   onStartEditing: StartEditingFn;
   onSave: SaveFn;
   displayHtml?: string;
@@ -861,17 +861,21 @@ export default function DocumentWrapper({
   // Debug: expose blocks on window for console inspection
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
 
-  const { setPageContext, setSelectedBlock, registerProposalHandlers } = useChat();
+  const { setPageContext, setSelectedBlock, registerProposalHandlers, setCanBuild, mode } = useChat();
+
+  // Overview mode is talk-only — nothing on the canvas should become selectable, and switching
+  // into it drops whatever was already selected rather than leaving a stale selection behind.
   useEffect(() => {
-    const lines = virtualBlocks
-      .filter((b) => b._status !== "deleted")
-      .map((b) => blockToContextLine(b, virtualBlocks))
-      .filter(Boolean);
-    setPageContext(lines.join("\n"));
-    // Clear on unmount so navigating to a page that doesn't set its own context
-    // (or that sets it after a render delay) doesn't inherit this document's stale dump.
-    return () => setPageContext(null);
-  }, [virtualBlocks, solverResults, setPageContext]);
+    if (mode === "overview") setSelectedBlockId(null);
+  }, [mode]);
+
+  // Build mode adds new blocks — that requires both edit permission and having this document
+  // actually checked out (effectiveCanEdit already is exactly that combination), same as every
+  // other mutation path on this page.
+  useEffect(() => {
+    setCanBuild(effectiveCanEdit);
+  }, [effectiveCanEdit, setCanBuild]);
+
 
   // Re-solve with updated cadParts when localImportedCad changes (e.g. after a refresh).
   // Skip the initial mount — initialCadParts already seeds the solver.
@@ -1209,17 +1213,55 @@ export default function DocumentWrapper({
       break;
     }
 
+    // Position/total count only the document's current (non-deleted) blocks — idx above is a
+    // raw array index into virtualBlocks, which can also hold deleted entries, so it isn't
+    // itself the right number to show as this block's place among what's actually visible.
+    const visibleBlocks = virtualBlocks.filter((b) => b._status !== "deleted");
+    const position = visibleBlocks.findIndex((b) => b.id === selectedBlockId) + 1;
+
+    const contextLine = blockToContextLine(block, virtualBlocks) ?? "";
+    // Every block type gets a real summary line in the chip — contextLine already covers all
+    // of them generically (it's the same source used for the page-wide AI context dump), except
+    // TEXT, whose contextLine is raw HTML rather than something fit to show directly in the UI.
+    let detail: string;
+    if (block.type === "TEXT") {
+      const wordCount = stripHtml((def.text as string) ?? "")
+        .split(/\s+/)
+        .filter(Boolean).length;
+      detail = `${wordCount} word${wordCount === 1 ? "" : "s"}`;
+    } else {
+      detail = contextLine;
+    }
+
     setSelectedBlock(
       {
         id: block.id,
         type: BLOCK_TYPE_LABELS[block.type],
         name,
         location,
-        contextLine: blockToContextLine(block, virtualBlocks) ?? "",
+        contextLine,
+        detail,
+        position,
+        total: visibleBlocks.length,
       },
       () => setSelectedBlockId(null),
     );
   }, [selectedBlockId, virtualBlocks, setSelectedBlock]);
+
+  useEffect(() => {
+    const visibleBlocks = virtualBlocks.filter((b) => b._status !== "deleted");
+    // Inspect-with-a-selection windows around the selected block once the full dump is too
+    // large; every other case (Overview, Build, Inspect-with-nothing-selected) uses the
+    // generic strip-down/truncate ladder — see utils/blockToText.ts for both.
+    const result =
+      mode === "inspect" && selectedBlockId
+        ? buildSelectedBlockWindowContext(visibleBlocks, virtualBlocks, selectedBlockId)
+        : buildDocumentPageContext(visibleBlocks, virtualBlocks);
+    setPageContext(result.text);
+    // Clear on unmount so navigating to a page that doesn't set its own context
+    // (or that sets it after a render delay) doesn't inherit this document's stale dump.
+    return () => setPageContext(null);
+  }, [virtualBlocks, solverResults, mode, selectedBlockId, setPageContext]);
 
   // Single shared TipTap editor for all rich-text blocks
   const editor = useEditor({
@@ -2199,7 +2241,7 @@ export default function DocumentWrapper({
                 isSelected: selectedBlockId === block.id,
                 isEditing: editingBlockId === block.id,
                 sharedEditor: editingBlockId === block.id ? editor : null,
-                onSelect: handleSelect,
+                onSelect: mode === "overview" ? undefined : handleSelect,
                 onStartEditing: handleStartEditing,
                 onSave: handleSave,
                 displayHtml: htmlOverrides[block.id],

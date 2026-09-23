@@ -410,7 +410,12 @@ export default memo(function ImageBlock({
 
   if (!edit) {
     return (
-      <figure className="my-2">
+      <figure
+        onClick={() => onSelect?.(isSelected ? null : block.id)}
+        className={`my-2 rounded-lg transition-all cursor-pointer ${
+          isSelected ? "ring-2 ring-blue-200" : "hover:ring-2 hover:ring-gray-200"
+        }`}
+      >
         {imgEl}
         {displayCaption && (
           <figcaption className="mt-1 text-center text-xs text-gray-400">{displayCaption}</figcaption>

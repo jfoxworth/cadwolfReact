@@ -14,7 +14,7 @@ interface DropdownBlockProps {
   block: VirtualBlock;
   canEdit: boolean;
   isSelected: boolean;
-  onSelect: (id: string | null) => void;
+  onSelect?: (id: string | null) => void;
   onDefinitionChange: (blockId: string, newDef: Record<string, unknown>) => void;
 }
 
@@ -33,7 +33,7 @@ export default function DropdownBlock({
   useEffect(() => { if (!isSelected) setEditing(false); }, [isSelected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClick = useCallback(() => {
-    onSelect(block.id);
+    onSelect?.(block.id);
   }, [onSelect, block.id]);
 
   const handleDoubleClick = useCallback(() => {

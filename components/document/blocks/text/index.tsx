@@ -179,13 +179,20 @@ export default memo(function TextBlock({
     );
   }
 
-  // ── View-only: plain HTML, no interaction ───────────────────────────────────
+  // ── View-only: still selectable (for chat context), just not editable ──────
   if (!edit) {
     return (
       <div
-        className="prose prose-gray max-w-none font-[family-name:var(--font-source-serif)]"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+        onClick={() => onSelect?.(isSelected ? null : block.id)}
+        className={`rounded-md transition-all p-3 cursor-pointer ${
+          isSelected ? "ring-2 ring-blue-200 bg-blue-50/30" : "hover:bg-gray-50"
+        }`}
+      >
+        <div
+          className="prose prose-gray max-w-none font-[family-name:var(--font-source-serif)]"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
     );
   }
 

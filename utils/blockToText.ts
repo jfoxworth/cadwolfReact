@@ -1,4 +1,4 @@
-import type { Block } from "@/types/document";
+import type { Block, BlockType } from "@/types/document";
 
 /** "raw = value units" (or just "raw" if unsolved, or an error marker) for an EQUATION block —
  *  shared by blockToContextLine's own EQUATION case and CARD, which cross-references it. */
@@ -128,4 +128,140 @@ export function chunkTextBlock(text: string, maxChars = 2000): string[] {
   }
   if (current) chunks.push(current);
   return chunks.length > 0 ? chunks : [text];
+}
+
+/** Character budget for the AI chat's page-context dump (documentWrapper.tsx), measured as a
+ *  cheap chars/~4≈tokens heuristic rather than a real tokenizer call. Deliberately well below
+ *  the smallest context window of any model app/api/chat/route.ts can be pointed at via
+ *  AI_MODEL (currently Claude Haiku 4.5) — this budget covers only the page-context string
+ *  itself; the system prompt (prompts/_shared.md + prompts/document.md), tool schemas, and the
+ *  growing conversation history all consume the same window on top of it and aren't accounted
+ *  for here. */
+export const PAGE_CONTEXT_CHAR_BUDGET = 100_000;
+
+/** Blocks kept on each side of the selected block when Inspect mode windows context around a
+ *  selection instead of using the generic strip-down ladder below. */
+export const INSPECT_WINDOW_RADIUS = 10;
+
+/** Block types kept when a document is too large to send in full — the ones with real
+ *  standalone content the model can reason about in prose (structure, explanation, math) as
+ *  opposed to UI-only or media-referencing blocks (sliders, plots, loops, images, cards, ...). */
+const STRIPPED_CONTEXT_TYPES = new Set<BlockType>(["HEADER", "TEXT", "EQUATION", "SYMBOLIC_EQUATION"]);
+
+export interface PageContextResult {
+  text: string;
+  /** True whenever the generic ladder or the selection window had to strip/truncate content to
+   *  fit the budget — not consumed by any caller today, kept for testability and so a future UI
+   *  affordance doesn't need to re-derive it by parsing the note back out of `text`. */
+  reduced: boolean;
+}
+
+interface ContextBlockLine {
+  block: Block;
+  line: string;
+  /** 1-based position among the caller-supplied `visibleBlocks` — same array-order numbering
+   *  already used for the selected-block chip's position/total in documentWrapper.tsx (not
+   *  re-sorted by `order`), so a window's stated range lines up with what the user sees there. */
+  position: number;
+}
+
+function toContextLines(visibleBlocks: Block[], allBlocksForRefs: Block[]): ContextBlockLine[] {
+  const lines: ContextBlockLine[] = [];
+  visibleBlocks.forEach((b, i) => {
+    const line = blockToContextLine(b, allBlocksForRefs);
+    if (line) lines.push({ block: b, line, position: i + 1 });
+  });
+  return lines;
+}
+
+/** Greedily keeps whole lines (in order) until `budget` would be exceeded. If even the first
+ *  line alone is over budget (e.g. one huge TEXT block), hard-slices it rather than returning
+ *  nothing — a truncated line is still strictly more useful than an empty context. */
+function truncateLinesToBudget(lines: ContextBlockLine[], budget: number): { text: string; keptCount: number } {
+  const kept: string[] = [];
+  let used = 0;
+  for (const { line } of lines) {
+    const addLen = line.length + (kept.length > 0 ? 1 : 0); // +1 for the joining "\n"
+    if (used + addLen > budget) break;
+    kept.push(line);
+    used += addLen;
+  }
+  if (kept.length === 0 && lines.length > 0 && budget > 20) {
+    kept.push(`${lines[0].line.slice(0, budget - 1)}…`);
+    return { text: kept.join("\n"), keptCount: 1 };
+  }
+  return { text: kept.join("\n"), keptCount: kept.length };
+}
+
+/** Builds the AI chat's page-context dump for Overview/Build modes, and for Inspect mode when
+ *  nothing is selected. Tries the full document first (identical to the pre-budget behavior);
+ *  only strips (headers/text/equations/symbolic equations only) or, failing that, truncates
+ *  when the full dump is actually over budget — the common case is untouched. */
+export function buildDocumentPageContext(
+  visibleBlocks: Block[],
+  allBlocksForRefs: Block[],
+  charBudget = PAGE_CONTEXT_CHAR_BUDGET,
+): PageContextResult {
+  const full = toContextLines(visibleBlocks, allBlocksForRefs);
+  const fullText = full.map((l) => l.line).join("\n");
+  if (fullText.length <= charBudget) return { text: fullText, reduced: false };
+
+  const stripped = full.filter((l) => STRIPPED_CONTEXT_TYPES.has(l.block.type));
+  const strippedText = stripped.map((l) => l.line).join("\n");
+  const strippedNote =
+    `[Note: this document is large, so only headers, text, and equations are included below — ` +
+    `${full.length - stripped.length} other block(s) (sliders, plots, loops, images, dataset/CAD ` +
+    `references, etc.) are omitted. If asked to summarize or review the whole document, say so ` +
+    `rather than assuming this is everything.]`;
+  if (strippedText.length <= charBudget) {
+    return { text: `${strippedNote}\n${strippedText}`, reduced: true };
+  }
+
+  const { text: truncated, keptCount } = truncateLinesToBudget(stripped, charBudget - strippedNote.length - 1);
+  const truncatedNote =
+    `[Note: this document is very large — showing only the first ${keptCount} of ${full.length} ` +
+    `content blocks (headers/text/equations), truncated to fit. If asked to summarize or review ` +
+    `the whole document, say so rather than assuming this is everything.]`;
+  return { text: `${truncatedNote}\n${truncated}`, reduced: true };
+}
+
+/** Builds the AI chat's page-context dump for Inspect mode with a block selected. Tries the
+ *  full document first, same as buildDocumentPageContext; only windows around the selection
+ *  when actually over budget. Falls back to the generic ladder if the selection can't be found
+ *  (stale/deleted id) — there's no anchor to window around. */
+export function buildSelectedBlockWindowContext(
+  visibleBlocks: Block[],
+  allBlocksForRefs: Block[],
+  selectedBlockId: string,
+  windowRadius = INSPECT_WINDOW_RADIUS,
+  charBudget = PAGE_CONTEXT_CHAR_BUDGET,
+): PageContextResult {
+  const full = toContextLines(visibleBlocks, allBlocksForRefs);
+  const fullText = full.map((l) => l.line).join("\n");
+  if (fullText.length <= charBudget) return { text: fullText, reduced: false };
+
+  const selIdx = visibleBlocks.findIndex((b) => b.id === selectedBlockId);
+  if (selIdx === -1) {
+    return buildDocumentPageContext(visibleBlocks, allBlocksForRefs, charBudget);
+  }
+
+  const lo = Math.max(0, selIdx - windowRadius);
+  const hi = Math.min(visibleBlocks.length - 1, selIdx + windowRadius);
+  const windowLines = full.filter((l) => l.position - 1 >= lo && l.position - 1 <= hi);
+  const windowText = windowLines.map((l) => l.line).join("\n");
+  const windowNote =
+    `[Note: this document is large — showing only the ${hi - lo + 1} blocks immediately around ` +
+    `the selected block (positions ${lo + 1}–${hi + 1} of ${visibleBlocks.length}), not the full ` +
+    `document. If asked to summarize or review the whole document, say so rather than assuming ` +
+    `this is everything.]`;
+  if (windowText.length <= charBudget) {
+    return { text: `${windowNote}\n${windowText}`, reduced: true };
+  }
+
+  const { text: truncated, keptCount } = truncateLinesToBudget(windowLines, charBudget - windowNote.length - 1);
+  const truncatedNote =
+    `[Note: this document is large, and even the ${windowLines.length} blocks around the ` +
+    `selected block don't fit — showing only the first ${keptCount} of those. If asked to ` +
+    `summarize or review the whole document, say so rather than assuming this is everything.]`;
+  return { text: `${truncatedNote}\n${truncated}`, reduced: true };
 }

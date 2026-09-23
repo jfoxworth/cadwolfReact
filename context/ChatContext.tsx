@@ -38,6 +38,14 @@ export interface BlockProposal {
   error?: string;
 }
 
+/** Mutually-exclusive interaction modes: Overview (talk only, about the document as a whole —
+ *  nothing can be selected), Inspect (talk about, and edit, one selected item), Build (talk +
+ *  add new blocks/items). Switched via the hexagon cluster in ChatPanel.tsx. Not yet sent to
+ *  the model itself — the Overview/Inspect distinction currently works entirely through
+ *  whether a block is selected (Overview blocks selection outright), not through the model
+ *  being told which mode is active; tool-gating by mode beyond Build is still future work. */
+export type ChatMode = "overview" | "inspect" | "build";
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -57,6 +65,14 @@ export interface SelectedBlockInfo {
   location: string;
   /** The same one-line formatted representation used in the full-page context dump. */
   contextLine: string;
+  /** Short, chip-display-friendly summary of the block's content — generic per-type content
+   *  (same source as contextLine) for most types, but a word count for TEXT specifically,
+   *  since contextLine's raw HTML there isn't fit to show directly in the UI. */
+  detail: string;
+  /** 1-based position of this block among the document's current (non-deleted) blocks. */
+  position: number;
+  /** Total count of the document's current (non-deleted) blocks. */
+  total: number;
 }
 
 /** Registered by the page so the chat can apply/highlight proposals without owning page state
@@ -94,7 +110,17 @@ interface ChatContextType {
   messages: ChatMessage[];
   isLoading: boolean;
   selectedBlock: SelectedBlockInfo | null;
+  mode: ChatMode;
+  setMode: (mode: ChatMode) => void;
+  /** Whether Build mode is currently allowed on this page — true by default (Workspace/Dataset
+   *  have no checkout concept and never call setCanBuild); Document sets this to
+   *  canEdit && checked-out-by-me, since adding blocks requires both. */
+  canBuild: boolean;
+  setCanBuild: (canBuild: boolean) => void;
   toggleChat: () => void;
+  /** Unconditionally opens the chat — used by the mode hexagons, which should always end up
+   *  with the panel open regardless of whether it already was (unlike toggleChat's flip). */
+  openChat: () => void;
   sendMessage: (content: string, pagePath?: string) => Promise<void>;
   clearMessages: () => void;
   setPageContext: (context: string | null) => void;
@@ -117,6 +143,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedBlock, setSelectedBlockState] = useState<SelectedBlockInfo | null>(null);
+  const [mode, setMode] = useState<ChatMode>("overview");
+  const [canBuild, setCanBuild] = useState(true);
   const pageContextRef = useRef<string | null>(null);
   const clearSelectionRef = useRef<(() => void) | null>(null);
   const proposalHandlersRef = useRef<DocumentProposalHandlers | null>(null);
@@ -205,6 +233,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [messages, setProposalStatus]);
 
   const toggleChat = useCallback(() => setIsOpen((v) => !v), []);
+  const openChat = useCallback(() => setIsOpen(true), []);
   const clearMessages = useCallback(() => setMessages([]), []);
 
   const sendMessage = useCallback(async (content: string, pagePath?: string) => {
@@ -231,6 +260,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           pagePath,
           pageContext: pageContextRef.current,
           selectedBlockContext,
+          mode,
         }),
       });
 
@@ -367,7 +397,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, selectedBlock]);
+  }, [messages, selectedBlock, mode]);
 
   return (
     <ChatContext.Provider
@@ -376,7 +406,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         messages,
         isLoading,
         selectedBlock,
+        mode,
+        setMode,
+        canBuild,
+        setCanBuild,
         toggleChat,
+        openChat,
         sendMessage,
         clearMessages,
         setPageContext,

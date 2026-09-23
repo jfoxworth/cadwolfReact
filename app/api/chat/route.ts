@@ -39,17 +39,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, selectedBlockContext } = await req.json();
+  const { messages, pagePath, pageContext, selectedBlockContext, mode } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // Inject page path + selected-block context + live page content into the first user message.
-  // Selected-block context is listed separately, ahead of the full page dump, since it's a
-  // higher-priority (but not authoritative — verify it's actually relevant) hint about intent.
+  // Tells the model what "this"/"it" refers to when the user doesn't spell it out — otherwise
+  // that's left to guesswork from selectedBlockContext's mere presence/absence, which happens
+  // to line up correctly today only because Overview's selection-block is airtight; this makes
+  // the intent explicit instead of relying on that as an implicit signal. Not authoritative on
+  // its own (a user can still explicitly ask about something else), just a default assumption.
+  function referentHint(): string | null {
+    const hasSelection = Boolean(selectedBlockContext);
+    if (mode === "overview") {
+      return `[Mode: Overview — nothing can be selected in this mode. If the user says "this" or "it" without naming something specific, they mean the document as a whole.]`;
+    }
+    if (mode === "inspect") {
+      return hasSelection
+        ? `[Mode: Inspect — a block is selected (see below). If the user says "this" or "it", they mean that selected block, not the whole document.]`
+        : `[Mode: Inspect — nothing is currently selected. If the user says "this" or "it" with nothing selected, ask what they mean rather than assuming the whole document.]`;
+    }
+    if (mode === "build") {
+      return hasSelection
+        ? `[Mode: Build — a block is selected (see below). If the user says "this" or "it", they most likely mean that selected block.]`
+        : null;
+    }
+    return null;
+  }
+
+  // Inject page path + mode/referent hint + selected-block context + live page content into the
+  // first user message. Selected-block context is listed ahead of the full page dump, since
+  // it's a higher-priority (but not authoritative — verify it's actually relevant) hint about
+  // intent.
   const contextPrefix = [
     pagePath ? `[User is on page: ${pagePath}]` : null,
+    referentHint(),
     selectedBlockContext || null,
     pageContext ? `[Current page contents:\n${pageContext}\n]` : null,
   ].filter(Boolean).join("\n");
