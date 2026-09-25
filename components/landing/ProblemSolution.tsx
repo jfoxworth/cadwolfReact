@@ -12,10 +12,10 @@ export default function ProblemSolution() {
         </div>
         <div className="text-center">
           <h2 className="text-3xl font-semibold text-gray-900 mb-4">
-            CADWOLF: The Solution
+            ENGENTIC: The Solution
           </h2>
           <p className="text-gray-600 text-lg leading-relaxed">
-            CADWOLF combines the mathematics and documentation in the same platform and
+            ENGENTIC combines the mathematics and documentation in the same platform and
             syncs with CAD to automate redesign and synchronize all aspects of STEM
             projects for simple collaboration and management
           </p>

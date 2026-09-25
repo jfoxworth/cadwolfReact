@@ -93,7 +93,7 @@ const FEATURES = [
   {
     Icon: Sliders,
     title: "Interactive Controls",
-    desc: "Use sliders, select boxes, and radio boxes as variables in CadWolf documents",
+    desc: "Use sliders, select boxes, and radio boxes as variables in Engentic documents",
   },
   {
     Icon: Upload,
@@ -103,7 +103,7 @@ const FEATURES = [
   {
     Icon: Download,
     title: "Import Data from CAD",
-    desc: "Pull in data such as mass and volume from Onshape documents to be used in CadWolf documents",
+    desc: "Pull in data such as mass and volume from Onshape documents to be used in Engentic documents",
   },
 ];
 
@@ -112,33 +112,33 @@ const FEATURES = [
 const STEPS = [
   {
     num: 1,
-    title: "Design in CadWolf",
+    title: "Design in Engentic",
     body: [
-      "CadWolf documents are spaces for users to solve and document the mathematics of designing components. In the document pictured here, the height and thickness of the vertical risers in the fitting are designed based upon the design load and tensile strength of the material. The diameter of the bolt is also established.",
-      "When a requirement or design factor such as the load changes, the math automatically updates. These CadWolf equations are then automatically sent from this document to an Onshape document or Fusion 360 file.",
+      "Engentic documents are spaces for users to solve and document the mathematics of designing components. In the document pictured here, the height and thickness of the vertical risers in the fitting are designed based upon the design load and tensile strength of the material. The diameter of the bolt is also established.",
+      "When a requirement or design factor such as the load changes, the math automatically updates. These Engentic equations are then automatically sent from this document to an Onshape document or Fusion 360 file.",
     ],
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/steps1.png",
-    alt: "Math in CadWolf",
+    alt: "Math in Engentic",
   },
   {
     num: 2,
     title: "Math drives Fusion 360 / Onshape",
     body: [
-      "When the CadWolf document is saved, those equations are sent to the CAD system where they are stored as variables. When the fitting is designed in CAD, those variables are used to set the same factors — height and thickness of the risers and the diameter of the bolt hole.",
-      "This means that when the math changes in CadWolf, the CAD updates automatically. A properly designed CAD model updates autonomously in response to the changing math.",
+      "When the Engentic document is saved, those equations are sent to the CAD system where they are stored as variables. When the fitting is designed in CAD, those variables are used to set the same factors — height and thickness of the risers and the diameter of the bolt hole.",
+      "This means that when the math changes in Engentic, the CAD updates automatically. A properly designed CAD model updates autonomously in response to the changing math.",
     ],
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/steps2.png",
-    alt: "CAD driven by CadWolf",
+    alt: "CAD driven by Engentic",
   },
   {
     num: 3,
-    title: "CAD feeds into CadWolf",
+    title: "CAD feeds into Engentic",
     body: [
-      "The Fusion 360 or Onshape files can be read back into CadWolf documents and items such as weight, mass, volume, or density of the CAD model can be used in subsequent mathematics. Those items can also be displayed for parts and assemblies in part trees.",
-      "This lets engineers see the mass, weight, volume, and other items for entire assemblies in real time as they are designed in CadWolf.",
+      "The Fusion 360 or Onshape files can be read back into Engentic documents and items such as weight, mass, volume, or density of the CAD model can be used in subsequent mathematics. Those items can also be displayed for parts and assemblies in part trees.",
+      "This lets engineers see the mass, weight, volume, and other items for entire assemblies in real time as they are designed in Engentic.",
     ],
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/steps3.png",
-    alt: "CAD data in CadWolf",
+    alt: "CAD data in Engentic",
   },
 ];
 
@@ -159,7 +159,7 @@ function TabContent({ tab }: { tab: TabId }) {
           directly to CAD models
         </p>
         <p className="text-gray-600 mb-3">
-          CadWolf has five main types of web pages — Documents, Workspaces,
+          Engentic has five main types of web pages — Documents, Workspaces,
           Datasets, and Part Trees. These components work in concert to provide
           a platform that encompasses all facets of the engineering process.
         </p>
@@ -176,7 +176,7 @@ function TabContent({ tab }: { tab: TabId }) {
     return (
       <div>
         <h3 className="text-xl font-bold text-gray-900 mb-1">
-          Documents — the backbone of CadWolf
+          Documents — the backbone of Engentic
         </h3>
         <p className="text-sm text-blue-600 mb-4">
           Web pages that look like Word documents and behave like a program
@@ -251,7 +251,7 @@ function TabContent({ tab }: { tab: TabId }) {
           Bring in text files, parse them, and use the data
         </p>
         <p className="text-gray-600 mb-3">
-          A dataset is a type of page in CadWolf that lets users paste in text
+          A dataset is a type of page in Engentic that lets users paste in text
           or read in a file. It then parses the text into an n-dimensional
           matrix and stores that data. The user can then import that data into
           any document and use it as a variable.
@@ -259,7 +259,7 @@ function TabContent({ tab }: { tab: TabId }) {
         <p className="text-gray-600">
           Whenever the dataset is updated, any linked document will change as
           well. This lets users import test data or any other type of data
-          without maintaining files outside of CadWolf.
+          without maintaining files outside of Engentic.
         </p>
       </div>
     );
@@ -295,13 +295,13 @@ function TabContent({ tab }: { tab: TabId }) {
         </p>
         <p className="text-gray-600 mb-3">
           In a typical engineering process, CAD and design math are separate. In
-          CadWolf, users can directly link mathematics to variables in Onshape
+          Engentic, users can directly link mathematics to variables in Onshape
           and User Parameters in Fusion 360. Using those variables to define the
           CAD links everything together.
         </p>
         <p className="text-gray-600">
           Whenever a requirement changes, those changes propagate through
-          CadWolf letting the system redesign itself. Those changes are then
+          Engentic letting the system redesign itself. Those changes are then
           pushed to Onshape / Fusion 360 and the CAD updates accordingly.
         </p>
       </div>
@@ -324,7 +324,7 @@ export default function ModulesPage() {
       <section className="pt-32 pb-12 bg-gray-900 text-white text-center">
         <div className="container mx-auto px-6 max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            CadWolf Modules
+            Engentic Modules
           </h1>
           <p className="text-gray-300 text-lg">
             Five components that work together to provide a complete STEM
@@ -338,10 +338,10 @@ export default function ModulesPage() {
         <div className="container mx-auto px-6 max-w-5xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              CadWolf's Five Components
+              Engentic's Five Components
             </h2>
             <p className="text-gray-500">
-              CadWolf uses five components to provide a complete STEM solution
+              Engentic uses five components to provide a complete STEM solution
               and management platform
             </p>
           </div>
@@ -384,7 +384,7 @@ export default function ModulesPage() {
               Document Features
             </h2>
             <p className="text-gray-500">
-              CadWolf documents have a wide array of features
+              Engentic documents have a wide array of features
             </p>
           </div>
 
@@ -414,7 +414,7 @@ export default function ModulesPage() {
               Module Features
             </h2>
             <p className="text-gray-500">
-              How the CadWolf modules integrate to form a complete system
+              How the Engentic modules integrate to form a complete system
             </p>
           </div>
 
@@ -433,7 +433,7 @@ export default function ModulesPage() {
                 title: "Integrated Mathematics and CAD",
                 items: [
                   "Link to the Onshape and Fusion 360 platforms",
-                  "CadWolf equations drive CAD dimensions",
+                  "Engentic equations drive CAD dimensions",
                   "Weight, mass, etc read from CAD into documents",
                   "Embed thumbnails of CAD parts into documents",
                 ],
@@ -474,7 +474,7 @@ export default function ModulesPage() {
         <div className="container mx-auto px-6 max-w-5xl">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900">
-              CadWolf's Relation to CAD
+              Engentic's Relation to CAD
             </h2>
           </div>
 

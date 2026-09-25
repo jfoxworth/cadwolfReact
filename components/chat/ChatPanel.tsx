@@ -436,7 +436,7 @@ export default function ChatPanel() {
     <div className="flex-1 overflow-y-auto px-5 py-5">
       {messages.length === 0 && (
         <p className="text-sm text-gray-400 text-center mt-8">
-          Ask anything about CadWolf or describe a structure you want to build.
+          Ask anything about Engentic or describe a structure you want to build.
         </p>
       )}
       <div className="flex flex-col gap-6">
@@ -645,7 +645,7 @@ export default function ChatPanel() {
             <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-900 to-emerald-800 text-white shrink-0">
               <div className="flex items-center gap-3">
                 <HexBadge size={34} iconSize={16} />
-                <span className="text-md font-semibold tracking-wide">April AI - CadWolf Assistant</span>
+                <span className="text-md font-semibold tracking-wide">April AI - Engentic Assistant</span>
               </div>
               <button
                 onClick={clearMessages}

@@ -22,7 +22,7 @@ const skills = [
 const quotes = [
   "My goal is to create a platform where engineers can design entire aircraft or spacecraft from a single unified interface — every beam, joint, and calculation connected and version-controlled.",
   "We move at the speed of software. What would take a traditional engineering firm months we can prototype, test, and ship in days. That pace changes everything.",
-  "CADWOLF is as much about democratizing engineering as it is about the tools themselves. A single engineer with a good idea should be able to compete with a Fortune 500 team.",
+  "ENGENTIC is as much about democratizing engineering as it is about the tools themselves. A single engineer with a good idea should be able to compete with a Fortune 500 team.",
 ];
 
 export default function AboutPage() {
@@ -34,7 +34,7 @@ export default function AboutPage() {
       <section className="relative bg-gray-900 text-white pt-32 pb-20 text-center">
         <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 opacity-90" />
         <div className="relative container mx-auto px-6">
-          <h1 className="text-5xl font-bold tracking-tight mb-4">About CADWOLF</h1>
+          <h1 className="text-5xl font-bold tracking-tight mb-4">About ENGENTIC</h1>
           <p className="text-gray-400 text-lg">
             Engineering software built by engineers, for engineers.
           </p>
@@ -50,7 +50,7 @@ export default function AboutPage() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Our Mission</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
-              The goal of CADWOLF is to fundamentally change the way engineers work. It can have the
+              The goal of ENGENTIC is to fundamentally change the way engineers work. It can have the
               same effect on engineering as git has had on programming. To this end, we want to help
               small companies and individual engineers do as much as large companies.
             </p>
@@ -61,7 +61,7 @@ export default function AboutPage() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">What We Do</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
-              At CADWOLF, we are both programmers and traditional engineers. We do the math to design
+              At ENGENTIC, we are both programmers and traditional engineers. We do the math to design
               structural components as well as the programming to bring that math to the customers.
             </p>
           </div>

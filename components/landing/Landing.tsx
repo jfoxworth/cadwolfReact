@@ -32,7 +32,7 @@ export default function Landing() {
         className="block bg-blue-700 hover:bg-blue-600 transition-colors py-6 text-white text-center"
       >
         <div className="container mx-auto px-6 flex items-center justify-center gap-3 text-lg">
-          CADWOLF licenses are free to learn or for students
+          ENGENTIC licenses are free to learn or for students
           <span className="font-bold text-xl">Start Now →</span>
         </div>
       </a>

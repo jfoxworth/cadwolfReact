@@ -13,7 +13,7 @@ const items = [
     link: "https://www.cadwolf.com/workspace/documentation",
     title: "Documentation",
     description:
-      "Our documentation workspace provides a users guide that walks users through all facets of CADWOLF.",
+      "Our documentation workspace provides a users guide that walks users through all facets of ENGENTIC.",
   },
   {
     Icon: BookOpen,
@@ -27,7 +27,7 @@ const items = [
     link: "https://www.cadwolf.com/workspace/examples",
     title: "Examples",
     description:
-      "The examples workspace provides a few examples designed to get the user started working with CADWOLF and using part trees.",
+      "The examples workspace provides a few examples designed to get the user started working with ENGENTIC and using part trees.",
   },
   {
     Icon: MessageSquare,
@@ -44,7 +44,7 @@ export default function Community() {
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-3">
-            CADWOLF Examples and Community
+            ENGENTIC Examples and Community
           </h2>
           <p className="text-gray-500">How to get help and work with others</p>
         </div>

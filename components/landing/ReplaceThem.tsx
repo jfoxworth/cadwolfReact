@@ -49,8 +49,8 @@ export default function ReplaceThem() {
             ))}
           </div>
           <p className="text-gray-600 text-lg leading-relaxed">
-            CADWOLF is more than a free, online replacement for Word, Excel,
-            Matlab, MathCAD, Mathematica, and Jupyter Notebook. CADWOLF's link
+            ENGENTIC is more than a free, online replacement for Word, Excel,
+            Matlab, MathCAD, Mathematica, and Jupyter Notebook. ENGENTIC's link
             to CAD platforms, its collaborative nature, and its part tree module
             make it a far better system for students, entrepreneurs, and large
             project managers.

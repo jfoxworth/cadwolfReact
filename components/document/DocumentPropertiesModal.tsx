@@ -28,7 +28,7 @@ const SOLVER_OPTIONS: { value: SolverLocation; label: string; description: strin
   },
   {
     value: "server",
-    label: "CadWolf Server",
+    label: "Engentic Server",
     description: "Offload computation to our servers. Coming soon.",
     disabled: true,
   },

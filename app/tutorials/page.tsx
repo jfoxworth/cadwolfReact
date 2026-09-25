@@ -103,7 +103,7 @@ const tutorials: Tutorial[] = [
     category: "Documents",
     youtubeId: "QvWqVTrg5lg",
     date: "November 2015",
-    summary: "Using YouTube video links inside cadwolf documents.",
+    summary: "Using YouTube video links inside engentic documents.",
   },
 ];
 
@@ -122,7 +122,7 @@ export default function TutorialsPage() {
       <section className="bg-gray-900 text-white pt-32 pb-16 text-center">
         <div className="container mx-auto px-6">
           <h1 className="text-5xl font-bold tracking-tight mb-3">Tutorials</h1>
-          <p className="text-gray-400 text-lg">Video tutorials for CADWOLF — more coming soon.</p>
+          <p className="text-gray-400 text-lg">Video tutorials for ENGENTIC — more coming soon.</p>
           <nav className="text-gray-500 text-sm mt-4">
             <a href="/" className="hover:text-white transition-colors">Home</a>
             <span className="mx-2">/</span>

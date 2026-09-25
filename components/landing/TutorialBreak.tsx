@@ -4,7 +4,7 @@ export default function TutorialBreak() {
       <div className="container mx-auto px-6">
         <h3 className="text-3xl font-bold mb-3">Start with our tutorials</h3>
         <p className="text-gray-300 text-lg mb-8">
-          Our video tutorials explain what CADWOLF is and how it works, and how to create
+          Our video tutorials explain what ENGENTIC is and how it works, and how to create
           and edit documents.
           <br />
           This is where a new user should start learning.

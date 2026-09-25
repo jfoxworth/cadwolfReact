@@ -8,8 +8,8 @@ export default function CadBreak() {
           <span className="text-blue-600">Fusion 360</span>
         </h2>
         <p className="text-gray-600 text-lg mb-8">
-          CADWOLF equations can be sent to Onshape and to Fusion 360 to drive CAD models
-          and those models can be read back into CADWOLF
+          ENGENTIC equations can be sent to Onshape and to Fusion 360 to drive CAD models
+          and those models can be read back into ENGENTIC
         </p>
         <div className="flex justify-center items-center gap-10">
           <img

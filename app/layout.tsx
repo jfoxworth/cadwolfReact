@@ -23,9 +23,9 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "CADWOLF - A web based mathematics and engineering platform",
+  title: "Engentic — Engineering and Agentic AI",
   description:
-    "CADWOLF integrates mathematics, documentation, and CAD to coordinate and automate the design of large structures.",
+    "Engentic integrates mathematics, documentation, and CAD to coordinate and automate the design of large structures.",
   icons: {
     icon: "/favicon.png",
   },

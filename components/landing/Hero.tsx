@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function Hero() {
   return (
     <section
@@ -11,12 +13,15 @@ export default function Hero() {
     >
 
       <div className="relative z-10 max-w-3xl px-6">
+        <div className="inline-block bg-white rounded-2xl shadow-lg px-8 py-5 mb-8">
+          <Image src="/engenticLogo.png" alt="Engentic" width={560} height={120} priority />
+        </div>
         <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-          Collaborative Mathematics and Engineering Platform
+          Engineering and Agentic AI
         </h1>
         <p className="text-xl text-gray-200 mb-10 max-w-2xl mx-auto">
-          CADWOLF integrates mathematics, documentation, and CAD, as well as
-          coordinates and automates the design of large structures
+          ENGENTIC integrates AI to coordinate mathematics, documentation, CAD, 
+          and to automate the design of large structures using AI
         </p>
         <a
           href="/register"

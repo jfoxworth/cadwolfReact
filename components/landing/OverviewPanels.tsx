@@ -2,7 +2,7 @@ const panels = [
   {
     title: "Documents — Analysis and Documentation",
     description:
-      "Documents are the backbone of CADWOLF. They are created and edited through GUIs and can be thought of as a Google Doc that has all the power of a programming language.",
+      "Documents are the backbone of ENGENTIC. They are created and edited through GUIs and can be thought of as a Google Doc that has all the power of a programming language.",
     image: "https://s3-us-west-2.amazonaws.com/cadwolf/stock/portfolio/DemoDocument1.png",
     alt: "Documents",
     link: "/modules",
@@ -12,7 +12,7 @@ const panels = [
   {
     title: "Workspaces — Create, Store, and Organize Files",
     description:
-      "Workspaces act as folders in CADWOLF and provide a place where users can create and locate files, address permissions, and upload images.",
+      "Workspaces act as folders in ENGENTIC and provide a place where users can create and locate files, address permissions, and upload images.",
     image: "https://s3-us-west-2.amazonaws.com/cadwolf/stock/portfolio/DemoWorkspace1.png",
     alt: "Workspaces",
     link: "/modules",
@@ -36,7 +36,7 @@ export default function OverviewPanels() {
     <section className="py-24 bg-white">
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">What CADWOLF Does</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">What ENGENTIC Does</h2>
           <p className="text-gray-500">
             The platform consists of several modules that can be used to solve a simple
             problem or manage an entire STEM project

@@ -1,12 +1,13 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Nav() {
   return (
     <header className="fixed top-0 w-full z-50 bg-gray-900/90 backdrop-blur-sm">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="/">
-          <Image src="/logobigwhite.png" alt="CADWOLF" width={140} height={60} />
-        </a>
+        <Link href="/">
+          <Image src="/engenticWhite.png" alt="CADWOLF" width={140} height={60} />
+        </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-gray-300">
           <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
           <a href="#community" className="hover:text-white transition-colors">Community</a>

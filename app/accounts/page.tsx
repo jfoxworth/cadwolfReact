@@ -30,7 +30,7 @@ export default function AccountsPage() {
         <div className="container mx-auto px-6 max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Accounts</h1>
           <p className="text-gray-300 text-lg">
-            Everything you need to know about CadWolf accounts, plans, and permissions.
+            Everything you need to know about Engentic accounts, plans, and permissions.
           </p>
         </div>
       </section>
@@ -41,7 +41,7 @@ export default function AccountsPage() {
 
           <Section title="Free accounts">
             <p>
-              Anyone can create a free CadWolf account — no credit card required and no time
+              Anyone can create a free Engentic account — no credit card required and no time
               limit. Free accounts have access to the full equation solver, unlimited documents
               and workspaces, CAD integrations (Onshape and Fusion 360), dataset imports,
               variable sharing between documents, and the ability to make workspaces publicly
@@ -49,7 +49,7 @@ export default function AccountsPage() {
             </p>
             <p>
               The one limitation of a free account is <strong>image storage</strong>. Free
-              accounts cannot upload images directly to CadWolf. Images can still be displayed
+              accounts cannot upload images directly to Engentic. Images can still be displayed
               inside documents by pasting an external URL — for example, a link from an image
               host, your company CDN, or any publicly accessible URL.
             </p>
@@ -75,7 +75,7 @@ export default function AccountsPage() {
               A business account is an organization that sits on top of individual user
               accounts. A company purchases a number of seats and an organization admin
               invites users to join by email. Each invited user logs in with their own
-              CadWolf account — their personal account and personal files remain entirely
+              Engentic account — their personal account and personal files remain entirely
               separate from the organization.
             </p>
             <p>
@@ -146,9 +146,9 @@ export default function AccountsPage() {
 
           <Section title="Joining an organization">
             <p>
-              If your company has a CadWolf business account, an organization admin will send
+              If your company has an Engentic business account, an organization admin will send
               you an invite to your email address. Click the link in the email to accept. If
-              you already have a CadWolf account, log in and the invite will be applied. If
+              you already have an Engentic account, log in and the invite will be applied. If
               you do not have an account yet, you can create one during the acceptance flow.
             </p>
             <p>

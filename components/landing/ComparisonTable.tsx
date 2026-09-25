@@ -37,7 +37,7 @@ export default function ComparisonTable() {
                 <th className="py-4 px-4 font-semibold text-gray-700 text-center">Excel</th>
                 <th className="py-4 px-4 font-semibold text-gray-700 text-center">MathCAD</th>
                 <th className="py-4 px-4 font-semibold text-gray-700 text-center">Jupyter</th>
-                <th className="py-4 px-4 font-semibold text-blue-700 text-center">CADWOLF</th>
+                <th className="py-4 px-4 font-semibold text-blue-700 text-center">ENGENTIC</th>
               </tr>
             </thead>
             <tbody>

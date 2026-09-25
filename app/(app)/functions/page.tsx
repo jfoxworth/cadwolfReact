@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Functions Reference — CadWolf",
+  title: "Functions Reference — Engentic",
   description:
-    "Complete reference for all mathematical functions available in CadWolf equations.",
+    "Complete reference for all mathematical functions available in Engentic equations.",
 };
 
 interface FnRow {
@@ -1322,7 +1322,7 @@ export default function FunctionsPage() {
           Functions Reference
         </h1>
         <p className="text-gray-500">
-          All mathematical functions available in CadWolf equations, organized
+          All mathematical functions available in Engentic equations, organized
           by category.
         </p>
       </div>

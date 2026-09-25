@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
     await db.emailVerificationToken.create({ data: { userId: user.id, token, expiresAt } });
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     await sendVerificationEmail(user.email, `${appUrl}/verify-email?token=${token}`);
-  } catch { /* non-fatal */ }
+  } catch (err) {
+    console.error("Failed to send verification email on registration:", err);
+  }
 
   return NextResponse.json({ id: user.id, name: user.name, email: user.email, username: user.username }, { status: 201 });
 }

@@ -5,12 +5,23 @@ import { useState } from "react";
 export default function VerificationBanner({ email }: { email: string }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function resend() {
     setLoading(true);
-    await fetch("/api/auth/send-verification", { method: "POST" });
-    setLoading(false);
-    setSent(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/send-verification", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Failed to send — please try again.");
+      }
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send — please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -29,6 +40,7 @@ export default function VerificationBanner({ email }: { email: string }) {
           {loading ? "Sending…" : "Resend"}
         </button>
       )}
+      {error && <span className="text-red-700 font-medium">{error}</span>}
     </div>
   );
 }

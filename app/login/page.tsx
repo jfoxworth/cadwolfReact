@@ -90,7 +90,7 @@ function LoginPageInner() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white rounded-xl shadow-md w-full max-w-sm p-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Sign in to CadWolf</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Sign in to Engentic</h1>
           <p className="text-sm text-gray-500 mt-1">Welcome back</p>
         </div>
 

@@ -122,10 +122,10 @@ export default function RegisterPage() {
       <div className="bg-white rounded-xl shadow-md w-full max-w-sm p-8">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-block mb-4">
-            <Image src="/logobigblack.png" alt="CadWolf" width={130} height={55} />
+            <Image src="/engenticLogo.png" alt="Engentic" width={220} height={49} />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-sm text-gray-500 mt-1">Get started with CadWolf</p>
+          <p className="text-sm text-gray-500 mt-1">Get started with Engentic</p>
         </div>
 
         {/* Federated signup */}
@@ -181,7 +181,7 @@ export default function RegisterPage() {
             )}
             <p className="text-xs text-gray-400 mt-1">
               Your workspace will be at{" "}
-              <span className="font-medium text-gray-600">cadwolf.com/workspace/{username || "yourname"}</span>
+              <span className="font-medium text-gray-600">engentic.com/workspace/{username || "yourname"}</span>
             </p>
           </div>
 

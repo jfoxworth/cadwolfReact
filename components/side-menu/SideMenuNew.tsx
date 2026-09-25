@@ -585,10 +585,10 @@ export default function SideMenuNew({ user }: SideMenuNewProps) {
         }}
       >
         <Image
-          src="/logobigblack.png"
-          alt="CADWOLF"
+          src="/engenticLogo.png"
+          alt="Engentic"
           width={250}
-          height={60}
+          height={55}
           priority
         />
       </div>

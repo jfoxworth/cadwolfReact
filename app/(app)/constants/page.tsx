@@ -16,7 +16,7 @@ export default function ConstantsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Constants</h1>
         <p className="text-gray-600 leading-relaxed">
-          CADWOLF has a few constants that can be used in equations by entering
+          ENGENTIC has a few constants that can be used in equations by entering
           the appropriate text. These are items like the constant &quot;pi&quot;
           or even constants with units attached. When used in an equation, the
           results are displayed with the constant&apos;s known symbol. The table

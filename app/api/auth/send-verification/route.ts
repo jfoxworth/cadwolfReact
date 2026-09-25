@@ -23,7 +23,12 @@ export async function POST() {
   await db.emailVerificationToken.create({ data: { userId: user.id, token, expiresAt } });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  await sendVerificationEmail(user.email, `${appUrl}/verify-email?token=${token}`);
+  try {
+    await sendVerificationEmail(user.email, `${appUrl}/verify-email?token=${token}`);
+  } catch (err) {
+    console.error("Failed to send verification email:", err);
+    return NextResponse.json({ error: "Failed to send the email — please try again shortly." }, { status: 502 });
+  }
 
   return NextResponse.json({ ok: true });
 }

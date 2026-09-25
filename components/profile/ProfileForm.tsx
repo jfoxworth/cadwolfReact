@@ -294,7 +294,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
           )}
           {usernameState === "unchanged" && (
             <p className="text-xs text-gray-400 mt-1">
-              Your workspace: cadwolf.com/workspace/{username || "—"}
+              Your workspace: engentic.com/workspace/{username || "—"}
             </p>
           )}
           {usernameState === "available" && (

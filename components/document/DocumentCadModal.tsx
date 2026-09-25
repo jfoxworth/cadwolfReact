@@ -850,13 +850,13 @@ export default function DocumentCadModal({
         </div>
         <div className="p-5">
           <p className="text-xs text-gray-500 mb-3">
-            Assign a CadWolf alias to each Onshape part you want to reference in equations.
+            Assign an Engentic alias to each Onshape part you want to reference in equations.
             Once saved, use <code className="bg-gray-100 px-1 rounded">alias.mass</code>,{" "}
             <code className="bg-gray-100 px-1 rounded">alias.volume</code>, etc.
           </p>
 
           <div className="grid grid-cols-[1fr_1fr_auto] gap-2 mb-2">
-            <span className="text-xs font-medium text-gray-500">CadWolf Alias</span>
+            <span className="text-xs font-medium text-gray-500">Engentic Alias</span>
             <span className="text-xs font-medium text-gray-500">Onshape Part</span>
             <span />
           </div>
@@ -1102,11 +1102,11 @@ export default function DocumentCadModal({
 
         <div className="p-5">
           <p className="text-xs text-gray-500 mb-3">
-            Map CadWolf solver variables to CAD parameter names. These will be pushed to the CAD model on every solve.
+            Map Engentic solver variables to CAD parameter names. These will be pushed to the CAD model on every solve.
           </p>
 
           <div className="grid grid-cols-[1fr_1fr_auto] gap-2 mb-2">
-            <span className="text-xs font-medium text-gray-500">CadWolf Variable</span>
+            <span className="text-xs font-medium text-gray-500">Engentic Variable</span>
             <span className="text-xs font-medium text-gray-500">CAD Parameter Name</span>
             <span />
           </div>

@@ -177,7 +177,7 @@ export default function CadConnectPage({ onshapeConnected, fusionConnected }: Pr
       <div className="max-w-2xl">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">CAD Connections</h1>
         <p className="text-gray-500 mb-8">
-          Connect your CAD accounts to sync parameters and pull physical properties into CadWolf.
+          Connect your CAD accounts to sync parameters and pull physical properties into Engentic.
         </p>
 
         <div className="flex flex-wrap gap-6">

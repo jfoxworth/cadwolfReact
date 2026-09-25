@@ -46,7 +46,7 @@ export default function Demos() {
             Examples of Documents and other items
           </h2>
           <p className="text-gray-500">
-            View screen captures or open samples of CADWOLF items
+            View screen captures or open samples of ENGENTIC items
           </p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

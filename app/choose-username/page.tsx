@@ -79,9 +79,9 @@ export default function ChooseUsernamePage() {
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Choose a username</h1>
           <p className="text-sm text-gray-500 mt-2">
-            Your username is your workspace address on CadWolf.
+            Your username is your workspace address on Engentic.
             <br />
-            <span className="font-medium text-gray-700">cadwolf.com/workspace/</span>
+            <span className="font-medium text-gray-700">engentic.com/workspace/</span>
             <span className="font-medium text-blue-600">{username || "yourname"}</span>
           </p>
         </div>
