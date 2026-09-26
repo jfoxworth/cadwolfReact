@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import type { File } from "@prisma/client";
 import { getSessionUserOrNull } from "@/utils/getSessionUser";
 import { resolveFileRoute, TYPE_ROUTE } from "@/utils/resolveRoute";
 import { db } from "@/utils/db";
 import { fileToItem } from "@/utils/transformers";
 import { checkPermission } from "@/utils/checkPermission";
+import { fetchDescendants } from "@/utils/fetchDescendants";
 import PartTreeWrapper from "@/components/part-tree/PartTreeWrapper";
 
 export const dynamic = "force-dynamic";
@@ -20,20 +20,6 @@ export async function generateMetadata({
   if (!resolved) return {};
   const file = await db.file.findUnique({ where: { id: resolved.id }, select: { name: true } });
   return { title: file ? `Part Tree — ${file.name}` : "Part Tree" };
-}
-
-async function fetchDescendants(rootId: number): Promise<File[]> {
-  const all: File[] = [];
-  let queue = [rootId];
-  while (queue.length) {
-    const children = await db.file.findMany({
-      where: { parentId: { in: queue }, deletedAt: null },
-      orderBy: { order: "asc" },
-    });
-    all.push(...children);
-    queue = children.map((c) => c.id);
-  }
-  return all;
 }
 
 export default async function PartTreePage({

@@ -210,11 +210,32 @@ const SELECTED_SUGGESTIONS: Record<string, string[]> = {
     "Add an equation under this heading",
     "Summarize this section",
   ],
+  // Part-tree selection types (see components/part-tree/PartTreeWrapper.tsx's selected-block
+  // effect and utils/partTreeToText.ts's itemTypeLabel) — same dictionary, no collision since
+  // document and part-tree never render each other's type strings.
+  Part: [
+    "What does this part need to satisfy?",
+    "Add a requirements document next to this",
+    "Change this part's quantity",
+  ],
+  Subsystem: [
+    "What's in this subsystem?",
+    "Add a part to this subsystem",
+    "Summarize this subsystem's mass",
+  ],
+  "Requirements Document": [
+    "What variables does this define?",
+    "Which parts import from this?",
+  ],
+  "Part Tree Root": [
+    "Summarize this part tree",
+    "Add a new subsystem",
+  ],
 };
 
 // Shown instead, when nothing is selected — page-wide asks rather than single-block ones,
 // keyed by page type since each page type supports different things (documents: block Q&A;
-// workspace: browse + create_file; dataset: read-only Q&A; part-tree: nothing yet).
+// workspace: browse + create_file; dataset: read-only Q&A; part-tree: structure Q&A + build).
 const GENERAL_SUGGESTIONS_BY_PAGE_TYPE: Record<string, string[]> = {
   document: [
     "How do I solve the problem in this document?",
@@ -231,7 +252,11 @@ const GENERAL_SUGGESTIONS_BY_PAGE_TYPE: Record<string, string[]> = {
     "Create a new dataset here",
     "What's in this workspace?",
   ],
-  "part-tree": [],
+  "part-tree": [
+    "Summarize this part tree",
+    "Add a new subsystem",
+    "What's missing a requirements document?",
+  ],
 };
 
 /** Small hex badge used for the header and per-message assistant avatar — always "lit" green. */
@@ -365,7 +390,9 @@ export default function ChatPanel() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pageType = derivePageType(usePathname());
-  const isDocumentPage = pageType === "document";
+  // Document and Part Tree both get the full Overview/Inspect/Build mode-switcher cluster;
+  // Workspace/Dataset stay on the simpler single-hexagon toggle (no mode concept there).
+  const usesModeCluster = pageType === "document" || pageType === "part-tree";
   const generalSuggestions = GENERAL_SUGGESTIONS_BY_PAGE_TYPE[pageType] ?? [];
 
   useEffect(() => {
@@ -548,8 +575,8 @@ export default function ChatPanel() {
     </div>
   );
 
-  // ─── Workspace / Dataset / Part Tree: the original single-hexagon toggle, unchanged ───────
-  if (!isDocumentPage) {
+  // ─── Workspace / Dataset: the original single-hexagon toggle, unchanged ───────────────────
+  if (!usesModeCluster) {
     const lit = hexHover || isOpen;
     const iconColor = lit ? "#059669" : "#374151";
     return (
@@ -732,7 +759,11 @@ export default function ChatPanel() {
     );
   }
 
-  // ─── Document: mode-switcher cluster + block-aware floating panel ──────────────────────────
+  // ─── Document / Part Tree: mode-switcher cluster + block-aware floating panel ──────────────
+  // blockAnchor's DOM lookup (below) only resolves for Document today (its blocks set
+  // id={block.id}; part-tree rows don't yet) — for part-tree this just falls back to the default
+  // cluster-anchored position instead of locking to the selected row on screen, which is an
+  // acceptable simplification, not a bug.
   return (
     <>
       {/* Mode-switcher cluster — upper right, mirroring the always-present main nav cluster
@@ -829,13 +860,15 @@ export default function ChatPanel() {
               }}
             >
               <Lock size={12} className="shrink-0" />
-              You can look around and ask questions, but nothing can be changed until this document is checked out.
+              {pageType === "document"
+                ? "You can look around and ask questions, but nothing can be changed until this document is checked out."
+                : "You can look around and ask questions, but nothing can be changed without edit access."}
             </div>
           )}
 
-          {/* Input — larger compose area. Hidden entirely in Build mode without checkout —
-              there's nothing productive to type, since Build's whole point is adding blocks
-              and that's exactly what's blocked; the notice above already explains why. */}
+          {/* Input — larger compose area. Hidden entirely in Build mode without canBuild —
+              there's nothing productive to type, since Build's whole point is adding/changing
+              things and that's exactly what's blocked; the notice above already explains why. */}
           {!(mode === "build" && !canBuild) && (
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">
               <textarea
@@ -882,9 +915,13 @@ export default function ChatPanel() {
                 className="flex items-center gap-2 px-4 py-2 text-xs"
                 style={{ background: MODE_COLORS[mode].soft, color: MODE_COLORS[mode].text }}
               >
-                <span className="font-mono shrink-0" style={{ color: MODE_COLORS[mode].textMuted }}>
-                  {selectedBlock.position} / {selectedBlock.total}
-                </span>
+                {/* position/total is Document-only — a block's place in its linear sequence.
+                    Part trees (and any future non-linear page type) have no such ordering. */}
+                {pageType === "document" && (
+                  <span className="font-mono shrink-0" style={{ color: MODE_COLORS[mode].textMuted }}>
+                    {selectedBlock.position} / {selectedBlock.total}
+                  </span>
+                )}
                 <span className="font-semibold uppercase tracking-wide shrink-0" style={{ color: MODE_COLORS[mode].active }}>
                   {selectedBlock.type}
                 </span>
@@ -901,7 +938,10 @@ export default function ChatPanel() {
                   <X size={13} />
                 </button>
               </div>
-              {selectedBlock.detail && (
+              {/* detail is also Document-only — for part-tree it's just a copy of the chip
+                  line above (PartTreeWrapper.tsx sets detail = contextLine), so showing it here
+                  would just repeat the same summary twice. */}
+              {pageType === "document" && selectedBlock.detail && (
                 <div
                   className="truncate px-4 pb-2 text-[11px]"
                   style={{ background: MODE_COLORS[mode].soft, color: MODE_COLORS[mode].textMuted }}

@@ -176,18 +176,20 @@ function toContextLines(visibleBlocks: Block[], allBlocksForRefs: Block[]): Cont
 
 /** Greedily keeps whole lines (in order) until `budget` would be exceeded. If even the first
  *  line alone is over budget (e.g. one huge TEXT block), hard-slices it rather than returning
- *  nothing — a truncated line is still strictly more useful than an empty context. */
-function truncateLinesToBudget(lines: ContextBlockLine[], budget: number): { text: string; keptCount: number } {
+ *  nothing — a truncated line is still strictly more useful than an empty context. Takes plain
+ *  strings (not the document-specific ContextBlockLine) so other domains (e.g. part trees) can
+ *  reuse this same fallback instead of re-implementing it. */
+export function truncateLinesToBudget(lines: string[], budget: number): { text: string; keptCount: number } {
   const kept: string[] = [];
   let used = 0;
-  for (const { line } of lines) {
+  for (const line of lines) {
     const addLen = line.length + (kept.length > 0 ? 1 : 0); // +1 for the joining "\n"
     if (used + addLen > budget) break;
     kept.push(line);
     used += addLen;
   }
   if (kept.length === 0 && lines.length > 0 && budget > 20) {
-    kept.push(`${lines[0].line.slice(0, budget - 1)}…`);
+    kept.push(`${lines[0].slice(0, budget - 1)}…`);
     return { text: kept.join("\n"), keptCount: 1 };
   }
   return { text: kept.join("\n"), keptCount: kept.length };
@@ -217,7 +219,7 @@ export function buildDocumentPageContext(
     return { text: `${strippedNote}\n${strippedText}`, reduced: true };
   }
 
-  const { text: truncated, keptCount } = truncateLinesToBudget(stripped, charBudget - strippedNote.length - 1);
+  const { text: truncated, keptCount } = truncateLinesToBudget(stripped.map((l) => l.line), charBudget - strippedNote.length - 1);
   const truncatedNote =
     `[Note: this document is very large — showing only the first ${keptCount} of ${full.length} ` +
     `content blocks (headers/text/equations), truncated to fit. If asked to summarize or review ` +
@@ -258,7 +260,7 @@ export function buildSelectedBlockWindowContext(
     return { text: `${windowNote}\n${windowText}`, reduced: true };
   }
 
-  const { text: truncated, keptCount } = truncateLinesToBudget(windowLines, charBudget - windowNote.length - 1);
+  const { text: truncated, keptCount } = truncateLinesToBudget(windowLines.map((l) => l.line), charBudget - windowNote.length - 1);
   const truncatedNote =
     `[Note: this document is large, and even the ${windowLines.length} blocks around the ` +
     `selected block don't fit — showing only the first ${keptCount} of those. If asked to ` +

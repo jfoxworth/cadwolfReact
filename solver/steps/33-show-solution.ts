@@ -26,18 +26,15 @@ function formatMatrix(real: Record<string, number>, size: string, multiplier = 1
 // Step 33: Show_Solution
 // Builds the LaTeX string for just the numeric result + units.
 //
-// Auto-display thresholds:
-//   - Vectors (1 row or 1 col): show full matrix if total elements ≤ 10
-//   - True matrices:            show full matrix if total elements ≤ 100
-//   - Beyond threshold:         show size only, e.g. \text{[12x5]}
+// Auto-display threshold: show full matrix/vector values if total elements ≤ 10,
+// regardless of shape; beyond that, show size only, e.g. \text{[12x5]}.
 //
 // `matrixSize` is always set in display for non-scalar results so the
 // equation block can apply a user-level show/hide override.
 function autoShowMatrix(size: string): boolean {
   const [rows, cols] = size.split("x").map(Number);
   const total = rows * cols;
-  const isVector = rows === 1 || cols === 1;
-  return isVector ? total <= 10 : total <= 100;
+  return total <= 10;
 }
 
 export const showSolution: StepFn = async (ctx: SolveContext): Promise<SolveContext> => {

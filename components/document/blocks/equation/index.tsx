@@ -40,12 +40,13 @@ interface EquationBlockProps {
 
 type ShowMatrix = boolean | undefined; // true = always show, false = always hide, undefined = auto
 
-/** Given a matrixSize string, determine the auto-default for showMatrix. */
+/** Given a matrixSize string, determine the auto-default for showMatrix — total elements
+ *  ≤ 10 shows full values regardless of shape, matching solver/steps/33-show-solution.ts's
+ *  own copy of this function (kept in sync manually, not shared code). */
 function autoShowMatrix(size: string): boolean {
   const [rows, cols] = size.split("x").map(Number);
   const total = rows * cols;
-  const isVector = rows === 1 || cols === 1;
-  return isVector ? total <= 10 : total <= 100;
+  return total <= 10;
 }
 
 export default function EquationBlock({

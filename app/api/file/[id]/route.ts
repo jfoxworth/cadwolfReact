@@ -4,6 +4,28 @@ import { fileToItem } from "@/utils/transformers";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
 import { decrementStorageUsed } from "@/utils/storage";
+import { resolveAncestors } from "@/utils/resolveAncestors";
+import { embedPartTree } from "@/utils/embedPartTree";
+
+const PART_TREE_FILE_TYPES = new Set(["PartTree", "Part Tree"]);
+
+/** Which part tree (if any) `fileId` currently lives under, or is itself. Reflects whatever the
+ *  DB says at the moment it's called — callers use this both before and after a mutation that
+ *  might change `parentId`, to catch both the old and new enclosing tree on a move. */
+async function findEnclosingPartTreeId(fileId: number): Promise<number | null> {
+  const chain = await resolveAncestors(fileId);
+  return chain.find((a) => PART_TREE_FILE_TYPES.has(a.type))?.id ?? null;
+}
+
+/** Fire-and-forget refresh for each given part tree id — part trees have no separate "Save"
+ *  step, so every structural mutation already is one. Never awaited, same convention as
+ *  embedComponent's own call sites (app/api/component/route.ts), so this never delays the
+ *  actual response. */
+function refreshPartTreeEmbeddings(ids: (number | null)[]): void {
+  for (const id of new Set(ids.filter((id): id is number => id !== null))) {
+    embedPartTree(db, id).catch((err) => console.error("Failed to refresh part tree embedding:", err));
+  }
+}
 
 // PUT /api/file/[id] — update name or itemData (requires edit permission)
 export async function PUT(
@@ -16,6 +38,10 @@ export async function PUT(
 
   const canEdit = await checkPermission(fileId, userId, "edit");
   if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Captured before the update so a move (parentId change) can be detected — compared against
+  // the same lookup run again after the update below.
+  const oldPartTreeId = await findEnclosingPartTreeId(fileId);
 
   const body = await req.json();
   const { name, itemData, description, quantity, isAnalysis, parentId, needsUpdate, clearImportNeedsUpdate } = body;
@@ -88,6 +114,9 @@ export async function PUT(
     }
   }
 
+  const newPartTreeId = parentId !== undefined ? await findEnclosingPartTreeId(fileId) : oldPartTreeId;
+  refreshPartTreeEmbeddings([oldPartTreeId, newPartTreeId]);
+
   return NextResponse.json(fileToItem(file));
 }
 
@@ -102,6 +131,10 @@ export async function DELETE(
 
   const canAdmin = await checkPermission(fileId, userId, "admin");
   if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Resolved before deleting — deleting the part tree root itself needs no refresh (nothing
+  // left to search for), only deleting something *inside* one does.
+  const enclosingPartTreeId = await findEnclosingPartTreeId(fileId);
 
   const file = await db.file.findUnique({
     where: { id: fileId },
@@ -143,6 +176,10 @@ export async function DELETE(
         await decrementStorageUsed(img.userId, Number(img.storageBytes));
       }
     }
+  }
+
+  if (enclosingPartTreeId !== null && enclosingPartTreeId !== fileId) {
+    refreshPartTreeEmbeddings([enclosingPartTreeId]);
   }
 
   return NextResponse.json({ deleted: true });

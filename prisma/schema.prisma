@@ -33,6 +33,7 @@ model File {
   fileImports     FileImport[]
   datasetImports  DatasetImport[]
   versions        FileVersion[]
+  partTreeEmbedding PartTreeEmbedding?
 
   @@map("files")
 }
@@ -95,6 +96,23 @@ model BlockEmbedding {
   @@unique([componentId, chunkIndex])
   @@index([fileId])
   @@map("block_embeddings")
+}
+
+// One row per Part Tree — a structural-similarity embedding of the whole tree (name,
+// description, subsystem/part hierarchy, and cross-document import wiring), recomputed
+// whenever something inside the tree changes (see utils/embedPartTree.ts). Keyed by fileId
+// directly, unlike BlockEmbedding, since a PartTree root has no Components of its own to key on.
+model PartTreeEmbedding {
+  id          Int      @id @default(autoincrement())
+  fileId      Int      @unique @map("file_id")
+  summaryText String   @map("summary_text")
+  embedding   Unsupported("vector(1024)")
+  provider    String   @default("voyage")
+  model       String   @default("voyage-4-lite")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+  file        File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("part_tree_embeddings")
 }
 
 model Bibliography {

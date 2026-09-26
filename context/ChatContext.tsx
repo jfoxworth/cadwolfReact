@@ -2,6 +2,14 @@
 
 import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
 
+// Tool names executed server-side (app/api/chat/route.ts) and already resolved before the
+// model's final answer — there's nothing for the user to approve, so these never become a
+// BlockProposal (no card, no Approve/Reject). Hardcoded here rather than imported from
+// app/api/chat/tools.ts, which pulls in server-only modules that can't reach a client bundle
+// (same reason ChatPanel.tsx duplicates its own small constants instead of importing from
+// route.ts).
+const SERVER_EXECUTED_TOOL_NAMES = new Set(["search_documents", "read_document", "read_part_tree", "find_similar_part_trees"]);
+
 /** A block-add/edit (or, for create_file, a real file creation) proposed by a tool call —
  *  not yet applied/executed until the user approves it. */
 export type ProposalToolName =
@@ -303,6 +311,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               return updated;
             });
           } else if (event.type === "tool_use") {
+            if (SERVER_EXECUTED_TOOL_NAMES.has(event.name as string)) continue;
             const input = { ...(event.input as Record<string, unknown>) };
             // Robustness fallback: if this is an add (no targetBlockId) and the model didn't
             // set an anchor, but a block was selected when the request was sent, anchor there

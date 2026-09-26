@@ -4,6 +4,24 @@ import { db } from "@/utils/db";
 import { fileToItem } from "@/utils/transformers";
 import { initRootWorkspacePermissions, checkPermission } from "@/utils/checkPermission";
 import { getSessionUser } from "@/utils/getSessionUser";
+import { resolveAncestors } from "@/utils/resolveAncestors";
+import { embedPartTree } from "@/utils/embedPartTree";
+
+const PART_TREE_FILE_TYPES = new Set(["PartTree", "Part Tree"]);
+
+/** Fire-and-forget: if `parentId` sits inside a part tree, refresh that tree's structural
+ *  embedding (utils/embedPartTree.ts) — part trees have no separate "Save" step, so every
+ *  structural mutation already is one. Never awaited, same convention as embedComponent's own
+ *  call sites (app/api/component/route.ts), so this never delays the actual response. */
+function refreshEnclosingPartTreeEmbedding(parentId: number | null | undefined): void {
+  if (!parentId) return;
+  resolveAncestors(parentId)
+    .then((chain) => {
+      const partTree = chain.find((a) => PART_TREE_FILE_TYPES.has(a.type));
+      if (partTree) return embedPartTree(db, partTree.id);
+    })
+    .catch((err) => console.error("Failed to refresh part tree embedding:", err));
+}
 
 // POST /api/file — create a new file (workspace, document, folder, part tree)
 export async function POST(req: NextRequest) {
@@ -39,6 +57,8 @@ export async function POST(req: NextRequest) {
   if (fileTypeId === "Workspace" && !parentId) {
     await initRootWorkspacePermissions(file.id, userId);
   }
+
+  refreshEnclosingPartTreeEmbedding(parentId ? Number(parentId) : null);
 
   return NextResponse.json(fileToItem(file), { status: 201 });
 }

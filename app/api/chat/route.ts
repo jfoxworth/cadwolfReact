@@ -4,8 +4,21 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { TYPE_ROUTE } from "@/utils/resolveRoute";
-import { TOOLS_BY_PAGE_TYPE, SEARCH_TOOL_NAME } from "./tools";
+import {
+  TOOLS_BY_PAGE_TYPE, SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME,
+  READ_PART_TREE_TOOL_NAME, FIND_SIMILAR_PART_TREES_TOOL_NAME, getPartTreeTools,
+} from "./tools";
 import { searchDocuments } from "@/utils/searchEmbeddings";
+import { readDocumentForChat } from "@/utils/readDocument";
+import { readPartTreeForChat } from "@/utils/readPartTree";
+import { findSimilarPartTreesForChat } from "@/utils/findSimilarPartTrees";
+
+// Tool names executed server-side within the same turn (their result is fed back as a
+// tool_result before the model finishes) rather than forwarded to the client as a proposal to
+// apply — see the toolResults loop below.
+const SERVER_EXECUTED_TOOL_NAMES = new Set([
+  SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME, READ_PART_TREE_TOOL_NAME, FIND_SIMILAR_PART_TREES_TOOL_NAME,
+]);
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -122,7 +135,7 @@ export async function POST(req: NextRequest) {
             model: process.env.AI_MODEL ?? "claude-haiku-4-5-20251001",
             max_tokens: 8192,
             system: systemPrompt,
-            tools: TOOLS_BY_PAGE_TYPE[pageType] ?? [],
+            tools: pageType === "part-tree" ? getPartTreeTools(mode) : (TOOLS_BY_PAGE_TYPE[pageType] ?? []),
             messages: currentMessages,
           } as Parameters<typeof client.messages.stream>[0]);
           currentStream = stream;
@@ -133,23 +146,23 @@ export async function POST(req: NextRequest) {
           const toolUseBlocks = message.content.filter(
             (b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use",
           );
-          const searchCalls = toolUseBlocks.filter((b) => b.name === SEARCH_TOOL_NAME);
+          const serverCalls = toolUseBlocks.filter((b) => SERVER_EXECUTED_TOOL_NAMES.has(b.name));
 
-          // Every tool call gets emitted to the client — including search_documents, so it's
-          // visible in the transcript like any other call — but search is also executed
+          // Every tool call gets emitted to the client — including server-executed ones, so
+          // they're visible in the transcript like any other call — but those are also executed
           // server-side below, unlike every other tool (which the client applies itself).
           for (const block of toolUseBlocks) {
             emit({ type: "tool_use", id: block.id, name: block.name, input: block.input });
           }
 
-          if (searchCalls.length > 0) {
+          if (serverCalls.length > 0) {
             if (attempt >= MAX_CONTINUATIONS) {
-              emit({ type: "text", text: "\n\n*(Reached this turn's search limit — try asking again if you still need more.)*" });
+              emit({ type: "text", text: "\n\n*(Reached this turn's lookup limit — try asking again if you still need more.)*" });
               break;
             }
             // Resolve every tool_use in this message with a matching tool_result — the API
             // requires one for each before the conversation can continue, even for the
-            // non-search calls, whose real "execution" is the client applying them, not
+            // non-server calls, whose real "execution" is the client applying them, not
             // anything happening here.
             const toolResults: { type: "tool_result"; tool_use_id: string; content: string }[] = [];
             for (const block of toolUseBlocks) {
@@ -161,6 +174,37 @@ export async function POST(req: NextRequest) {
                   resultText = results.length > 0
                     ? results.map((r) => `[Document: "${r.fileName}"] ${r.chunkText}`).join("\n\n")
                     : "No relevant content found.";
+                } catch (err) {
+                  resultText = `Search failed: ${err instanceof Error ? err.message : "unknown error"}`;
+                }
+                toolResults.push({ type: "tool_result", tool_use_id: block.id, content: resultText });
+              } else if (block.name === READ_DOCUMENT_TOOL_NAME) {
+                const fileId = Number((block.input as { fileId?: string }).fileId);
+                let resultText: string;
+                try {
+                  resultText = Number.isFinite(fileId)
+                    ? await readDocumentForChat(fileId, userId)
+                    : "That id isn't a valid document id.";
+                } catch (err) {
+                  resultText = `Couldn't read that document: ${err instanceof Error ? err.message : "unknown error"}`;
+                }
+                toolResults.push({ type: "tool_result", tool_use_id: block.id, content: resultText });
+              } else if (block.name === READ_PART_TREE_TOOL_NAME) {
+                const fileId = Number((block.input as { fileId?: string }).fileId);
+                let resultText: string;
+                try {
+                  resultText = Number.isFinite(fileId)
+                    ? await readPartTreeForChat(fileId, userId)
+                    : "That id isn't a valid part tree id.";
+                } catch (err) {
+                  resultText = `Couldn't read that part tree: ${err instanceof Error ? err.message : "unknown error"}`;
+                }
+                toolResults.push({ type: "tool_result", tool_use_id: block.id, content: resultText });
+              } else if (block.name === FIND_SIMILAR_PART_TREES_TOOL_NAME) {
+                const description = (block.input as { description?: string }).description ?? "";
+                let resultText: string;
+                try {
+                  resultText = await findSimilarPartTreesForChat(userId, description);
                 } catch (err) {
                   resultText = `Search failed: ${err instanceof Error ? err.message : "unknown error"}`;
                 }

@@ -38,8 +38,8 @@ interface Props {
   onshapeConns: Map<string, OnshapeConnInfo>;
   onQuantityChange: (itemId: string, quantity: number | null) => void;
   onAddItem: (parentId: string, fileTypeId: string) => Promise<void>;
-  onRenameItem: (itemId: string, name: string) => Promise<void>;
-  onDeleteItem: (itemId: string) => Promise<void>;
+  onRenameItem: (itemId: string, name: string) => Promise<boolean>;
+  onDeleteItem: (itemId: string) => Promise<boolean>;
   onLinkCad: (itemId: string) => void;
   onToggleAnalysis: (itemId: string, isAnalysis: boolean) => void;
   canEdit: boolean;
@@ -47,6 +47,7 @@ interface Props {
   onResolve?: (item: Item) => void;
   refreshingCadId?: string | null;
   onRefreshCad?: (item: Item) => void;
+  onEditDescription: () => void;
 }
 
 interface TreeNodeProps {
@@ -63,8 +64,8 @@ interface TreeNodeProps {
   onshapeConns: Map<string, OnshapeConnInfo>;
   onQuantityChange: (itemId: string, quantity: number | null) => void;
   onAddItem: (parentId: string, fileTypeId: string) => Promise<void>;
-  onRenameItem: (itemId: string, name: string) => Promise<void>;
-  onDeleteItem: (itemId: string) => Promise<void>;
+  onRenameItem: (itemId: string, name: string) => Promise<boolean>;
+  onDeleteItem: (itemId: string) => Promise<boolean>;
   onLinkCad: (itemId: string) => void;
   onToggleAnalysis: (itemId: string, isAnalysis: boolean) => void;
   canEdit: boolean;
@@ -86,6 +87,7 @@ interface EllipsisMenuProps {
   onLinkCad?: () => void;
   onResolve?: () => void;
   onToggleAnalysis?: () => void;
+  onEditDescription?: () => void;
 }
 
 function EllipsisMenu({
@@ -98,6 +100,7 @@ function EllipsisMenu({
   onLinkCad,
   onResolve,
   onToggleAnalysis,
+  onEditDescription,
 }: EllipsisMenuProps) {
   const [open, setOpen] = useState(false);
 
@@ -232,6 +235,18 @@ function EllipsisMenu({
           >
             Display description
           </button>
+
+          {onEditDescription && (
+            <button
+              className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+              onClick={() => {
+                close();
+                onEditDescription();
+              }}
+            >
+              Edit description
+            </button>
+          )}
 
           {onDeleteItem && (
             <button
@@ -377,6 +392,7 @@ function TreeNode({
   return (
     <div>
       <div
+        id={item.id}
         className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer transition-colors border-b border-gray-200 ${
           isSelected
             ? "bg-blue-50 text-blue-700"
@@ -596,6 +612,7 @@ export default function PartTreeNav({
   onResolve,
   refreshingCadId,
   onRefreshCad,
+  onEditDescription,
 }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(childrenMap.keys()),
@@ -647,6 +664,7 @@ export default function PartTreeNav({
     <div className="flex-1">
       {/* Root node */}
       <div
+        id={root.id}
         className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors border-b border-gray-200 ${
           selectedId === root.id
             ? "bg-blue-50 text-blue-700"
@@ -737,6 +755,7 @@ export default function PartTreeNav({
           onAddPart={handleAddPartToRoot}
           onEditTitle={() => setIsEditingRootTitle(true)}
           onLinkCad={() => onLinkCad(root.id)}
+          onEditDescription={onEditDescription}
         />
       </div>
 
