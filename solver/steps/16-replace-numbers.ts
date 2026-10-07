@@ -1,7 +1,22 @@
 import type { SolveContext, StepFn } from "../types";
 import { SCALE_UNIT_MAP } from "../units/scale-unit-data";
 import { resolveBaseArray } from "../units/resolve-base-array";
+import { parseCompound } from "../units/parse-compound";
 import { encodeMatrix, isMatrixToken, decodeMatrix } from "./matrix-utils";
+
+/** Compound-aware SI scale factor for a unit string — a flat SCALE_UNIT_MAP.get(unitStr)
+ *  lookup (the previous approach here) only ever matches a simple single-symbol unit like
+ *  "in"; a compound/inverse unit like "1/in" or "kg*m/s^2" isn't a key in that map at all,
+ *  so it silently resolved to no scaling. Mirrors the per-term accumulation
+ *  solver/steps/22-scale-units.ts's scaleUnits step already does correctly. */
+function computeScaleFactor(unitStr: string): number {
+  let multiplier = 1;
+  for (const { symbol, power } of parseCompound(unitStr)) {
+    const entry = SCALE_UNIT_MAP.get(symbol);
+    if (entry) multiplier *= Math.pow(entry.conv_factor, power);
+  }
+  return multiplier;
+}
 
 // Step 16: Replace_Numbers
 // For each inline "number unit" pair (e.g. "3 m/s"):
@@ -26,7 +41,14 @@ function getPrecedingOp(tokens: string[], i: number): string | null {
 }
 
 // Validates that top-level addition/subtraction of inline literal units is compatible.
+// Bails out (defers entirely to step 26's real evaluator) if a "^" appears anywhere —
+// this is a simple per-segment linear scan that sums unit exponents by the */÷ operator
+// immediately preceding each unit-bearing token; it has no notion of an exponent
+// reshaping a whole sub-expression's dimension (e.g. "(area)^0.5" → length), so for any
+// equation containing "^" this pre-check cannot be trusted and must not short-circuit.
 function checkAddCompat(tokens: string[], keyArray: (number | string)[]): string | null {
+  if (tokens.includes("^")) return null;
+
   const addOpIdxs: number[] = [];
   let depth = 0;
   const UNARY_PREV = new Set(["+", "-", "*", "/", "^", "(", "["]);
@@ -131,7 +153,7 @@ export const replaceNumbers: StepFn = async (ctx: SolveContext): Promise<SolveCo
 
     const unitSym   = tokens[i + 1];
     const entry     = SCALE_UNIT_MAP.get(unitSym);
-    const scaled    = entry ? Number(tokens[i]) * entry.conv_factor : Number(tokens[i]);
+    const scaled    = Number(tokens[i]) * computeScaleFactor(unitSym);
     const canonical = entry ? entry.conv_unit : unitSym;
     const unitBase  = resolveBaseArray(canonical) ?? undefined;
 

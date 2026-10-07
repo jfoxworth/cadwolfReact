@@ -12,10 +12,20 @@ export const recombineUnits: StepFn = async (ctx: SolveContext): Promise<SolveCo
   const tokens  = [...ctx.tokens];
   const keyArray = new Array(tokens.length).fill(0) as number[];
 
+  // A document-defined variable name shadows a same-spelled unit symbol — otherwise a
+  // variable like "K" (collides with Kelvin) or "L" (collides with liter) gets misread as a
+  // unit, and worse, an expression like "(K*L)" looks exactly like a valid compound unit
+  // string and gets merged into one bogus token, corrupting the whole equation downstream.
+  const availableVarNames = new Set(
+    ctx.documentEquations
+      .filter((eq) => eq.order < ctx.currentBlockOrder && eq.solution !== null)
+      .map((eq) => eq.variableName.toLowerCase()),
+  );
+
   // Check each index and if it matches a known unit, mark it as 1
   // Legacy uses scaleUnits object keyed by unit symbol; we use SCALE_UNIT_MAP
   for (let index = 0; index < tokens.length; index++) {
-    if (SCALE_UNIT_MAP.has(tokens[index])) {
+    if (SCALE_UNIT_MAP.has(tokens[index]) && !availableVarNames.has(tokens[index].toLowerCase())) {
       keyArray[index] = 1;
     }
   }

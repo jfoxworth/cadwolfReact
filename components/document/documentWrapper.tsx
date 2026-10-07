@@ -107,7 +107,12 @@ function buildSolverBlocks(vblocks: VirtualBlock[]): {
     if (b.type === "EQUATION") {
       out.push({ id: b.id, order: b.order, type: b.type, definition: b.definition as { raw?: string } });
     } else if (INPUT_BLOCK_TYPES.has(b.type)) {
-      out.push({ id: b.id, order: b.order, type: b.type, definition: { ...b.definition, raw: inputBlockRaw(b.type, b.definition) } });
+      // `unit` is cleared here: inputBlockRaw() already embeds it inline into `raw`
+      // (e.g. "P = 10000 lbf"), so the solver derives units correctly from that text
+      // alone. Leaving the original separate `unit` field in place as well caused
+      // makeContext() to seed ctx.solution.units from it on top of the inline unit
+      // already being parsed, double-applying the conversion factor downstream.
+      out.push({ id: b.id, order: b.order, type: b.type, definition: { ...b.definition, raw: inputBlockRaw(b.type, b.definition), unit: undefined } });
     } else if (b.type === "FOR_LOOP") {
       const def = b.definition as Partial<ForLoopDef>;
       // Use a short deterministic prefix so synthetic var names don't clash with user vars
@@ -862,12 +867,6 @@ export default function DocumentWrapper({
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
 
   const { setPageContext, setSelectedBlock, registerProposalHandlers, setCanBuild, mode } = useChat();
-
-  // Overview mode is talk-only — nothing on the canvas should become selectable, and switching
-  // into it drops whatever was already selected rather than leaving a stale selection behind.
-  useEffect(() => {
-    if (mode === "overview") setSelectedBlockId(null);
-  }, [mode]);
 
   // Build mode adds new blocks — that requires both edit permission and having this document
   // actually checked out (effectiveCanEdit already is exactly that combination), same as every
@@ -2241,7 +2240,7 @@ export default function DocumentWrapper({
                 isSelected: selectedBlockId === block.id,
                 isEditing: editingBlockId === block.id,
                 sharedEditor: editingBlockId === block.id ? editor : null,
-                onSelect: mode === "overview" ? undefined : handleSelect,
+                onSelect: effectiveCanEdit ? handleSelect : undefined,
                 onStartEditing: handleStartEditing,
                 onSave: handleSave,
                 displayHtml: htmlOverrides[block.id],

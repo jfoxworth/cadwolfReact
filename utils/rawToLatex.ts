@@ -158,7 +158,7 @@ function expandFunctions(expr: string): string {
       tex = `\\sqrt[${args[0]}]{${args[1]}}`;
     } else if (fnName.toLowerCase() === "power" && args.length === 2) {
       // power(exp, base)  →  {base}^{exp}  (exponent is first arg, base is second)
-      tex = `\\left(${args[1]}\\right)^{${args[0]}}`;
+      tex = `{${args[1]}}^{${args[0]}}`;
     } else if (fnName === "abs" && args.length === 1) {
       // abs(x)  →  \left|x\right|
       tex = `\\left|${args[0]}\\right|`;
@@ -322,24 +322,46 @@ function applySubstitutions(expr: string): string {
 
 // ─── Matrix literal → \begin{bmatrix} ───────────────────────────────────────
 
+/** Total elements beyond which a literal matrix collapses to a "[RxC]" size indicator
+ *  instead of full inline values — matches solver/steps/33-show-solution.ts's own
+ *  autoShowMatrix threshold for *solved* results (not shared code; keep both in sync). */
+const MATRIX_LITERAL_COLLAPSE_THRESHOLD = 10;
+
 /**
- * If expr is a top-level matrix literal "[a,b;c,d]", convert it to a LaTeX
- * bmatrix. Each cell is recursively converted via exprToLatex.
- * Returns null if expr is not a top-level matrix literal.
+ * If expr is a top-level matrix literal "[a,b;c,d]" — optionally followed by a trailing
+ * unit, e.g. "[0.75,1;0.875,1.125]in" — convert it to a LaTeX bmatrix (or, once past
+ * MATRIX_LITERAL_COLLAPSE_THRESHOLD elements, a "[RxC]" size indicator), with the unit
+ * appended after. Each cell is recursively converted via exprToLatex. Returns null if
+ * expr is not a top-level matrix literal (e.g. "[1,2]+[3,4]" — the trailing content
+ * after the closing "]" doesn't look like a bare unit, so this isn't a simple matrix).
  */
 function tryMatrixToLatex(expr: string): string | null {
   const s = expr.trim();
-  if (!s.startsWith("[") || !s.endsWith("]")) return null;
+  if (!s.startsWith("[")) return null;
 
-  // Confirm the opening "[" matches the closing "]" at the top level
+  // Find where the top-level "[" closes — unlike before, this no longer assumes the
+  // bracket is the very last character, since a trailing unit may follow it.
   let depth = 0;
+  let closeIdx = -1;
   for (let i = 0; i < s.length; i++) {
     if (s[i] === "[" || s[i] === "(") depth++;
-    else if (s[i] === "]" || s[i] === ")") depth--;
-    if (depth === 0 && i < s.length - 1) return null; // closes before end — not a simple matrix
+    else if (s[i] === "]" || s[i] === ")") {
+      depth--;
+      if (depth === 0) { closeIdx = i; break; }
+    }
   }
+  if (closeIdx === -1) return null; // unmatched bracket
 
-  const inner = s.slice(1, -1);
+  // Anything after the closing "]" must look like a bare unit (e.g. "in", "kg*m/s^2",
+  // "1/in" for an inverse unit like threads-per-inch — hence allowing a leading digit,
+  // not just a leading letter), not further equation syntax (e.g. "+[3,4]") — otherwise
+  // this isn't a simple matrix literal and we bail out, same as the old
+  // endsWith("]")-based rejection did.
+  const trailing = s.slice(closeIdx + 1).trim();
+  if (trailing.length > 0 && !/^[A-Za-z0-9][A-Za-z0-9*/^.]*$/.test(trailing)) return null;
+  const unitSuffix = trailing ? ` \\, ${exprToLatex(trailing)}` : "";
+
+  const inner = s.slice(1, closeIdx);
 
   // Split by ";" at bracket depth 0 to get rows
   const rowStrs: string[] = [];
@@ -353,7 +375,7 @@ function tryMatrixToLatex(expr: string): string | null {
   }
   rowStrs.push(cur);
 
-  const rows = rowStrs.map((row) => {
+  const parsedRows = rowStrs.map((row) => {
     // Split each row by "," at depth 0
     const cells: string[] = [];
     let cell = "";
@@ -365,10 +387,17 @@ function tryMatrixToLatex(expr: string): string | null {
       else { cell += row[i]; }
     }
     cells.push(cell.trim());
-    return cells.map((c) => exprToLatex(c)).join(" & ");
+    return cells;
   });
 
-  return `\\begin{bmatrix}${rows.join(" \\\\ ")}\\end{bmatrix}`;
+  const totalElements = parsedRows.reduce((sum, cells) => sum + cells.length, 0);
+  if (totalElements > MATRIX_LITERAL_COLLAPSE_THRESHOLD) {
+    const cols = parsedRows[0]?.length ?? 0;
+    return `\\text{[${parsedRows.length}x${cols}]}${unitSuffix}`;
+  }
+
+  const rowsLatex = parsedRows.map((cells) => cells.map((c) => exprToLatex(c)).join(" & "));
+  return `\\begin{bmatrix}${rowsLatex.join(" \\\\ ")}\\end{bmatrix}${unitSuffix}`;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

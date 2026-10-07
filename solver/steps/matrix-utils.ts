@@ -218,6 +218,24 @@ export function cMatElemDiv(a: MatrixItem, b: MatrixItem): MatrixItem | null {
   return { real, imag, size: a.size };
 }
 
+// Complex scalar / matrix element-wise: (sr + si·i) ÷ each element (mr + mi·i) — the
+// broadcast counterpart to cMatElemDiv, for when the numerator is a bare scalar rather
+// than a same-size matrix. NaN on a zero element, matching cMatElemDiv's own convention.
+export function cScalarMatDiv(sr: number, si: number, mat: MatrixItem): MatrixItem {
+  const [rows, cols] = sizeToRowsCols(mat.size);
+  const real: Matrix = {};
+  const imag: Matrix = {};
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const k = `${r}-${c}`;
+      const mr = mat.real[k] ?? 0, mi = mat.imag[k] ?? 0;
+      const denom = mr * mr + mi * mi;
+      if (denom === 0) { real[k] = NaN; imag[k] = 0; }
+      else { real[k] = (sr * mr + si * mi) / denom; imag[k] = (si * mr - sr * mi) / denom; }
+    }
+  return { real, imag, size: mat.size };
+}
+
 // Complex matrix multiplication: C[r,c] = Σ_k A[r,k] × B[k,c]  (complex ×)
 export function cMatMul(a: MatrixItem, b: MatrixItem): MatrixItem | null {
   const [aRows, aCols] = sizeToRowsCols(a.size);

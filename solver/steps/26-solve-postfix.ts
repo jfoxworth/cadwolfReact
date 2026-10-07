@@ -2,7 +2,7 @@ import type { SolveContext, StepFn, UnitBaseArray } from "../types";
 import {
   isMatrixToken, isImagToken, IMAG_TOKEN_PREFIX,
   decodeMatrix, MatrixItem,
-  cMatAdd, cMatSub, cMatScalarAdd, cMatScalarSub, cMatScalarMul, cMatMul, cMatElemDiv,
+  cMatAdd, cMatSub, cMatScalarAdd, cMatScalarSub, cMatScalarMul, cMatMul, cMatElemDiv, cScalarMatDiv,
 } from "./matrix-utils";
 
 // ─── Stack types ─────────────────────────────────────────────────────────────
@@ -229,7 +229,10 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
         if (!elemResult) return { ...ctx, errors: [...ctx.errors, "Solve5: Cannot divide matrices of different sizes."] };
         result = elemResult;
       } else {
-        return { ...ctx, errors: [...ctx.errors, "Solve5: Cannot divide by a matrix."] };
+        // scalar / matrix (not 1×1): broadcast — the scalar divides every element,
+        // same convention as matrix/scalar and every other operator's scalar-matrix case.
+        const sc = a as ScalarComplex;
+        result = cScalarMatDiv(sc.real, sc.imag, b as MatrixItem);
       }
       // Division: subtract unit exponents
       const dua = getBaseArray(a) ?? ZERO_UNITS;
@@ -280,7 +283,30 @@ export const solvePostfix: StepFn = async (ctx: SolveContext): Promise<SolveCont
         }
         result = { real: realOut, imag: imagOut, size: a.size };
       } else {
-        return { ...ctx, errors: [...ctx.errors, "Solve5: Power operator not supported for this operand combination."] };
+        // scalar ^ matrix (not 1×1): broadcast — the scalar base is raised to each
+        // element's power, same convention as matrix^scalar and every other operator.
+        const ac = a as ScalarComplex;
+        const bMat = b as MatrixItem;
+        const realOut: Record<string, number> = {};
+        const imagOut: Record<string, number> = {};
+        for (const key of Object.keys(bMat.real)) {
+          const exp  = bMat.real[key] ?? 0;
+          const expI = bMat.imag[key] ?? 0;
+          if (ac.imag === 0 && expI === 0) {
+            realOut[key] = Math.pow(ac.real, exp);
+            imagOut[key] = 0;
+          } else {
+            const r2    = Math.sqrt(ac.real * ac.real + ac.imag * ac.imag);
+            const th2   = Math.atan2(ac.imag, ac.real);
+            const lnR2  = Math.log(r2);
+            const expR2 = exp * lnR2 - expI * th2;
+            const expI2 = exp * th2  + expI * lnR2;
+            const mag2  = Math.exp(expR2);
+            realOut[key] = mag2 * Math.cos(expI2);
+            imagOut[key] = mag2 * Math.sin(expI2);
+          }
+        }
+        result = { real: realOut, imag: imagOut, size: bMat.size };
       }
       // Power: multiply unit exponents by the scalar exponent
       const pua = getBaseArray(a);
