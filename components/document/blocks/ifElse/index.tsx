@@ -327,6 +327,9 @@ export default function IfElseBlock({
         const isActiveBranch = runResult?.activeBranchIndex === branchIdx;
         const isEditing = editingBranchId === branch.id;
         const childResultMap = new Map(runResult?.childResults.map((r) => [r.blockId, r]));
+        const editBranch = isEditing
+          ? draftBranches.find((b) => b.id === branch.id) ?? branch
+          : branch;
 
         return (
           <div key={branch.id}>
@@ -345,15 +348,15 @@ export default function IfElseBlock({
                 <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-violet-700 font-bold font-mono text-sm">
-                      {branch.type === "if" ? "if" : branch.type === "elseif" ? "else if" : "else"}
+                      {editBranch.type === "if" ? "if" : editBranch.type === "elseif" ? "else if" : "else"}
                     </span>
 
-                    {branch.type !== "else" &&
-                      branch.conditions.map((cond, condIdx) => (
+                    {editBranch.type !== "else" &&
+                      editBranch.conditions.map((cond, condIdx) => (
                         <div key={condIdx} className="flex items-center gap-1 flex-wrap">
                           {condIdx > 0 && (
                             <select
-                              value={branch.conditions[condIdx - 1].blockOption}
+                              value={editBranch.conditions[condIdx - 1].blockOption}
                               onChange={(e) =>
                                 updateCondition(branch.id, condIdx - 1, {
                                   blockOption: e.target.value as "&&" | "||",
@@ -396,7 +399,7 @@ export default function IfElseBlock({
                             placeholder="expr"
                             className="w-24 rounded border border-violet-300 px-2 py-0.5 text-xs font-mono focus:border-blue-400 focus:outline-none"
                           />
-                          {branch.conditions.length > 1 && (
+                          {editBranch.conditions.length > 1 && (
                             <button
                               onClick={() => removeCondition(branch.id, condIdx)}
                               className="text-red-400 hover:text-red-600 text-xs"
@@ -407,7 +410,7 @@ export default function IfElseBlock({
                         </div>
                       ))}
 
-                    {branch.type !== "else" && (
+                    {editBranch.type !== "else" && (
                       <button
                         onClick={() => addCondition(branch.id)}
                         className="text-xs text-violet-500 hover:text-violet-700 border border-dashed border-violet-300 px-2 py-0.5 rounded"
@@ -430,7 +433,7 @@ export default function IfElseBlock({
                     >
                       Cancel
                     </button>
-                    {branch.type !== "if" && (
+                    {editBranch.type !== "if" && (
                       <button
                         onClick={() => { cancelEdit(); removeBranch(branch.id); }}
                         className="ml-auto rounded border border-red-200 px-3 py-1 text-xs text-red-500 hover:bg-red-50"
@@ -444,7 +447,8 @@ export default function IfElseBlock({
                 /* ── View mode ─────────────────────────────────────────── */
                 <div
                   className="flex items-center gap-2 font-mono text-sm"
-                  onDoubleClick={() => startEdit(branch.id)}
+                  onClick={(e) => { e.stopPropagation(); onSelect?.(block.id); }}
+                  onDoubleClick={(e) => { e.stopPropagation(); startEdit(branch.id); }}
                 >
                   <span className="text-violet-700 font-bold">
                     {branch.type === "if" ? "if" : branch.type === "elseif" ? "else if" : "else"}
@@ -637,6 +641,7 @@ function ChildEquationBlock({ child, canEdit, solveResult, onRawChange, onRemove
   return (
     <div
       className="group flex items-center justify-between rounded border border-gray-100 bg-gray-50 px-3 py-1.5 hover:border-gray-200"
+      onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => { e.stopPropagation(); if (canEdit) { setDraft(def.raw ?? ""); setEditing(true); } }}
     >
       <div className="flex-1 min-w-0 flex items-center gap-3">

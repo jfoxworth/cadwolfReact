@@ -65,6 +65,18 @@
 - [ ] **Fourier transform** (`solver/functions/signal/fourier.ts`) — stub returns only real part, not complex
 - [ ] **`parseDate`** (`solver/functions/utility/parse-date.ts`) — stub returning 0
 - [ ] **`squash`** (`solver/functions/linear-algebra/squash.ts`) — stub returning 0
+- [ ] **Unit cancellation leaves a spurious leftover unit for `A / (B * C)`** when `B` and `C` are
+      both unit-bearing and the combination spans three independent base dimensions (mass,
+      length, time) at once — even though the numerically identical computation done as
+      sequential single divisions (`A / B / C`), or with `B * C` pre-resolved into its own named
+      variable first, cancels correctly. Repro (via `solver/worker/document-solver.ts`'s
+      `solveDocument`, confirmed same numeric value either way, only the reported `units` differ):
+      `G = 79.3GPa; d = 2mm; D_mean = 18mm; F = 80N; delta_target = 8mm; k_target = F / delta_target`
+      then `(G * power(4,d)) / power(3,D_mean) / k_target` → `units: ""` (correct) vs.
+      `(G * power(4,d)) / (power(3,D_mean) * k_target)` → `units: "m^3"` (wrong, should also be
+      `""`). Worked around for now in the spring-sizing document (`ai-docs`/Claude Artifact
+      content, not app code) by stripping operands to plain SI numbers before dividing and not
+      reattaching a unit (since the result is genuinely dimensionless) — not a real fix.
 
 ---
 

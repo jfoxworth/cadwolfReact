@@ -705,7 +705,11 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
             sourceFileName: imp.sourceFileName,
             sourceVariableName: imp.sourceVariableName,
             localAlias: imp.localAlias,
-            value: imp.value,
+            // FileImport.value is a String? column (confirmed in prisma/schema.prisma) — every
+            // other caller of this route (DocumentFileInputsModal.tsx) already sends a string;
+            // imp.value here is a real number from getSolvedDocumentVariables, so it must be
+            // stringified or Prisma rejects it outright ("Expected String or Null, provided Float").
+            value: String(imp.value),
             units: imp.units,
           }),
         });

@@ -154,11 +154,19 @@ export async function DELETE(
     queue = childIds;
   }
 
+  const allDeletedIds = [fileId, ...descendantIds];
+
   // Soft-delete the target file and all descendants in one batch
   await db.file.updateMany({
-    where: { id: { in: [fileId, ...descendantIds] } },
+    where: { id: { in: allDeletedIds } },
     data: { deletedAt: new Date() },
   });
+
+  // Soft-deleting a file never removed its embeddings (BlockEmbedding/PartTreeEmbedding rows
+  // persisted, keyed by fileId, with no cleanup path — just dead rows search already excludes
+  // via its own deletedAt join, but never actually reclaimed). Delete them for real here.
+  await db.blockEmbedding.deleteMany({ where: { fileId: { in: allDeletedIds } } });
+  await db.partTreeEmbedding.deleteMany({ where: { fileId: { in: allDeletedIds } } });
 
   // Decrement storage for the root file if it's an Image
   if (file?.fileTypeId === "Image" && file.storageBytes > 0n) {

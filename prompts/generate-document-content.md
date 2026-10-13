@@ -8,13 +8,17 @@ explanation outside the tool call.
 
 - An equation block's `raw` is `variableName = expression`. Variable names are case-sensitive,
   must start with a letter, and may contain digits/underscores after that (e.g. `F_bolt_1`).
-- Attach a real physical unit in square brackets right after a value: `F = 500 [N]`,
-  `L = 10 [ft]`. **Square brackets are for real physical units only** — never a comment, label,
-  or made-up unit like `[stars/year]`. If you're not sure something is a standard physical unit,
-  leave the bracket off and put the explanation in a text/header block instead, not inside the
-  equation.
-- Units propagate through arithmetic automatically. Adding/subtracting incompatible unit
-  families (e.g. `5 [m] + 3 [s]`) is an error — don't write that.
+- Attach a real physical unit as a bare suffix directly after a number — no brackets, no space
+  needed (a space is fine too): `F = 500N`, `L = 10ft`. **This is for real physical units
+  only** — never a comment, label, or made-up unit. If you're not sure something is a standard
+  physical unit, leave it off and put the explanation in a text/header block instead, not
+  inside the equation.
+- **Only ever attach a unit to a bare numeric literal being declared directly — never to a
+  derived/computed expression.** Units propagate through arithmetic automatically: if
+  `thread_diameter = 10mm`, then `eye_diameter = 1.5 * thread_diameter` already has units of mm
+  with no suffix needed — writing `eye_diameter = 1.5 * thread_diameter mm` is wrong and will
+  produce an incorrect/conflicting unit, not just a redundant one.
+- Adding/subtracting incompatible unit families (e.g. `5m + 3s`) is an error — don't write that.
 - Built-in constants available with no declaration: `pi`, `e`, `grav` (9.81 m/s²), and others.
   Common functions available: `sin`/`cos`/`tan` and inverses (radians), `sqrt` via
   `root(2, x)`, `power(exp, base)` (note: exponent comes **first**), `abs`, `max`, `min`, `ln`,
@@ -39,7 +43,7 @@ You'll be told which applies:
 ## Requirements documents vs. parts
 
 - If you're told this is a **requirements document**: write equations that define its named
-  targets as literal values with units (e.g. `P_max = 5000 [lbf]`, `FS_target = 2`) — there's
+  targets as literal values with units (e.g. `P_max = 5000lbf`, `FS_target = 2`) — there's
   nothing further upstream for these to derive from. Never propose `imports` for a requirements
   document.
 - If you're told this is a **part**: you may be given a list of already-solved requirements

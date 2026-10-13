@@ -145,26 +145,28 @@ Many functions behave differently depending on whether their input is a row vect
 
 ### Declaring Units
 
+Attach a unit directly to a number as a bare suffix — no brackets, no space required (a space is fine too):
+
 ```
-x = 5 [m]
-F = 1000 [N]
-t = 3.5 [s]
+x = 5m
+F = 1000N
+t = 3.5s
 ```
 
 ### No Comments
 
-CadWolf equations have no comment syntax at all — this isn't Python or JavaScript. The square brackets after a value are exclusively for a real physical unit. Never use them to label, annotate, or explain what a number represents: `R_star = 2 [stars/year]` is **not valid** — "stars/year" isn't a real unit, and the solver will try to parse it as one rather than read it as a note.
+CadWolf equations have no comment syntax at all — this isn't Python or JavaScript. A unit suffix directly after a number is exclusively for a real physical unit. Never invent one to label, annotate, or explain what a number represents: `R_star = 2 starsPerYear` is **not valid** — "starsPerYear" isn't a real unit, and the solver will try to parse it as one rather than read it as a note.
 
-**If you're not certain something is a standard physical unit — a real length, mass, time, force, energy, etc., or a standard combination of those (like m/s² or kg·m/s²) — don't bracket it.** Don't try to recall a complete list before deciding; when in doubt, leave the bracket off. Write the plain number with no unit, and put the explanation (what the number counts, its rate, its domain-specific meaning) in a `text_block` or symbolic equation instead — not inside the equation itself.
+**If you're not certain something is a standard physical unit — a real length, mass, time, force, energy, etc., or a standard combination of those (like m/s² or kg·m/s²) — don't attach one.** Don't try to recall a complete list before deciding; when in doubt, leave it off. Write the plain number with no unit, and put the explanation (what the number counts, its rate, its domain-specific meaning) in a `text_block` or symbolic equation instead — not inside the equation itself.
 
 ### Propagation
 
-Units propagate through all arithmetic:
+Units propagate through all arithmetic — **a derived/computed value never gets its own unit suffix, the result's unit already follows automatically from its inputs**:
 
 ```
-A = 3 [m]
-B = 4 [m]
-C = A * B        → m²
+A = 3m
+B = 4m
+C = A * B        → m²   (write C = A * B — never C = A * B m^2 or similar)
 ```
 
 ### Conflicts
@@ -172,7 +174,7 @@ C = A * B        → m²
 Adding or subtracting incompatible unit families **errors**:
 
 ```
-bad = 5 [m] + 3 [s]   ← ERROR
+bad = 5m + 3s   ← ERROR
 ```
 
 Multiplying/dividing different families is valid (that is how derived units are formed: N = kg·m/s²).
@@ -260,7 +262,7 @@ All trig functions expect angles in **radians**. Inverse functions return radian
 | `abs(x)` | x: scalar/vector/matrix | same shape as x | Absolute value (elementwise) |
 | `sign(x)` | x: scalar/vector/matrix | same shape as x | Sign: −1, 0, or +1 (elementwise) |
 | `round(x)` | x: scalar/vector/matrix | same shape as x | Round to nearest integer (elementwise) |
-| `round(x, second)` | x: scalar/vector/matrix; second: integer number OR unit name string | same shape as x | The second argument is interpreted based on what it is: **if it is a recognized unit name** (e.g. `km`, `ft`, `ms`, `lbf`, `N`) — unit-quantized rounding: converts x to that unit, rounds to the nearest whole unit, converts back to SI, preserves original units. e.g. `round(10235 [m], km)` → 10000 m. **If it is a number** — round to that many decimal places (may be negative). e.g. `round(3.14159, 2)` → 3.14. The solver checks the unit name first; a plain integer is only used as decimal places if it is not a unit name. |
+| `round(x, second)` | x: scalar/vector/matrix; second: integer number OR unit name string | same shape as x | The second argument is interpreted based on what it is: **if it is a recognized unit name** (e.g. `km`, `ft`, `ms`, `lbf`, `N`) — unit-quantized rounding: converts x to that unit, rounds to the nearest whole unit, converts back to SI, preserves original units. e.g. `round(10235m, km)` → 10000 m. **If it is a number** — round to that many decimal places (may be negative). e.g. `round(3.14159, 2)` → 3.14. The solver checks the unit name first; a plain integer is only used as decimal places if it is not a unit name. |
 | `max(x)` | x: any scalar/vector/matrix | scalar | Maximum value across all elements |
 | `min(x)` | x: any scalar/vector/matrix | scalar | Minimum value across all elements |
 | `maxu(x)` | x: any scalar/vector/matrix | scalar | Maximum value across all elements (same as max) |
@@ -486,7 +488,7 @@ Mass properties are fetched on demand when the user clicks "Refresh from CAD". T
 
 ## Common Mistakes
 
-- **Unit conflict** — `5 [m] + 3 [s]` errors. Both sides must share a unit family in addition/subtraction.
+- **Unit conflict** — `5m + 3s` errors. Both sides must share a unit family in addition/subtraction.
 - **CAD name case mismatch** — `eyebolt.mass` will not resolve if the part is named `EyeBolt`.
 - **Circular dependency** — A depends on B and B depends on A → both error.
 - **Auto-solve expectation** — no re-solve on page load; save after every calculation you want to persist.
@@ -504,8 +506,9 @@ Mass properties are fetched on demand when the user clicks "Refresh from CAD". T
 ## Guidance for the AI Assistant
 
 - Write equations using CadWolf syntax: `variableName = expression`.
-- Always annotate physical quantities with units: `F = 500 [N]`.
-- Square brackets are for real physical units only, never comments or descriptive labels (no `[stars/year]`-style annotations). When not certain something is a standard physical unit, default to leaving the bracket off rather than guessing — write the plain number and put any explanation in a text_block.
+- Always annotate physical quantities with units: `F = 500N`.
+- **Never put a unit on a derived/computed value** — its unit already follows automatically from whatever it's computed from (e.g. `C = A * B`, never `C = A * B m^2`). Only ever attach a unit to a bare numeric literal being declared directly.
+- A unit suffix is for a real physical unit only, never a comment or descriptive label (no `starsPerYear`-style made-up units). When not certain something is a standard physical unit, default to leaving it off rather than guessing — write the plain number and put any explanation in a text_block.
 - Check unit family consistency before suggesting an equation.
 - When suggesting `power` or `root`, state the argument order explicitly.
 - When suggesting `ode4`, state the zero-indexed state variable naming convention (y0, y1, …).

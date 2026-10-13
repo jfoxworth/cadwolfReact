@@ -34,7 +34,7 @@ export const GENERATE_DOCUMENT_CONTENT_TOOL: Anthropic.Tool = {
             },
             raw: {
               type: "string",
-              description: "For \"equation\" blocks only — a full equation string in CadWolf syntax, e.g. \"P_cr = (pi^2 * E * I) / (L^2) [lbf]\". See the system prompt for syntax rules.",
+              description: "For \"equation\" blocks only — a full equation string in CadWolf syntax, e.g. \"P_cr = (pi^2 * E * I) / (L^2)\" (units attach as a bare suffix on a literal, e.g. \"F = 500N\" — never on a derived value like this one, since its unit already follows from E/I/L). See the system prompt for syntax rules.",
             },
             expression: {
               type: "string",
