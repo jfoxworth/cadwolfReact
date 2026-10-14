@@ -31,10 +31,15 @@ explanation outside the tool call.
 You'll be told which applies:
 
 - **Adapting a reference document** — you're given another document's real blocks (name,
-  equations, text) because it's a close structural analog to what you're writing. Adapt its
-  actual equations: keep the same approach/variable roles, adjust names/values/units to fit this
-  document's own role and description. Don't copy it verbatim if its specific values clearly
-  don't apply here, but don't throw away a working structure to invent something worse either.
+  equations, text) because a similarity search found it as the closest available analog in the
+  picked reference tree. That's a starting structural pattern to adapt, not a guaranteed exact
+  match or a template to fill in blindly — it may model a related but different problem. Reconcile
+  it against this document's own role/description and the original build request below: keep the
+  reference's approach/variable roles where they genuinely fit, adjust names/values/units, and
+  don't copy a mechanism (e.g. a lookup table, a specific geometry) that doesn't actually apply to
+  what's being built here. Where the reference and the original build request conflict, the build
+  request governs — don't throw away a working structure to invent something worse, but don't
+  force-fit one that doesn't match what was actually asked for either.
 - **Generating from scratch** — no reference is available. Use real engineering domain
   knowledge for the kind of document this is (its name + description tell you what it needs to
   calculate or define). Write a correct, unit-consistent set of blocks — headers for structure,

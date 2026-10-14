@@ -156,7 +156,7 @@ function computeDisplayValues(
 export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Props) {
   const { partTree } = data;
   const router = useRouter();
-  const { mode, setPageContext, setCurrentFileId, setSelectedBlock, registerProposalHandlers, setCanBuild } = useChat();
+  const { mode, setPageContext, setCurrentFileId, setSelectedBlock, registerProposalHandlers, setCanBuild, referenceTreeId } = useChat();
   const [items, setItems] = useState<Item[]>(data.items);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [valueToSum, setValueToSum] = useState("");
@@ -656,6 +656,7 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
           description: node?.description ?? "",
           isRequirementsDocument: doc.isRequirementsDocument,
           templateFileId: node?.templateFileId,
+          referenceTreeId,
           requirementsContext: requirementsContext.map(Number),
         }),
       });

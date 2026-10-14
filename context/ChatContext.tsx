@@ -222,6 +222,12 @@ interface ChatContextType {
   buildStage: BuildStage;
   setBuildStage: (stage: BuildStage) => void;
   buildCandidates: BuildCandidate[];
+  /** The fileId of the reference part tree the user picked from buildCandidates in Stage 2 (or
+   *  null if they skipped). Threaded through to Stage 6 content generation so each document's
+   *  template can be matched by real content (utils/findSimilarPartTreeDocuments.ts) instead of
+   *  the model guessing templateFileId from a name-only tree dump. */
+  referenceTreeId: number | null;
+  setReferenceTreeId: (id: number | null) => void;
   proposedRequirements: RequirementItem[] | null;
   proposedBuildPlan: BuildPlan | null;
   /** True while onConfirmBuild's real file-creation calls are in flight. */
@@ -267,6 +273,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [canBuild, setCanBuild] = useState(true);
   const [buildStage, setBuildStage] = useState<BuildStage>(1);
   const [buildCandidates, setBuildCandidates] = useState<BuildCandidate[]>([]);
+  const [referenceTreeId, setReferenceTreeId] = useState<number | null>(null);
   const [proposedRequirements, setProposedRequirements] = useState<RequirementItem[] | null>(null);
   const [proposedBuildPlan, setProposedBuildPlan] = useState<BuildPlan | null>(null);
   const [isBuildingFiles, setIsBuildingFiles] = useState(false);
@@ -374,6 +381,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setMessages([]);
     setBuildStage(1);
     setBuildCandidates([]);
+    setReferenceTreeId(null);
     setProposedRequirements(null);
     setProposedBuildPlan(null);
     setBuildError(null);
@@ -627,6 +635,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         buildStage,
         setBuildStage,
         buildCandidates,
+        referenceTreeId,
+        setReferenceTreeId,
         proposedRequirements,
         proposedBuildPlan,
         isBuildingFiles,

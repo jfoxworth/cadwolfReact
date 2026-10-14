@@ -800,7 +800,7 @@ export default function ChatPanel() {
     isOpen, messages, isLoading, selectedBlock, mode, canBuild,
     toggleChat, openChat, setMode, sendMessage, clearMessages, clearSelectedBlock,
     approveProposal, rejectProposal, undoProposal,
-    buildStage, setBuildStage, buildCandidates, proposedRequirements, proposedBuildPlan,
+    buildStage, setBuildStage, buildCandidates, setReferenceTreeId, proposedRequirements, proposedBuildPlan,
     isBuildingFiles, buildError, confirmBuild,
     buildDocuments, isGeneratingContent, generationError, runContentGeneration,
     retryDocument,
@@ -1303,8 +1303,8 @@ export default function ChatPanel() {
                 <CandidateCards
                   candidates={buildCandidates}
                   disabled={isLoading}
-                  onSelect={(c) => sendMessage(`Use "${c.name}" (id ${c.fileId}) as the reference part tree.`, window.location.pathname)}
-                  onSkip={() => sendMessage("None of these are close enough — continue without a reference.", window.location.pathname)}
+                  onSelect={(c) => { setReferenceTreeId(c.fileId); sendMessage(`Use "${c.name}" (id ${c.fileId}) as the reference part tree.`, window.location.pathname); }}
+                  onSkip={() => { setReferenceTreeId(null); sendMessage("None of these are close enough — continue without a reference.", window.location.pathname); }}
                 />
               )}
               {buildStage === 3 && proposedRequirements && (

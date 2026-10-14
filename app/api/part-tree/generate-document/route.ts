@@ -5,6 +5,7 @@ import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
 import { anthropicClient } from "@/utils/anthropicClient";
 import { getDocumentFullBlocks } from "@/utils/getDocumentFullBlocks";
+import { findSimilarPartTreeDocuments } from "@/utils/findSimilarPartTreeDocuments";
 import { getSolvedDocumentVariables, type SolvedVariable } from "@/utils/getSolvedDocumentVariables";
 import { GENERATE_DOCUMENT_CONTENT_TOOL, GENERATE_DOCUMENT_CONTENT_TOOL_NAME } from "./tool";
 import type { Block } from "@/types/document";
@@ -48,22 +49,32 @@ export async function POST(req: NextRequest) {
   const { userId } = await getSessionUser();
   const body = await req.json();
   const {
-    fileId, name, description, isRequirementsDocument, templateFileId, buildPrompt, requirementsContext,
+    fileId, name, description, isRequirementsDocument, templateFileId, referenceTreeId, buildPrompt, requirementsContext,
   }: {
     fileId: number; name: string; description: string; isRequirementsDocument: boolean;
-    templateFileId?: number; buildPrompt?: string; requirementsContext?: number[];
+    templateFileId?: number; referenceTreeId?: number; buildPrompt?: string; requirementsContext?: number[];
   } = body;
 
   const canEdit = await checkPermission(Number(fileId), userId, "edit");
   if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // A bad/stale templateFileId is treated as "no reference" — model output from an earlier
-  // stage (propose_build_plan), never trusted at face value here.
+  // The model's own templateFileId guess (propose_build_plan, Stage 4) is only ever read from
+  // a name-only tree dump (utils/partTreeToText.ts never shows equation content) — it has no
+  // real signal to match on. When a reference tree is known, resolve the actual template via a
+  // content-based nearest-neighbor search instead of trusting that guess at all. Falls back to
+  // the model's guess only when no reference tree was picked (older/degraded callers).
+  let resolvedTemplateFileId: number | undefined = templateFileId;
+  if (referenceTreeId) {
+    const [match] = await findSimilarPartTreeDocuments(userId, Number(referenceTreeId), `${name}. ${description}`, 1);
+    resolvedTemplateFileId = match?.fileId;
+  }
+
+  // A bad/stale id is treated as "no reference" either way — never trusted at face value here.
   let templateSection: string | null = null;
-  if (templateFileId) {
-    const canViewTemplate = await checkPermission(Number(templateFileId), userId, "view");
+  if (resolvedTemplateFileId) {
+    const canViewTemplate = await checkPermission(Number(resolvedTemplateFileId), userId, "view");
     if (canViewTemplate) {
-      const template = await getDocumentFullBlocks(Number(templateFileId));
+      const template = await getDocumentFullBlocks(Number(resolvedTemplateFileId));
       if (template) templateSection = formatTemplateBlocks(template.name, template.blocks);
     }
   }
