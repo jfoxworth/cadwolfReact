@@ -4,7 +4,7 @@ import { upsertOAuthAccount } from "@/utils/cadAuth";
 // GET /cadAuth — Onshape OAuth callback (registered redirect URI)
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = req.nextUrl.origin;
 
   if (!code) {
     return NextResponse.redirect(`${appUrl}/cadConnect?cad_auth=error`);

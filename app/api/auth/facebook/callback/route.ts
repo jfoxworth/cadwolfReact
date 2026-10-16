@@ -14,7 +14,7 @@ interface FacebookUserInfo {
 }
 
 export async function GET(req: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = req.nextUrl.origin;
   const code = req.nextUrl.searchParams.get("code");
 
   if (!code) {

@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM = process.env.MAIL_FROM_EMAIL ?? "noReply@cadwolf.com";
+const FROM = process.env.MAIL_FROM_EMAIL ?? "noReply@engentic.com";
 
 export async function sendVerificationEmail(to: string, verifyUrl: string) {
   await transporter.sendMail({

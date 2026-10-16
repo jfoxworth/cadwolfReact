@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const clientId = process.env.FUSION_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = req.nextUrl.origin;
 
   if (!clientId) {
     return NextResponse.json({ error: "FUSION_CLIENT_ID not configured" }, { status: 500 });

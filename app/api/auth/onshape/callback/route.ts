@@ -3,7 +3,7 @@ import { upsertOAuthAccount } from "@/utils/cadAuth";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = req.nextUrl.origin;
 
   if (!code) {
     return NextResponse.redirect(`${appUrl}?cad_auth=error`);

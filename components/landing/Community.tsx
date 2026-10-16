@@ -10,21 +10,21 @@ import {
 const items = [
   {
     Icon: FileText,
-    link: "https://www.cadwolf.com/workspace/documentation",
+    link: "https://www.engentic.com/workspace/documentation",
     title: "Documentation",
     description:
       "Our documentation workspace provides a users guide that walks users through all facets of ENGENTIC.",
   },
   {
     Icon: BookOpen,
-    link: "https://www.cadwolf.com/workspace/homework",
+    link: "https://www.engentic.com/workspace/homework",
     title: "Homework",
     description:
       "The homework workspace provides hundreds of examples in subjects such as physics, statics, dynamics, and mechanics of materials.",
   },
   {
     Icon: Star,
-    link: "https://www.cadwolf.com/workspace/examples",
+    link: "https://www.engentic.com/workspace/examples",
     title: "Examples",
     description:
       "The examples workspace provides a few examples designed to get the user started working with ENGENTIC and using part trees.",

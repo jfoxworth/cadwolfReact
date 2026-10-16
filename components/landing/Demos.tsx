@@ -3,37 +3,37 @@ const demos = [
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/Workspace1.png",
     title: "Workspace Example",
     tag: "Workspaces",
-    href: "https://www.cadwolf.com/workspace/Examples/",
+    href: "https://www.engentic.com/workspace/Examples/",
   },
   {
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/QE1.png",
     title: "Quadratic Equation",
     tag: "Documents",
-    href: "https://www.cadwolf.com/Document/Examples/Quadratic_Equation/",
+    href: "https://www.engentic.com/Document/Examples/Quadratic_Equation/",
   },
   {
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/Dataset1.png",
     title: "Dataset Example",
     tag: "Datasets",
-    href: "https://www.cadwolf.com/Dataset/Examples/Tensile_Test/",
+    href: "https://www.engentic.com/Dataset/Examples/Tensile_Test/",
   },
   {
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/BJ1.png",
     title: "Bungee Jumper",
     tag: "Documents",
-    href: "https://www.cadwolf.com/Document/Examples/Bungee_Jumper_Problem/",
+    href: "https://www.engentic.com/Document/Examples/Bungee_Jumper_Problem/",
   },
   {
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/3dChart1.png",
     title: "3D Charts",
     tag: "Documents",
-    href: "https://www.cadwolf.com/Document/Documentation/Users_Guide_-_3D_Charts/",
+    href: "https://www.engentic.com/Document/Documentation/Users_Guide_-_3D_Charts/",
   },
   {
     img: "https://cadwolf.s3.us-west-2.amazonaws.com/stock/portfolio/pt1.png",
     title: "Part Trees",
     tag: "Part Trees",
-    href: "https://www.cadwolf.com/PartTree/Examples/Part_Tree_Example/Example_Part_Tree_-_Truss/",
+    href: "https://www.engentic.com/PartTree/Examples/Part_Tree_Example/Example_Part_Tree_-_Truss/",
   },
 ];
 
