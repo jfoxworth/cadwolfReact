@@ -271,6 +271,11 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
       if (!map.has(pid)) map.set(pid, []);
       map.get(pid)!.push(item);
     }
+    // Documents before folders within each level — a stable sort, so original order is
+    // otherwise preserved within each group.
+    for (const children of map.values()) {
+      children.sort((a, b) => (a.type === "DOCUMENT" ? 0 : 1) - (b.type === "DOCUMENT" ? 0 : 1));
+    }
     return map;
   }, [partTree, items]);
 

@@ -57,6 +57,19 @@ function formatDependencyContext(docs: { fileId: number; name: string; variables
 
 export async function POST(req: NextRequest) {
   const { userId } = await getSessionUser();
+
+  // This is the only other route (besides /api/chat) that calls the Anthropic API — it must be
+  // gated the same way, not just rely on edit permission. Without this, anyone with a valid
+  // session and edit access to any file could trigger an Anthropic call directly, bypassing the
+  // chat allow-list entirely (the chat UI itself is the only thing that normally reaches this
+  // route, and that UI is already hidden from everyone but the allowed user).
+  const allowedUserId = process.env.ALLOWED_CHAT_USER_ID
+    ? parseInt(process.env.ALLOWED_CHAT_USER_ID)
+    : null;
+  if (!allowedUserId || userId !== allowedUserId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = await req.json();
   const {
     fileId, name, description, isRequirementsDocument, templateFileId, referenceTreeId, buildPrompt,
