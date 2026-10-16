@@ -463,13 +463,18 @@ const BUILD_PLAN_NODE_PROPERTIES = {
     type: "number" as const,
     description: "Only when a reference part tree was picked and read_part_tree on it showed a document clearly analogous to this node — its id, so this node's eventual content can be adapted from that document's real content instead of generated from nothing. Omit when there's no reference tree, or no clear analog. Carry this field forward unchanged on any re-proposal of the same node.",
   },
+  dependsOnNodeNames: {
+    type: "array" as const,
+    description: "Only meaningful when nodeType is \"Document\" and this is a physical part. Names of OTHER nodes in this same plan that this part is physically mated to and derives a dimension from — a threaded fastener setting a bore diameter, a pin setting a hole size, a mating part's geometry constraining this one. Not for a shared target like a load or safety factor (that's a requirements document instead). Omit when this part has no such physical dependency.",
+    items: { type: "string" as const },
+  },
   description: {
     type: "string" as const,
     description: "One or two sentences describing this node's role in the proposed system.",
   },
   children: {
     type: "array" as const,
-    description: "Nested subsystems/parts/requirements documents inside this one, each following this exact same shape (name, nodeType, description, and optionally isRequirementsDocument/templateFileId/children) recursively. Only meaningful when nodeType is \"Workspace\" — omit or leave empty for a Document.",
+    description: "Nested subsystems/parts/requirements documents inside this one, each following this exact same shape (name, nodeType, description, and optionally isRequirementsDocument/templateFileId/dependsOnNodeNames/children) recursively. Only meaningful when nodeType is \"Workspace\" — omit or leave empty for a Document.",
     items: { type: "object" as const },
   },
 };

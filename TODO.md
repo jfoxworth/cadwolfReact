@@ -77,6 +77,17 @@
       `""`). Worked around for now in the spring-sizing document (`ai-docs`/Claude Artifact
       content, not app code) by stripping operands to plain SI numbers before dividing and not
       reattaching a unit (since the result is genuinely dimensionless) — not a real fix.
+- [ ] **A bare unit suffix is silently dropped after a scientific-notation literal with no
+      space** (`250e6Pa`, `2.5e8Pa`) — the numeric value still comes out correct (magnitude is
+      unaffected), but `units` comes back `""` instead of `"Pa"`, so every equation downstream
+      that uses the value inherits wrong (not just missing) units. The same literal works
+      correctly with a space before the unit (`250e6 Pa`), and a non-scientific literal with no
+      space also works (`250000000Pa`) — only the no-space scientific-notation combination fails.
+      Repro via `runPipeline(ctx("x = 250e6Pa"))` (`solver/pipeline.ts`) vs.
+      `runPipeline(ctx("x = 250MPa"))` — same `real` value, but `units: ""` vs. `units: "Pa"`.
+      Surfaced by an AI-generated document (`generate-document/route.ts`'s content-generation
+      model) writing `allowable_stress = 250e6Pa`; worked around for now by telling the Stage 6
+      prompt to avoid scientific notation in equations, not a real fix to the tokenizer.
 
 ---
 

@@ -621,6 +621,10 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
   // Stage 6 run — threaded through so a later individual retry (e.g. a part the user retries
   // after the run finished) still has the full, current set of available imports to work with.
   const solvedRequirementFileIdsRef = useRef<string[]>([]);
+  // Solved physical parts from the current/last Stage 6 run, keyed by their originating
+  // BuildPlanNode.name (not fileId — a dependency is declared by name in dependsOnNodeNames,
+  // since the dependent part is proposed before any file exists to have an id at all).
+  const solvedPartFileIdsByNameRef = useRef<Map<string, string>>(new Map());
 
   async function handleConfirmBuild(tree: BuildPlan) {
     const out: { item: Item; node: BuildPlanNode }[] = [];
@@ -629,6 +633,7 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
     }
     confirmedNodesRef.current = out;
     solvedRequirementFileIdsRef.current = [];
+    solvedPartFileIdsByNameRef.current = new Map();
     return out.map(({ item, node }) => ({
       fileId: item.id,
       name: item.name,
@@ -644,6 +649,7 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
     doc: { fileId: string; name: string; isRequirementsDocument: boolean },
     node: BuildPlanNode | undefined,
     requirementsContext: string[],
+    dependencyContext: string[] = [],
   ): Promise<{ status: GenerationStatus; error?: string }> {
     let createdAnyBlock = false;
     try {
@@ -658,6 +664,7 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
           templateFileId: node?.templateFileId,
           referenceTreeId,
           requirementsContext: requirementsContext.map(Number),
+          dependencyContext: dependencyContext.map(Number),
         }),
       });
       if (!res.ok) throw new Error("Content generation failed.");
@@ -735,13 +742,41 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
   // requirements document never aborts the run — it's just absent from `requirementsContext`
   // for every part generated after it, which the top-level banner (thrown here, surfaced by
   // ChatContext as generationError) calls out explicitly rather than failing silently.
+  // Orders parts so a part always generates after every part it `dependsOnNodeNames` — a
+  // depth-first topological sort over that name graph. A cycle (or a name that doesn't resolve
+  // to another part in this batch) never deadlocks: visiting a node already mid-visit just skips
+  // re-entering it, dropping the back-edge rather than looping forever.
+  function topoSortParts(parts: GeneratedDocState[], nodeByFileId: Map<string, BuildPlanNode | undefined>): GeneratedDocState[] {
+    const nameToDoc = new Map<string, GeneratedDocState>();
+    for (const d of parts) {
+      const n = nodeByFileId.get(d.fileId)?.name;
+      if (n) nameToDoc.set(n, d);
+    }
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+    const sorted: GeneratedDocState[] = [];
+    function visit(d: GeneratedDocState) {
+      if (visited.has(d.fileId) || visiting.has(d.fileId)) return;
+      visiting.add(d.fileId);
+      for (const depName of nodeByFileId.get(d.fileId)?.dependsOnNodeNames ?? []) {
+        const depDoc = nameToDoc.get(depName);
+        if (depDoc) visit(depDoc);
+      }
+      visiting.delete(d.fileId);
+      visited.add(d.fileId);
+      sorted.push(d);
+    }
+    for (const d of parts) visit(d);
+    return sorted;
+  }
+
   async function handleGenerateDocuments(
     docs: GeneratedDocState[],
     onStatus: (fileId: string, status: GenerationStatus, error?: string) => void,
   ) {
     const nodeByFileId = new Map(confirmedNodesRef.current.map((p) => [p.item.id, p.node]));
     const requirementsDocs = docs.filter((d) => d.isRequirementsDocument);
-    const parts = docs.filter((d) => !d.isRequirementsDocument);
+    const parts = topoSortParts(docs.filter((d) => !d.isRequirementsDocument), nodeByFileId);
     const failedRequirementNames: string[] = [];
 
     for (const doc of requirementsDocs) {
@@ -754,8 +789,13 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
 
     for (const doc of parts) {
       onStatus(doc.fileId, "generating");
-      const result = await generateAndResolveDocument(doc, nodeByFileId.get(doc.fileId), solvedRequirementFileIdsRef.current);
+      const node = nodeByFileId.get(doc.fileId);
+      const dependencyContext = (node?.dependsOnNodeNames ?? [])
+        .map((depName) => solvedPartFileIdsByNameRef.current.get(depName))
+        .filter((id): id is string => id !== undefined);
+      const result = await generateAndResolveDocument(doc, node, solvedRequirementFileIdsRef.current, dependencyContext);
       onStatus(doc.fileId, result.status, result.error);
+      if (result.status === "done" && node?.name) solvedPartFileIdsByNameRef.current.set(node.name, doc.fileId);
     }
 
     if (failedRequirementNames.length > 0) {
@@ -776,9 +816,16 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
       return resolved ? { status: "done" } : { status: "content_written_resolve_failed", error: "Still failed to solve." };
     }
     const node = confirmedNodesRef.current.find((p) => p.item.id === doc.fileId)?.node;
-    const result = await generateAndResolveDocument(doc, node, solvedRequirementFileIdsRef.current);
-    if (result.status === "done" && doc.isRequirementsDocument && !solvedRequirementFileIdsRef.current.includes(doc.fileId)) {
-      solvedRequirementFileIdsRef.current.push(doc.fileId);
+    const dependencyContext = (node?.dependsOnNodeNames ?? [])
+      .map((depName) => solvedPartFileIdsByNameRef.current.get(depName))
+      .filter((id): id is string => id !== undefined);
+    const result = await generateAndResolveDocument(doc, node, solvedRequirementFileIdsRef.current, dependencyContext);
+    if (result.status === "done") {
+      if (doc.isRequirementsDocument && !solvedRequirementFileIdsRef.current.includes(doc.fileId)) {
+        solvedRequirementFileIdsRef.current.push(doc.fileId);
+      } else if (node?.name) {
+        solvedPartFileIdsByNameRef.current.set(node.name, doc.fileId);
+      }
     }
     return result;
   }

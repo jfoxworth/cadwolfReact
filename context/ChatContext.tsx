@@ -87,6 +87,12 @@ export interface BuildPlanNode {
    *  (Stage 6) — set by the model at Stage 4 when read_part_tree already showed a clear analog.
    *  Untrusted until Stage 6 actually resolves it (a bad/stale id just means no reference). */
   templateFileId?: number;
+  /** Names of other Document nodes in this same plan that this part is physically mated to and
+   *  derives a dimension from (a threaded fastener setting a bore, a pin setting a hole size) —
+   *  not a shared target like a load or safety factor, which belongs in a requirements document
+   *  instead. Resolved to a real fileId at Stage 6 once that sibling has actually generated and
+   *  solved; a name that never resolves just means no dependency available. */
+  dependsOnNodeNames?: string[];
   description: string;
   children?: BuildPlanNode[];
 }

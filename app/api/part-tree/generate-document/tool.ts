@@ -46,17 +46,17 @@ export const GENERATE_DOCUMENT_CONTENT_TOOL: Anthropic.Tool = {
       },
       imports: {
         type: "array",
-        description: "Only meaningful for a physical part (never set this for a requirements document). Variables this document's equations should import from the requirements documents listed in the system prompt as available. Omit or leave empty if nothing applies.",
+        description: "Only meaningful for a physical part (never set this for a requirements document). Variables this document's equations should import from the requirements documents OR the physically connected part(s) listed in the system prompt as available. Omit or leave empty if nothing applies.",
         items: {
           type: "object",
           properties: {
             sourceFileId: {
               type: "number",
-              description: "The id of the requirements document to import from — must be one of the ids explicitly listed as available in the system prompt, never a guessed or remembered id.",
+              description: "The id of the requirements document or connected part to import from — must be one of the ids explicitly listed as available in the system prompt, never a guessed or remembered id.",
             },
             sourceVariableName: {
               type: "string",
-              description: "The exact variable name as listed for that requirements document — must match one actually listed, never invented.",
+              description: "The exact variable name as listed for that source — must match one actually listed, never invented.",
             },
             localAlias: {
               type: "string",

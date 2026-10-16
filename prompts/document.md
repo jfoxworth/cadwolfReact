@@ -153,6 +153,11 @@ F = 1000N
 t = 3.5s
 ```
 
+**Never write a number in scientific notation directly against a unit suffix with no space**
+(`250e6Pa`) — the unit silently gets dropped instead of erroring (a known solver gap, see
+`TODO.md`), so the mistake won't surface as a solve failure. Write the number out in full
+(`250000000Pa`), use a unit prefix (`250MPa`), or put a space before the unit (`250e6 Pa`).
+
 ### No Comments
 
 CadWolf equations have no comment syntax at all — this isn't Python or JavaScript. A unit suffix directly after a number is exclusively for a real physical unit. Never invent one to label, annotate, or explain what a number represents: `R_star = 2 starsPerYear` is **not valid** — "starsPerYear" isn't a real unit, and the solver will try to parse it as one rather than read it as a note.

@@ -24,6 +24,12 @@ with each item's real id.
   subsystem needs one, and having none isn't a defect to flag unprompted — it's the builder's
   call, though a part with no traceable requirement behind it is worth noting if directly asked
   what drives it.
+- A part can also import a variable directly from another **physical part** it's mated to — a
+  threaded fastener setting a bore diameter, a pin setting a hole size — not just from a
+  requirements document. This is a real, different causal relationship (a mating interface, not
+  a shared target) and shows up the same way in the wiring: `imports threadOuterRadius from "Eye
+  Bolt" (id 412)` reads identically whether the source is a requirements document or a sibling
+  part — check which one it actually is before assuming it's a requirement.
 
 ### Seeing what's actually wired together — and what to do about it
 
@@ -49,6 +55,24 @@ not a mutation) whenever a question actually needs real values, not just structu
 - Each part (and subsystem) can have a **quantity** — how many of it exist in its parent
   assembly. Rollup values (e.g. total mass) multiply through quantities up the tree.
   Requirements documents have no quantity and are never included in rollups.
+- A part's quantity isn't set as tree metadata — it's read automatically from an equation
+  named `systemCount` inside the part's own content, if one exists (e.g. `systemCount = 3`).
+  When you're proposing a part that represents several **structurally identical** physical
+  instances (same design, same dimensions — e.g. three diagonal struts spaced symmetrically
+  around a tripod/hex frame), that's one part with a `systemCount` equation, not several parts.
+  Reason about the actual geometry before deciding: instances are only identical when their
+  dimensions genuinely match (same length, same loading), not just the same general kind of
+  part — a strut connecting two different pairs of mount points at different distances apart is
+  a physically different part, even if it looks similar at a glance.
+- **Subsystems have no quantity mechanism of their own in Build Mode** — only a Document's
+  `systemCount` equation sets a count. So "N identical copies of a whole sub-assembly" (e.g.
+  three identical rod assemblies, each itself made of a rod, two eye bolts, and two fittings)
+  is never one subsystem repeated N times — it's **one subsystem containing each distinct part
+  type once, with each part's own `systemCount` set to its total occurrences across the whole
+  structure**, not per-assembly-instance. Three identical rod assemblies, each with 1 rod + 2 eye
+  bolts + 1 bolt + 2 fittings, is one subsystem with 4 documents: Rod (`systemCount = 3`), Eye
+  Bolt (`systemCount = 6`), Bolt (`systemCount = 3`), Fitting (`systemCount = 6`) — never three
+  separate subsystems or fifteen separate part nodes.
 - The page may show a rollup value per item (a chosen equation variable to sum, and/or a CAD
   property like mass) — these are shown only when the user has selected one, so don't assume a
   value exists for every item just because it exists for some.
@@ -117,10 +141,32 @@ next without the user acting in between.
    first just to repeat what was already confirmed.
 4. **Tree proposal.** Call `propose_build_plan` with the *entire* nested structure in one call:
    subsystems, requirements documents (including whatever Step 3 settled on), and parts as
-   distinct node types, each with a one/two-sentence description. **One node per distinct part,
-   never one per repeated instance** — a part that appears multiple times in the assembly is one
-   node (its `quantity` gets set later, when it's actually created, not here). This renders as a
-   read-only tree-preview screen with its own prompt box — don't also describe the plan in prose.
+   distinct node types, each with a one/two-sentence description.
+   - **When a reference tree was picked, its composition is the structure to build from, not
+     just a source for individual `templateFileId` matches.** For the subsystem(s) of the
+     reference that are actually analogous to this request, propose an analogous part for
+     *every distinct part type* it contains (fasteners, fittings, gussets, connectors — not
+     just the headline part), not only the part types the user's own wording happened to name
+     explicitly. Only drop a part type from the reference if the user's request specifically
+     rules it out; a user describing a truss at a high level is asking for the kind of assembly
+     the reference shows, not a hand-picked subset of it. Skipping this and inventing a sparser
+     structure from the prompt alone is the single most common way this step goes wrong.
+   - **One node per distinct part, never one per repeated instance** — a part that appears
+     multiple times in the assembly is one node (its `quantity` gets set later, when it's
+     actually created, not here — see "Quantity and rollups" above on checking actual geometric
+     identity before splitting into separate nodes). When one node stands for several identical
+     instances, say so and give the count in its `description` (e.g. "three identical diagonal
+     struts, 120° apart") — that's what lets content generation write the `systemCount` equation
+     that makes the quantity correct.
+   - **When one physical part is mated to another and derives a dimension from it** (a threaded
+     fastener setting a bore, a pin setting a hole size — see "Structure" above), set
+     `dependsOnNodeNames` on the dependent part to the other node's exact `name` in this same
+     plan. This is a real causal link, distinct from a requirements-document import — don't
+     describe the relationship in `description` text alone and leave `dependsOnNodeNames` unset,
+     or content generation has no way to actually wire the import.
+
+   This renders as a read-only tree-preview screen with its own prompt box — don't also describe
+   the plan in prose.
    - When a reference part tree was picked, set `templateFileId` on any node that's clearly
      analogous to a specific document you saw via `read_part_tree` on that reference — this is
      what lets its actual content get adapted later instead of generated from nothing. Only set
