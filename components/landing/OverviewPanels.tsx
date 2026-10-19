@@ -1,5 +1,15 @@
 const panels = [
   {
+    title: "AI Assistant — Describe It, Verify It",
+    description:
+      "Ask the assistant to build or modify a calculation. It adds real blocks to your document — equations, sliders, plots — and the unit-aware solver computes every result, so you can inspect and trust the work.",
+    image: "https://s3-us-west-2.amazonaws.com/cadwolf/stock/portfolio/DemoDocument1.png",
+    alt: "AI Assistant",
+    link: "/register",
+    linkText: "Try the Assistant",
+    imageRight: false,
+  },
+  {
     title: "Documents — Analysis and Documentation",
     description:
       "Documents are the backbone of ENGENTIC. They are created and edited through GUIs and can be thought of as a Google Doc that has all the power of a programming language.",
@@ -7,7 +17,7 @@ const panels = [
     alt: "Documents",
     link: "/modules",
     linkText: "More Info on Documents",
-    imageRight: false,
+    imageRight: true,
   },
   {
     title: "Workspaces — Create, Store, and Organize Files",
@@ -17,7 +27,7 @@ const panels = [
     alt: "Workspaces",
     link: "/modules",
     linkText: "More Info on Workspaces",
-    imageRight: true,
+    imageRight: false,
   },
   {
     title: "Part Trees — Build Something",
@@ -27,7 +37,7 @@ const panels = [
     alt: "Part Trees",
     link: "/modules",
     linkText: "More Info on Part Trees",
-    imageRight: false,
+    imageRight: true,
   },
 ];
 

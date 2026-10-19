@@ -826,37 +826,6 @@ export default function ChatPanel() {
     }
   }, [isOpen]);
 
-  // Inspect mode locks the panel to whatever's selected: its top aligns with the selected
-  // block's top (instead of floating below the mode cluster), with a line drawn from the block
-  // to the panel to make the connection visible. Tracked as a DOM rect rather than something
-  // computed from selectedBlock's own fields, since it's the block's actual on-screen position
-  // that matters here — re-measured on scroll/resize so it stays correct as the page moves.
-  // The `true` on the scroll listener is a capture-phase subscription: scroll events don't
-  // bubble, so this is what lets a single window-level listener catch scrolling inside the
-  // document's own inner scroll container, not just the window itself.
-  const [blockAnchor, setBlockAnchor] = useState<{ top: number; right: number } | null>(null);
-  useEffect(() => {
-    if (mode !== "inspect" || !selectedBlock) {
-      setBlockAnchor(null);
-      return;
-    }
-    const update = () => {
-      const el = document.getElementById(selectedBlock.id);
-      setBlockAnchor(el ? { top: el.getBoundingClientRect().top, right: el.getBoundingClientRect().right } : null);
-    };
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [mode, selectedBlock]);
-
-  const panelTop = blockAnchor
-    ? Math.max(16, Math.min(blockAnchor.top, window.innerHeight - 200))
-    : CLUSTER_TOP + CLUSTER_H + 16;
-  const panelLeft = typeof window !== "undefined" ? window.innerWidth - CLUSTER_RIGHT - WINDOW_W : 0;
 
   const handleSend = async () => {
     const trimmed = input.trim();
@@ -902,29 +871,27 @@ export default function ChatPanel() {
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 )}
                 {msg.proposals && msg.proposals.length > 0 && (() => {
-                  // Successfully-applied adds (new blocks) get folded into one summary,
-                  // no individual Undo — the user asked for adds to just be visible, not
-                  // individually actionable in chat (edits keep their own Undo below,
-                  // and a *failed* add still gets its own card since that needs attention).
+                  // Successfully-applied adds (new blocks) get folded into one summary instead
+                  // of a card each (still too noisy for a multi-block turn), but with a single
+                  // "Undo all" reversing the whole batch in one click — reuses the exact same
+                  // undoProposal() each individual edit's Undo button already calls, just once
+                  // per proposal in this group.
                   const isAdd = (p: BlockProposal) => !p.input.targetBlockId;
                   const addedSummary = msg.proposals.filter((p) => isAdd(p) && p.status === "applied");
                   const individual = msg.proposals.filter((p) => !(isAdd(p) && p.status === "applied"));
                   return (
                     <div className="not-prose mt-3 flex flex-col gap-2">
                       {addedSummary.length > 0 && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs">
-                          <p className="mb-1 font-semibold text-emerald-800">
-                            Added {addedSummary.length} block{addedSummary.length === 1 ? "" : "s"}:
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs flex items-center justify-between gap-2">
+                          <p className="font-semibold text-emerald-800">
+                            Added {addedSummary.length} block{addedSummary.length === 1 ? "" : "s"}
                           </p>
-                          <ul className="flex flex-col gap-0.5">
-                            {addedSummary.map((p) => (
-                              <li key={p.id} className="text-gray-700">
-                                <span className="font-medium text-emerald-700">{PROPOSAL_LABELS[p.tool]}</span>
-                                {" — "}
-                                <span className="font-mono break-words">{proposalPreview(p)}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          <button
+                            onClick={() => addedSummary.forEach((p) => undoProposal(i, p.id))}
+                            className="shrink-0 rounded border border-gray-300 px-2 py-0.5 text-gray-600 hover:bg-gray-100 transition-colors"
+                          >
+                            Undo all
+                          </button>
                         </div>
                       )}
                       {individual.map((p) => (
@@ -1179,11 +1146,13 @@ export default function ChatPanel() {
     );
   }
 
-  // ─── Document / Part Tree: mode-switcher cluster + block-aware floating panel ──────────────
-  // blockAnchor's DOM lookup (below) only resolves for Document today (its blocks set
-  // id={block.id}; part-tree rows don't yet) — for part-tree this just falls back to the default
-  // cluster-anchored position instead of locking to the selected row on screen, which is an
-  // acceptable simplification, not a bug.
+  // ─── Document / Part Tree: mode-switcher cluster + docked column panel ─────────────────────
+  // Used to be a floating card that locked onto the selected block's on-screen position in
+  // Inspect mode (a blockAnchor-tracked connecting line, etc.) — replaced with a normal docked
+  // flex-sibling column, same pattern as the Workspace/Dataset branch below, since that reads
+  // better during actual back-and-forth use than a window that moves/covers the page. The
+  // selected block is still shown via the chip further down; it just no longer repositions the
+  // panel to follow it on screen.
   return (
     <>
       {/* Mode-switcher cluster — upper right, mirroring the always-present main nav cluster
@@ -1212,44 +1181,14 @@ export default function ChatPanel() {
         ))}
       </div>
 
-      {/* Connecting line — inspect mode only, from the selected block to the panel's now-
-          locked-in top edge, echoing the block-to-subcluster lines used elsewhere in the app.
-          Drawn at panelTop (the clamped position), not blockAnchor.top directly — once the
-          block scrolls offscreen, the panel stays clamped to the nearest visible edge, and the
-          line needs to end there too, or it'd point off into empty space above/below the
-          viewport instead of at the panel that's actually still on screen. */}
-      {isOpen && blockAnchor && (
-        <div
-          style={{
-            position: "fixed",
-            top: panelTop,
-            left: blockAnchor.right,
-            width: Math.max(0, panelLeft - blockAnchor.right),
-            height: 1,
-            background: MODE_COLORS.inspect.active,
-            zIndex: 48,
-            pointerEvents: "none",
-          }}
-        />
-      )}
-
-      {/* Chat panel — floating card, anchored below the mode cluster by default, or locked to
-          the top of the selected block while one is selected in inspect mode (see blockAnchor
-          above). Bounded height instead of h-screen; the page underneath is no longer reflowed.
-          No header bar — mode is already communicated by the cluster's color, and the
-          border-left below repeats that same signal. */}
+      {/* Chat panel — docked column: a normal flex sibling of <main> (same pattern as the
+          Workspace/Dataset branch above), full height, reflowing the page instead of covering
+          it. No header bar — mode is already communicated by the cluster's color above, and the
+          mode-tinted borders throughout this panel repeat that same signal. */}
       {isOpen && (
         <div
-          className="bg-white shadow-2xl flex flex-col overflow-hidden rounded-xl"
-          style={{
-            position: "fixed",
-            top: panelTop,
-            right: CLUSTER_RIGHT,
-            width: WINDOW_W,
-            maxHeight: "70vh",
-            zIndex: 49,
-            transition: "top 0.2s ease",
-          }}
+          className="relative h-screen shrink-0 border-l border-gray-200 bg-white shadow-2xl flex flex-col overflow-hidden"
+          style={{ width: WINDOW_W }}
         >
           <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
             <button

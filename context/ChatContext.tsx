@@ -212,6 +212,10 @@ interface ChatContextType {
   sendMessage: (content: string, pagePath?: string) => Promise<void>;
   clearMessages: () => void;
   setPageContext: (context: string | null) => void;
+  /** Document pages only — the current page's IMAGE block URLs (already public,
+   *  unauthenticated S3 links, see components/document/blocks/image/index.tsx), sent alongside
+   *  pageContext so the model can actually see the pictures, not just a text label for them. */
+  setPageImages: (urls: string[]) => void;
   /** The numeric id of the file the user is currently on (part-tree pages only, for now) —
    *  sent with every chat request so the server can exclude it from find_similar_part_trees'
    *  own results (otherwise the current tree is its own closest embedding match). */
@@ -288,11 +292,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const pageContextRef = useRef<string | null>(null);
+  const pageImagesRef = useRef<string[]>([]);
   const currentFileIdRef = useRef<number | null>(null);
   const clearSelectionRef = useRef<(() => void) | null>(null);
   const proposalHandlersRef = useRef<DocumentProposalHandlers | null>(null);
   const setPageContext = useCallback((context: string | null) => {
     pageContextRef.current = context;
+  }, []);
+  const setPageImages = useCallback((urls: string[]) => {
+    pageImagesRef.current = urls;
   }, []);
   const setCurrentFileId = useCallback((id: number | null) => {
     currentFileIdRef.current = id;
@@ -464,6 +472,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           messages: nextMessages.map(({ role, content }) => ({ role, content })),
           pagePath,
           pageContext: pageContextRef.current,
+          pageImages: pageImagesRef.current,
           currentFileId: currentFileIdRef.current,
           selectedBlockContext,
           mode,
@@ -561,7 +570,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       // Document only (see onAutoApplyBatch's doc comment) — Workspace/Dataset don't set
       // this, so their proposals stay "pending" for the existing per-card Approve/Reject flow.
-      if (batchProposals.length > 0 && proposalHandlersRef.current?.onAutoApplyBatch) {
+      // Overview is read-only by design — the model shouldn't have mutating tools available in
+      // that mode at all (see getDocumentTools in app/api/chat/tools.ts), but this is a second,
+      // independent check at the actual point of mutation: a batch never auto-applies while the
+      // page is in Overview, regardless of how a proposal ended up here.
+      if (batchProposals.length > 0 && mode === "overview") {
+        const message = "Blocked — Overview mode is read-only and should never have proposed this.";
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === "assistant" && last.proposals) {
+            updated[updated.length - 1] = {
+              ...last,
+              proposals: last.proposals.map((p) =>
+                batchProposals.some((bp) => bp.id === p.id) ? { ...p, status: "failed" as const, error: message } : p,
+              ),
+            };
+          }
+          return updated;
+        });
+      } else if (batchProposals.length > 0 && proposalHandlersRef.current?.onAutoApplyBatch) {
         try {
           const result = await proposalHandlersRef.current.onAutoApplyBatch(batchProposals);
           setMessages((prev) => {
@@ -631,6 +659,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         sendMessage,
         clearMessages,
         setPageContext,
+        setPageImages,
         setCurrentFileId,
         setSelectedBlock,
         clearSelectedBlock,

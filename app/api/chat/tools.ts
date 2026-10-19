@@ -291,6 +291,16 @@ export function getPartTreeTools(mode: string | undefined): Anthropic.Tool[] {
     : readOnly;
 }
 
+// Document pages: Overview is intentionally read-only, same real enforcement as part-tree above
+// (the model isn't given the mutating block tools at all in Overview, not just told not to use
+// them — a system prompt alone is never sufficient). Inspect and Build both keep the full
+// mutating toolset; Inspect's "only the selected item" scoping is enforced via
+// selectedBlockContext/prompt guidance, not a separate tool list — it's about which block the
+// model targets, not whether it can propose one at all.
+export function getDocumentTools(mode: string | undefined): Anthropic.Tool[] {
+  return mode === "overview" ? [SEARCH_TOOL] : [...CHAT_TOOLS, SEARCH_TOOL];
+}
+
 // These three tools follow two different apply models, matching what each field already
 // does in the existing UI: configure_dataset_parsers and edit_dataset_content only ever
 // update DatasetEdit.tsx's own local state (no API call — the page's Save button is still
@@ -558,11 +568,10 @@ export type ProposalToolName =
 // Workspace, Dataset, and now Part Tree pages all have something wired up to act on a tool call
 // (documentWrapper.tsx's, WorkspaceEdit.tsx's, DatasetEdit.tsx's, and PartTreeWrapper.tsx's
 // proposal handlers, respectively). search_documents is additive on top of each page's own
-// tools, not a replacement. Part-tree isn't listed here — its tool set also depends on `mode`,
-// see getPartTreeTools above; app/api/chat/route.ts branches on pageType to call it instead of
-// indexing into this map for that one page type.
+// tools, not a replacement. Document and part-tree aren't listed here — both depend on `mode`
+// (see getDocumentTools/getPartTreeTools above); app/api/chat/route.ts branches on pageType to
+// call the right function instead of indexing into this map for those two page types.
 export const TOOLS_BY_PAGE_TYPE: Record<string, Anthropic.Tool[]> = {
-  document: [...CHAT_TOOLS, SEARCH_TOOL],
   dataset: DATASET_TOOLS,
   workspace: [...WORKSPACE_TOOLS, SEARCH_TOOL],
 };

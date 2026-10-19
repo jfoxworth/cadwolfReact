@@ -1,6 +1,7 @@
 import { Check, X } from "lucide-react";
 
 const rows = [
+  { label: "AI-Built, Solver-Verified Calculations", excel: false, mathcad: false, jupyter: false, cadwolf: true },
   { label: "Mathematics Solver",    excel: true,  mathcad: true,  jupyter: true,  cadwolf: true  },
   { label: "Document Appearance",   excel: false, mathcad: true,  jupyter: true,  cadwolf: true  },
   { label: "Web Based",             excel: false, mathcad: false, jupyter: false, cadwolf: true  },

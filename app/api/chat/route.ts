@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getSessionUser } from "@/utils/getSessionUser";
@@ -6,7 +7,7 @@ import { TYPE_ROUTE } from "@/utils/resolveRoute";
 import {
   TOOLS_BY_PAGE_TYPE, SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME,
   READ_PART_TREE_TOOL_NAME, FIND_SIMILAR_PART_TREES_TOOL_NAME, PROPOSE_BUILD_PLAN_TOOL_NAME,
-  PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME, getPartTreeTools,
+  PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME, getPartTreeTools, getDocumentTools,
 } from "./tools";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { readDocumentForChat } from "@/utils/readDocument";
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, currentFileId, mode } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, currentFileId, mode } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -73,17 +74,38 @@ export async function POST(req: NextRequest) {
   const referentHint =
     `[If the user says "this" or "it" without naming something specific, they mean the document as a whole.]`;
 
-  // Inject page path + referent hint + live page content into the first user message.
+  // Inject page path + referent hint + live page content into the LAST message (the turn the
+  // model is actually about to answer), not the first. pageContext is rebuilt fresh and resent
+  // by the client on every turn (see context/ChatContext.tsx's sendMessage), but it used to
+  // always get spliced onto message index 0 — the oldest turn in the conversation. That meant a
+  // multi-turn conversation kept re-reading the SAME turn-1 snapshot's position (even though its
+  // *content* was live each request), with no signal that it was actually being refreshed — so
+  // past turn 1 the model effectively never noticed blocks it had already added, or whether they
+  // solved, confirmed live in the document. Anchoring it to the newest message every turn means
+  // the model always sees the document's actual current state right before responding.
   const contextPrefix = [
     pagePath ? `[User is on page: ${pagePath}]` : null,
     referentHint,
     pageContext ? `[Current page contents:\n${pageContext}\n]` : null,
   ].filter(Boolean).join("\n");
 
+  // Document pages' IMAGE blocks (context/ChatContext.tsx's pageImagesRef, set from
+  // documentWrapper.tsx) — already public, unauthenticated S3 URLs, so Claude can fetch them
+  // directly via the "url" image source type with no fetching/base64 work on our end.
+  const imageBlocks: Anthropic.ImageBlockParam[] = (Array.isArray(pageImages) ? pageImages : [])
+    .filter((url: unknown): url is string => typeof url === "string" && url.length > 0)
+    .map((url: string) => ({ type: "image", source: { type: "url", url } }));
+
+  const lastIndex = messages.length - 1;
   const messagesWithContext = contextPrefix
     ? messages.map((msg: { role: string; content: string }, i: number) =>
-        i === 0 && msg.role === "user"
-          ? { ...msg, content: `${contextPrefix}\n\n${msg.content}` }
+        i === lastIndex && msg.role === "user"
+          ? {
+              ...msg,
+              content: imageBlocks.length > 0
+                ? [{ type: "text", text: `${contextPrefix}\n\n${msg.content}` }, ...imageBlocks] as Anthropic.ContentBlockParam[]
+                : `${contextPrefix}\n\n${msg.content}`,
+            }
           : msg
       )
     : messages;
@@ -123,7 +145,9 @@ export async function POST(req: NextRequest) {
             model: process.env.AI_MODEL ?? "claude-haiku-4-5-20251001",
             max_tokens: 8192,
             system: systemPrompt,
-            tools: pageType === "part-tree" ? getPartTreeTools(mode) : (TOOLS_BY_PAGE_TYPE[pageType] ?? []),
+            tools: pageType === "part-tree" ? getPartTreeTools(mode)
+              : pageType === "document" ? getDocumentTools(mode)
+              : (TOOLS_BY_PAGE_TYPE[pageType] ?? []),
             messages: currentMessages,
           } as Parameters<typeof client.messages.stream>[0]);
           currentStream = stream;

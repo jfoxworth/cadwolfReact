@@ -5,9 +5,9 @@ export default function ProblemSolution() {
         <div className="text-center">
           <h2 className="text-3xl font-semibold text-gray-900 mb-4">The Problems</h2>
           <p className="text-gray-600 text-lg leading-relaxed">
-            Mathematics, Documentation, and CAD get out of sync in STEM projects; small
-            changes can cause full redesigns to all aspects of large structures; project
-            management is difficult
+            General-purpose AI gets engineering math wrong and cannot show its work.
+            Meanwhile mathematics, documentation, and CAD drift out of sync, and small
+            changes force redesigns across large structures
           </p>
         </div>
         <div className="text-center">
@@ -15,9 +15,9 @@ export default function ProblemSolution() {
             ENGENTIC: The Solution
           </h2>
           <p className="text-gray-600 text-lg leading-relaxed">
-            ENGENTIC combines the mathematics and documentation in the same platform and
-            syncs with CAD to automate redesign and synchronize all aspects of STEM
-            projects for simple collaboration and management
+            The ENGENTIC assistant writes the calculation, and a deterministic unit-aware
+            solver does the arithmetic. Everything stays in one platform and syncs with
+            CAD, so changes flow through the whole project and every number is verifiable
           </p>
         </div>
       </div>

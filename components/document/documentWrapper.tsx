@@ -866,7 +866,7 @@ export default function DocumentWrapper({
   // Debug: expose blocks on window for console inspection
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
 
-  const { setPageContext, setSelectedBlock, registerProposalHandlers, setCanBuild, mode } = useChat();
+  const { setPageContext, setPageImages, setSelectedBlock, registerProposalHandlers, setCanBuild, mode } = useChat();
 
   // Build mode adds new blocks — that requires both edit permission and having this document
   // actually checked out (effectiveCanEdit already is exactly that combination), same as every
@@ -1257,10 +1257,18 @@ export default function DocumentWrapper({
         ? buildSelectedBlockWindowContext(visibleBlocks, virtualBlocks, selectedBlockId)
         : buildDocumentPageContext(visibleBlocks, virtualBlocks);
     setPageContext(result.text);
+    // IMAGE blocks' src is always a public, unauthenticated S3 URL (see
+    // components/document/blocks/image/index.tsx) — sent alongside the text dump so the model
+    // can actually see the pictures via Claude's image content blocks, not just a text label.
+    const imageUrls = visibleBlocks
+      .filter((b) => b.type === "IMAGE")
+      .map((b) => (b.definition as { src?: string }).src)
+      .filter((src): src is string => !!src);
+    setPageImages(imageUrls);
     // Clear on unmount so navigating to a page that doesn't set its own context
     // (or that sets it after a render delay) doesn't inherit this document's stale dump.
-    return () => setPageContext(null);
-  }, [virtualBlocks, solverResults, mode, selectedBlockId, setPageContext]);
+    return () => { setPageContext(null); setPageImages([]); };
+  }, [virtualBlocks, solverResults, mode, selectedBlockId, setPageContext, setPageImages]);
 
   // Single shared TipTap editor for all rich-text blocks
   const editor = useEditor({
@@ -1455,6 +1463,13 @@ export default function DocumentWrapper({
       const deletedBlocks = virtualBlocks.filter((b) => b._status === "deleted");
       let sequence = virtualBlocks.filter((b) => b._status !== "deleted").sort((a, b) => a.order - b.order);
       let lastBatchAddedId: string | null = null;
+      // Anchor+position of the proposal that produced lastBatchAddedId — lets a run of adds
+      // sharing the same anchor (the documented pattern for a multi-block add, since a brand-new
+      // block has no real id yet to anchor the next one to) chain onto each other in proposal
+      // order instead of each one re-resolving the original anchor's current index and landing
+      // immediately after/before it, which reverses the run.
+      let lastAnchorId: string | undefined;
+      let lastPosition: "before" | "after" | undefined;
 
       for (const proposal of proposals) {
         try {
@@ -1527,7 +1542,12 @@ export default function DocumentWrapper({
             const resolvedAnchorId = rawAnchorId && sequence.some((b) => b.id === rawAnchorId) ? rawAnchorId : undefined;
 
             let insertIdx: number;
-            if (resolvedAnchorId) {
+            if (resolvedAnchorId && resolvedAnchorId === lastAnchorId && position === lastPosition && lastBatchAddedId) {
+              // Same anchor+position as the previous add in this batch — chain onto it instead
+              // of re-resolving the original anchor's current index, or every add in this run
+              // would land immediately after/before the anchor and end up in reverse order.
+              insertIdx = sequence.findIndex((b) => b.id === lastBatchAddedId) + 1;
+            } else if (resolvedAnchorId) {
               const anchorIdx = sequence.findIndex((b) => b.id === resolvedAnchorId);
               insertIdx = position === "before" ? anchorIdx : anchorIdx + 1;
             } else if (lastBatchAddedId) {
@@ -1543,6 +1563,8 @@ export default function DocumentWrapper({
 
             sequence = [...sequence.slice(0, insertIdx), newBlock, ...sequence.slice(insertIdx)];
             lastBatchAddedId = newBlock.id;
+            lastAnchorId = resolvedAnchorId;
+            lastPosition = position;
             appliedEntries[proposal.id] = { proposal, blockId: newBlock.id };
             appliedIds.push(proposal.id);
           }

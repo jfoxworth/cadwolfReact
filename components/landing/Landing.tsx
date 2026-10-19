@@ -1,7 +1,8 @@
 import Nav from "./Nav";
 import Hero from "./Hero";
-import IntroVideos from "./IntroVideos";
+import AiShowcase from "./AiShowcase";
 import ProblemSolution from "./ProblemSolution";
+import AiPrompts from "./AiPrompts";
 import OverviewPanels from "./OverviewPanels";
 import CadBreak from "./CadBreak";
 import ReplaceThem from "./ReplaceThem";
@@ -17,8 +18,9 @@ export default function Landing() {
     <div className="flex flex-col min-h-screen font-sans bg-white">
       <Nav />
       <Hero />
-      <IntroVideos />
+      <AiShowcase />
       <ProblemSolution />
+      <AiPrompts />
       <OverviewPanels />
       <CadBreak />
       <ReplaceThem />
