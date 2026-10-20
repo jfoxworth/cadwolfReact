@@ -4,6 +4,8 @@ import { join } from "path";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
 import { anthropicClient } from "@/utils/anthropicClient";
+import { db } from "@/utils/db";
+import { DEFAULT_MODEL_KEY, isAiModelKey, resolveModelId } from "@/utils/aiModels";
 import { getDocumentFullBlocks } from "@/utils/getDocumentFullBlocks";
 import { findSimilarPartTreeDocuments } from "@/utils/findSimilarPartTreeDocuments";
 import { getSolvedDocumentVariables, type SolvedVariable } from "@/utils/getSolvedDocumentVariables";
@@ -155,8 +157,12 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = readFileSync(join(process.cwd(), "prompts", "generate-document-content.md"), "utf-8");
 
+  // Follows the chat model picker — it saves to User.aiModel as soon as it changes.
+  const saved = await db.user.findUnique({ where: { id: userId }, select: { aiModel: true } });
+  const modelKey = isAiModelKey(saved?.aiModel) ? saved.aiModel : DEFAULT_MODEL_KEY;
+
   const message = await anthropicClient.messages.create({
-    model: process.env.AI_MODEL ?? "claude-haiku-4-5-20251001",
+    model: resolveModelId(modelKey),
     max_tokens: 4096,
     system: systemPrompt,
     tools: [GENERATE_DOCUMENT_CONTENT_TOOL],

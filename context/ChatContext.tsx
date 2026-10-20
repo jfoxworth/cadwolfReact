@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
+import { DEFAULT_MODEL_KEY, isAiModelKey, type AiModelKey } from "@/utils/aiModels";
 
 // Tool names executed server-side (app/api/chat/route.ts) and already resolved before the
 // model's final answer — there's nothing for the user to approve, so these never become a
@@ -200,6 +201,9 @@ interface ChatContextType {
   selectedBlock: SelectedBlockInfo | null;
   mode: ChatMode;
   setMode: (mode: ChatMode) => void;
+  /** Selected AI model, persisted on the user (User.aiModel) so it carries across every page type. */
+  modelKey: AiModelKey;
+  setModelKey: (key: AiModelKey) => void;
   /** Whether Build mode is currently allowed on this page — true by default (Workspace/Dataset
    *  have no checkout concept and never call setCanBuild); Document sets this to
    *  canEdit && checked-out-by-me, since adding blocks requires both. */
@@ -280,6 +284,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedBlock, setSelectedBlockState] = useState<SelectedBlockInfo | null>(null);
   const [mode, setMode] = useState<ChatMode>("overview");
+  const [modelKey, setModelKeyState] = useState<AiModelKey>(DEFAULT_MODEL_KEY);
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => { if (p && isAiModelKey(p.aiModel)) setModelKeyState(p.aiModel); })
+      .catch(() => {});
+  }, []);
+
+  const setModelKey = useCallback((key: AiModelKey) => {
+    setModelKeyState(key);
+    fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiModel: key }),
+    }).catch(() => {});
+  }, []);
   const [canBuild, setCanBuild] = useState(true);
   const [buildStage, setBuildStage] = useState<BuildStage>(1);
   const [buildCandidates, setBuildCandidates] = useState<BuildCandidate[]>([]);
@@ -476,6 +497,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           currentFileId: currentFileIdRef.current,
           selectedBlockContext,
           mode,
+          modelKey,
         }),
       });
 
@@ -641,7 +663,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, selectedBlock, mode]);
+  }, [messages, selectedBlock, mode, modelKey]);
 
   return (
     <ChatContext.Provider
@@ -652,6 +674,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         selectedBlock,
         mode,
         setMode,
+        modelKey,
+        setModelKey,
         canBuild,
         setCanBuild,
         toggleChat,

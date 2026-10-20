@@ -4,6 +4,7 @@ import { getIronSession } from "iron-session";
 import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
+import { isAiModelKey } from "@/utils/aiModels";
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -27,6 +28,7 @@ export async function GET() {
       location: true,
       website: true,
       phone: true,
+      aiModel: true,
     },
   });
 
@@ -48,6 +50,7 @@ export async function PUT(req: NextRequest) {
     location?: string;
     website?: string;
     phone?: string;
+    aiModel?: string;
     currentPassword?: string;
     newPassword?: string;
   };
@@ -62,6 +65,10 @@ export async function PUT(req: NextRequest) {
     if (!user.password) return NextResponse.json({ error: "No password set" }, { status: 400 });
     const valid = await bcrypt.compare(body.currentPassword, user.password);
     if (!valid) return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+  }
+
+  if (body.aiModel !== undefined && !isAiModelKey(body.aiModel)) {
+    return NextResponse.json({ error: "Invalid AI model" }, { status: 400 });
   }
 
   if (body.username) {
@@ -83,6 +90,7 @@ export async function PUT(req: NextRequest) {
   if (body.location !== undefined)     updateData.location = body.location || null;
   if (body.website !== undefined)      updateData.website = body.website || null;
   if (body.phone !== undefined)        updateData.phone = body.phone || null;
+  if (body.aiModel !== undefined)      updateData.aiModel = body.aiModel;
   if (body.newPassword)                updateData.password = await bcrypt.hash(body.newPassword, 10);
 
   try {
@@ -92,7 +100,7 @@ export async function PUT(req: NextRequest) {
       select: {
         id: true, name: true, email: true, username: true,
         photoUrl: true, title: true, bio: true,
-        organization: true, location: true, website: true, phone: true,
+        organization: true, location: true, website: true, phone: true, aiModel: true,
       },
     });
 

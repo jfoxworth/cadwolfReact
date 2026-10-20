@@ -14,6 +14,8 @@ import { readDocumentForChat } from "@/utils/readDocument";
 import { readPartTreeForChat } from "@/utils/readPartTree";
 import { findSimilarPartTreesForChat } from "@/utils/findSimilarPartTrees";
 import { anthropicClient as client } from "@/utils/anthropicClient";
+import { db } from "@/utils/db";
+import { DEFAULT_MODEL_KEY, isAiModelKey, resolveModelId } from "@/utils/aiModels";
 
 // Tool names executed server-side within the same turn (their result is fed back as a
 // tool_result before the model finishes) rather than forwarded to the client as a proposal to
@@ -60,10 +62,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, currentFileId, mode } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, currentFileId, mode, modelKey } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // The client sends only a model *key*, validated against the allowlist — never a raw model id.
+  // Falls back to the user's saved preference if the key is missing or unrecognized.
+  let aiModelKey = isAiModelKey(modelKey) ? modelKey : null;
+  if (!aiModelKey) {
+    const saved = await db.user.findUnique({ where: { id: userId }, select: { aiModel: true } });
+    aiModelKey = isAiModelKey(saved?.aiModel) ? saved.aiModel : DEFAULT_MODEL_KEY;
   }
 
   // Tells the model what "this"/"it" refers to when the user doesn't spell it out. Block
@@ -142,7 +152,7 @@ export async function POST(req: NextRequest) {
       try {
         for (let attempt = 0; ; attempt++) {
           const stream = client.messages.stream({
-            model: process.env.AI_MODEL ?? "claude-haiku-4-5-20251001",
+            model: resolveModelId(aiModelKey),
             max_tokens: 8192,
             system: systemPrompt,
             tools: pageType === "part-tree" ? getPartTreeTools(mode)
