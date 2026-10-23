@@ -4,6 +4,7 @@ import { componentToBlock } from "@/utils/transformers";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
 import { embedComponent } from "@/utils/embedComponent";
+import { deriveIsRequirement } from "@/utils/requirementFlag";
 
 // POST /api/component — add a block to a document
 export async function POST(req: NextRequest) {
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
       order,
       itemid: itemid ?? crypto.randomUUID(),
       name: name ?? null,
+      isRequirement: deriveIsRequirement(componentTypeId, content),
       inEdit: 1,
     },
   });

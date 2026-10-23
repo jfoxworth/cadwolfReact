@@ -56,7 +56,7 @@ export async function POST(
   const components = await db.component.findMany({
     where: { fileId, deletedAt: null },
     orderBy: { order: "asc" },
-    select: { componentTypeId: true, content: true, order: true, name: true, inEdit: true },
+    select: { componentTypeId: true, content: true, order: true, name: true, inEdit: true, isRequirement: true },
   });
 
   if (components.length > 0) {
@@ -68,6 +68,7 @@ export async function POST(
         order:           c.order,
         name:            c.name,
         inEdit:          c.inEdit,
+        isRequirement:   c.isRequirement,
         itemid:          crypto.randomUUID(),
       })),
     });

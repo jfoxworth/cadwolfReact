@@ -55,6 +55,7 @@ Workspace
 - **Case-sensitive**: `Force` ≠ `force`.
 - Must start with a letter; underscores and digits allowed after the first character (e.g. `F_bolt_1`).
 - Do not shadow built-in names (`sin`, `pi`, etc.).
+- **Never name a variable after a unit, in any letter case.** A name like `M`, `m`, `N`, `s`, `S`, `g`, `K`, `ft`, `lb`, `Pa`, or `hr` collides with the unit of the same spelling, and the solver can substitute the variable's value where a unit was meant (e.g. with `M = 5kg` defined, `tau = 15N*m` silently becomes 75 kg²·m/s² instead of 15 N·m). Use a descriptive name with a suffix or subscript instead: `M_disk`, `m_total`, `F_bolt`, `t_hr`.
 
 ---
 

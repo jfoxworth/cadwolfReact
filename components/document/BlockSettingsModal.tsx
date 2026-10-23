@@ -148,6 +148,21 @@ export default function BlockSettingsModal({
           </section>
         )}
 
+        {/* ── Requirement flag (text / equation / symbolic equation only) ── */}
+        {(block.type === "TEXT" || block.type === "EQUATION" || block.type === "SYMBOLIC_EQUATION") && (
+          <section>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={block.definition.isRequirement === true}
+                onChange={(e) => onDefinitionChange(block.id, { ...block.definition, isRequirement: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mark as requirement</span>
+            </label>
+          </section>
+        )}
+
         {/* ── Width ── */}
         <section>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Width</p>

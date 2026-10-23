@@ -456,8 +456,12 @@ function renderBlock({
         colSpan,
         "relative group/block",
         aiApplied ? "outline outline-2 outline-dashed outline-emerald-400 outline-offset-4 rounded-lg bg-emerald-50/40" : "",
+        block.definition.isRequirement === true ? "border-l-4 border-indigo-500 pl-3 bg-indigo-50/40 rounded-r" : "",
       ].filter(Boolean).join(" ")}
     >
+      {block.definition.isRequirement === true && (
+        <span className="absolute -top-2 left-3 z-10 rounded bg-indigo-600 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-white select-none">Requirement</span>
+      )}
       {inner}
       {canEdit && block.type !== "LINE_BREAK" && (
         <div className="absolute top-1 right-1 z-10">

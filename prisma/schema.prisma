@@ -64,12 +64,15 @@ model Component {
   order           Int       @default(999999)
   inEdit          Int       @default(1)
   version         Int       @default(1)
+  // Mirrors content.isRequirement for TEXT/EQUATION/SYMBOLIC_EQUATION blocks (utils/requirementFlag.ts)
+  isRequirement   Boolean   @default(false) @map("is_requirement")
   deletedAt       DateTime? @map("deleted_at")
   createdAt       DateTime? @map("created_at")
   updatedAt       DateTime? @map("updated_at")
   file            File      @relation(fields: [fileId], references: [id])
   blockEmbeddings BlockEmbedding[]
 
+  @@index([fileId, isRequirement])
   @@map("components")
 }
 

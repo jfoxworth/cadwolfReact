@@ -4,6 +4,7 @@ import { componentToBlock } from "@/utils/transformers";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { checkPermission } from "@/utils/checkPermission";
 import { embedComponent, deleteComponentEmbeddings } from "@/utils/embedComponent";
+import { deriveIsRequirement } from "@/utils/requirementFlag";
 
 // PUT /api/component/[id] — save block content/definition
 export async function PUT(
@@ -14,7 +15,7 @@ export async function PUT(
   const { userId } = await getSessionUser();
   const numId = Number(id);
 
-  const existing = await db.component.findUnique({ where: { id: numId }, select: { fileId: true } });
+  const existing = await db.component.findUnique({ where: { id: numId }, select: { fileId: true, componentTypeId: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const canEdit = await checkPermission(existing.fileId, userId, "edit");
@@ -26,7 +27,7 @@ export async function PUT(
   const component = await db.component.update({
     where: { id: numId },
     data: {
-      ...(content !== undefined && { content }),
+      ...(content !== undefined && { content, isRequirement: deriveIsRequirement(existing.componentTypeId, content) }),
       ...(name !== undefined && { name }),
       ...(order !== undefined && { order }),
     },

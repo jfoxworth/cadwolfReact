@@ -1,6 +1,7 @@
 import Nav from "./Nav";
 import Hero from "./Hero";
 import AiShowcase from "./AiShowcase";
+import TextToSpaceship from "./TextToSpaceship";
 import ProblemSolution from "./ProblemSolution";
 import AiPrompts from "./AiPrompts";
 import OverviewPanels from "./OverviewPanels";
@@ -19,6 +20,7 @@ export default function Landing() {
       <Nav />
       <Hero />
       <AiShowcase />
+      <TextToSpaceship />
       <ProblemSolution />
       <AiPrompts />
       <OverviewPanels />

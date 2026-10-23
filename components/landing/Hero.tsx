@@ -23,6 +23,11 @@ export default function Hero() {
           ENGENTIC integrates AI to coordinate mathematics, documentation, CAD, 
           and to automate the design of large structures using AI
         </p>
+        <p className="text-sm text-gray-300 mb-10 max-w-xl mx-auto -mt-6">
+          Text-to-Spaceship is a vision NASA Goddard has described: plain-language requirements in,
+          verified designs out. ENGENTIC is building the engineering platform for it.{" "}
+          <a href="#text-to-spaceship" className="underline hover:text-white">Learn more</a>
+        </p>
         <a
           href="/register"
           className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-10 py-4 rounded-full text-lg transition-colors"
