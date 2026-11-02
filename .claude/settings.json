@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npx vitest:*)",
-      "Bash(npx tsx -e ':*)"
+      "Bash(npx tsx -e ':*)",
+      "Bash(python3 -)",
+      "Bash(pnpm -s tsc --noEmit)",
+      "Bash(pnpm -s eslint components/side-menu/SideMenuNew.tsx)",
+      "Bash(git stash *)"
     ]
   }
 }

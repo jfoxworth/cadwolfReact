@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -296,33 +296,19 @@ export default function SideMenuNew({ user }: SideMenuNewProps) {
 
   // ── Location breadcrumb ───────────────────────────────────────────────────
   const pathname = usePathname();
-  const [locationOpen, setLocationOpen] = useState(false);
   const [breadcrumb, setBreadcrumb] = useState<Array<{ name: string; href: string }>>([]);
-  const locationRef = useRef<HTMLDivElement>(null);
 
   // Extract slug from pathname (last non-empty segment)
   const slug = pathname.split("/").filter(Boolean).pop() ?? null;
 
   useEffect(() => {
-    if (!locationOpen || !slug) return;
+    if (!slug) return;
     setBreadcrumb([]);
     fetch(`/api/breadcrumb?slug=${encodeURIComponent(slug)}`)
       .then((r) => r.json())
       .then((data: Array<{ name: string; href: string }>) => setBreadcrumb(data))
       .catch(() => {});
-  }, [locationOpen, slug]);
-
-  // Close on outside click
-  useEffect(() => {
-    if (!locationOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
-        setLocationOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [locationOpen]);
+  }, [slug]);
 
   // Close sub-cluster whenever the add config changes (page navigation)
   useEffect(() => {
@@ -596,19 +582,13 @@ export default function SideMenuNew({ user }: SideMenuNewProps) {
       {/* ── location pin — below logo ── */}
       {slug && (
         <div
-          ref={locationRef}
           style={{ position: "fixed", top: 122, left: 40, zIndex: 50 }}
         >
-          <button
-            onClick={() => setLocationOpen((v) => !v)}
-            title="Show location"
+          <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
               padding: "2px 0",
               color: "#9ca3af",
             }}
@@ -617,47 +597,44 @@ export default function SideMenuNew({ user }: SideMenuNewProps) {
             <span style={{ fontSize: 11, letterSpacing: "0.05em", textTransform: "uppercase" }}>
               Location
             </span>
-          </button>
+          </div>
 
-          {locationOpen && (
-            <div
-              style={{
-                marginTop: 6,
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              {breadcrumb.length === 0 ? (
-                <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading…</span>
-              ) : (
-                breadcrumb.map((item, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    {idx > 0 && (
-                      <span style={{ color: "#d1d5db", fontSize: 11 }}>›</span>
-                    )}
-                    <Link
-                      href={item.href}
-                      onClick={() => setLocationOpen(false)}
-                      style={{
-                        fontSize: 12,
-                        color: idx === breadcrumb.length - 1 ? "#111827" : "#6b7280",
-                        fontWeight: idx === breadcrumb.length - 1 ? 600 : 400,
-                        textDecoration: "none",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        maxWidth: 200,
-                        display: "block",
-                      }}
-                    >
-                      {item.name}
-                    </Link>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+          <div
+            style={{
+              marginTop: 6,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            {breadcrumb.length === 0 ? (
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading…</span>
+            ) : (
+              breadcrumb.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {idx > 0 && (
+                    <span style={{ color: "#d1d5db", fontSize: 11 }}>›</span>
+                  )}
+                  <Link
+                    href={item.href}
+                    style={{
+                      fontSize: 12,
+                      color: idx === breadcrumb.length - 1 ? "#111827" : "#6b7280",
+                      fontWeight: idx === breadcrumb.length - 1 ? 600 : 400,
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: 200,
+                      display: "block",
+                    }}
+                  >
+                    {item.name}
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
