@@ -26,7 +26,7 @@ pnpm vitest run solver/__tests__/basic/abs.test.ts
 pnpm vitest run -t "test name substring"
 ```
 
-Tests only cover `solver/__tests__/**/*.test.ts` (see `vitest.config.mts`) — there is no test suite for the Next.js app/API layer. When adding or changing a function in `solver/functions/`, update `solver/__tests__/TEST_CATALOG.md` to match (its own header says to keep it in sync).
+Tests only cover `solver/__tests__/**/*.test.ts` (see `vitest.config.mts`) — there is no test suite for the Next.js app/API layer. When adding or changing a function in `solver/functions/`, update `solver/__tests__/TEST_CATALOG.md` to match (its own header says to keep it in sync). Likewise, when changing the part tree AI build flow (the step table, a build prompt in `prompts/`, the build tools in `app/api/chat/tools.ts`, the requirement flag, or the build data models), update `PART_TREE_BUILD_PROCESS.md` in the same change.
 
 ## Architecture
 
