@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bot, X, Send, Trash2, MessageCircle, Eye, Hammer, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { AI_MODELS, type AiModelKey } from "@/utils/aiModels";
+import { AI_MODELS, type AiModelKey, AI_EFFORTS, type AiEffortKey } from "@/utils/aiModels";
 import {
   useChat, type BlockProposal, type ChatMode, type BuildStage, type BuildCandidate,
   type RequirementItem, type BuildPlanNode, type GeneratedDocState, type GenerationStatus,
@@ -796,19 +796,45 @@ function GenerationProgressPanel({
   );
 }
 
-/** Model selector shown directly above the message input. */
-function ModelPicker({ modelKey, onChange, disabled }: { modelKey: AiModelKey; onChange: (k: AiModelKey) => void; disabled: boolean }) {
+/** Model and effort selectors shown directly above the message input. */
+function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, disabled }: {
+  modelKey: AiModelKey;
+  onChange: (k: AiModelKey) => void;
+  effortKey: AiEffortKey;
+  onEffortChange: (k: AiEffortKey) => void;
+  lastUsage: { input: number; output: number } | null;
+  disabled: boolean;
+}) {
+  const selectClass = "rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 disabled:opacity-50";
   return (
     <div className="flex items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0">
+      {lastUsage && (
+        <span
+          className="mr-auto min-w-0 truncate text-xs text-gray-400"
+          title="Tokens used by the last request, summed over all its API calls"
+        >
+          Last: {lastUsage.input.toLocaleString()} in · {lastUsage.output.toLocaleString()} out
+        </span>
+      )}
       <label htmlFor="ai-model-picker">Model</label>
       <select
         id="ai-model-picker"
         value={modelKey}
         onChange={(e) => onChange(e.target.value as AiModelKey)}
         disabled={disabled}
-        className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 disabled:opacity-50"
+        className={selectClass}
       >
         {AI_MODELS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+      </select>
+      <label htmlFor="ai-effort-picker">Effort</label>
+      <select
+        id="ai-effort-picker"
+        value={effortKey}
+        onChange={(e) => onEffortChange(e.target.value as AiEffortKey)}
+        disabled={disabled}
+        className={selectClass}
+      >
+        {AI_EFFORTS.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
       </select>
     </div>
   );
@@ -816,7 +842,7 @@ function ModelPicker({ modelKey, onChange, disabled }: { modelKey: AiModelKey; o
 
 export default function ChatPanel() {
   const {
-    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey,
+    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage,
     toggleChat, openChat, setMode, sendMessage, clearMessages, clearSelectedBlock,
     approveProposal, rejectProposal, undoProposal,
     buildStage, setBuildStage, buildCandidates, setReferenceTreeId, proposedRequirements, proposedBuildPlan,
@@ -1138,7 +1164,7 @@ export default function ChatPanel() {
               </div>
             ) : null}
 
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} disabled={isLoading} />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} disabled={isLoading} />
             {/* Input — larger compose area */}
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">
               <textarea
@@ -1313,7 +1339,7 @@ export default function ChatPanel() {
               things and that's exactly what's blocked; the notice above already explains why. */}
           {!(mode === "build" && !canBuild) && (
             <>
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} disabled={isLoading} />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} disabled={isLoading} />
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">
               <textarea
                 ref={textareaRef}

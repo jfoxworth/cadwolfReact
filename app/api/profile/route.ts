@@ -4,7 +4,7 @@ import { getIronSession } from "iron-session";
 import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
-import { isAiModelKey } from "@/utils/aiModels";
+import { isAiModelKey, isAiEffortKey } from "@/utils/aiModels";
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -29,6 +29,7 @@ export async function GET() {
       website: true,
       phone: true,
       aiModel: true,
+      aiEffort: true,
     },
   });
 
@@ -51,6 +52,7 @@ export async function PUT(req: NextRequest) {
     website?: string;
     phone?: string;
     aiModel?: string;
+    aiEffort?: string;
     currentPassword?: string;
     newPassword?: string;
   };
@@ -69,6 +71,10 @@ export async function PUT(req: NextRequest) {
 
   if (body.aiModel !== undefined && !isAiModelKey(body.aiModel)) {
     return NextResponse.json({ error: "Invalid AI model" }, { status: 400 });
+  }
+
+  if (body.aiEffort !== undefined && !isAiEffortKey(body.aiEffort)) {
+    return NextResponse.json({ error: "Invalid AI effort" }, { status: 400 });
   }
 
   if (body.username) {
@@ -91,6 +97,7 @@ export async function PUT(req: NextRequest) {
   if (body.website !== undefined)      updateData.website = body.website || null;
   if (body.phone !== undefined)        updateData.phone = body.phone || null;
   if (body.aiModel !== undefined)      updateData.aiModel = body.aiModel;
+  if (body.aiEffort !== undefined)     updateData.aiEffort = body.aiEffort;
   if (body.newPassword)                updateData.password = await bcrypt.hash(body.newPassword, 10);
 
   try {
@@ -100,7 +107,7 @@ export async function PUT(req: NextRequest) {
       select: {
         id: true, name: true, email: true, username: true,
         photoUrl: true, title: true, bio: true,
-        organization: true, location: true, website: true, phone: true, aiModel: true,
+        organization: true, location: true, website: true, phone: true, aiModel: true, aiEffort: true,
       },
     });
 

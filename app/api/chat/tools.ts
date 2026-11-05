@@ -29,7 +29,7 @@ export const CHAT_TOOLS: Anthropic.Tool[] = [
   {
     name: "equation_block",
     description:
-      "Propose adding a new equation block, or editing an existing one, in the current document. An equation block defines or computes a variable using CadWolf's equation syntax: \"variableName = expression\", with units attached as a bare suffix directly after a number where applicable (e.g. \"F = 500N\") — never in brackets, and never on a derived/computed value (its unit already follows automatically from its inputs). Does not save automatically — the user must approve the proposal.",
+      "Propose adding a new equation block, or editing an existing one, in the current document. An equation block defines or computes a variable using CadWolf's equation syntax: \"variableName = expression\", with units attached as a bare suffix directly after a number on every given physical quantity, as the problem states it (e.g. \"F = 500N\", \"E_mod = 200GPa\") — never in brackets, and never on a derived/computed value (its unit already follows automatically from its inputs). Does not save automatically — the user must approve the proposal.",
     input_schema: {
       type: "object",
       properties: {

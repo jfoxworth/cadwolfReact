@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
-import { DEFAULT_MODEL_KEY, isAiModelKey, type AiModelKey } from "@/utils/aiModels";
+import { DEFAULT_MODEL_KEY, isAiModelKey, type AiModelKey, DEFAULT_EFFORT_KEY, isAiEffortKey, type AiEffortKey } from "@/utils/aiModels";
 
 // Tool names executed server-side (app/api/chat/route.ts) and already resolved before the
 // model's final answer — there's nothing for the user to approve, so these never become a
@@ -204,6 +204,11 @@ interface ChatContextType {
   /** Selected AI model, persisted on the user (User.aiModel) so it carries across every page type. */
   modelKey: AiModelKey;
   setModelKey: (key: AiModelKey) => void;
+  /** Selected reasoning effort, persisted on the user (User.aiEffort). */
+  effortKey: AiEffortKey;
+  setEffortKey: (key: AiEffortKey) => void;
+  /** Tokens used by the most recent request (summed over all its API calls); null until one completes. */
+  lastUsage: { input: number; output: number } | null;
   /** Whether Build mode is currently allowed on this page — true by default (Workspace/Dataset
    *  have no checkout concept and never call setCanBuild); Document sets this to
    *  canEdit && checked-out-by-me, since adding blocks requires both. */
@@ -285,12 +290,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [selectedBlock, setSelectedBlockState] = useState<SelectedBlockInfo | null>(null);
   const [mode, setMode] = useState<ChatMode>("overview");
   const [modelKey, setModelKeyState] = useState<AiModelKey>(DEFAULT_MODEL_KEY);
+  const [effortKey, setEffortKeyState] = useState<AiEffortKey>(DEFAULT_EFFORT_KEY);
+  const [lastUsage, setLastUsage] = useState<{ input: number; output: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => (r.ok ? r.json() : null))
-      .then((p) => { if (p && isAiModelKey(p.aiModel)) setModelKeyState(p.aiModel); })
+      .then((p) => {
+        if (p && isAiModelKey(p.aiModel)) setModelKeyState(p.aiModel);
+        if (p && isAiEffortKey(p.aiEffort)) setEffortKeyState(p.aiEffort);
+      })
       .catch(() => {});
+  }, []);
+
+  const setEffortKey = useCallback((key: AiEffortKey) => {
+    setEffortKeyState(key);
+    fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiEffort: key }),
+    }).catch(() => {});
   }, []);
 
   const setModelKey = useCallback((key: AiModelKey) => {
@@ -498,6 +517,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           selectedBlockContext,
           mode,
           modelKey,
+          effortKey,
         }),
       });
 
@@ -567,6 +587,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               return updated;
             });
             proposalHandlersRef.current?.onPropose?.(proposal);
+          } else if (event.type === "usage") {
+            setLastUsage({ input: event.input as number, output: event.output as number });
           } else if (event.type === "candidates") {
             setBuildCandidates(event.items as BuildCandidate[]);
             setBuildStage(2);
@@ -663,7 +685,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, selectedBlock, mode, modelKey]);
+  }, [messages, selectedBlock, mode, modelKey, effortKey]);
 
   return (
     <ChatContext.Provider
@@ -676,6 +698,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setMode,
         modelKey,
         setModelKey,
+        effortKey,
+        setEffortKey,
+        lastUsage,
         canBuild,
         setCanBuild,
         toggleChat,

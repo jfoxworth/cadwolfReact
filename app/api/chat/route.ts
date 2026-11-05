@@ -15,7 +15,7 @@ import { readPartTreeForChat } from "@/utils/readPartTree";
 import { findSimilarPartTreesForChat } from "@/utils/findSimilarPartTrees";
 import { anthropicClient as client } from "@/utils/anthropicClient";
 import { db } from "@/utils/db";
-import { DEFAULT_MODEL_KEY, isAiModelKey, resolveModelId } from "@/utils/aiModels";
+import { DEFAULT_MODEL_KEY, isAiModelKey, resolveModelId, DEFAULT_EFFORT_KEY, isAiEffortKey } from "@/utils/aiModels";
 
 // Tool names executed server-side within the same turn (their result is fed back as a
 // tool_result before the model finishes) rather than forwarded to the client as a proposal to
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, currentFileId, mode, modelKey } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, currentFileId, mode, modelKey, effortKey } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -71,9 +71,11 @@ export async function POST(req: NextRequest) {
   // The client sends only a model *key*, validated against the allowlist — never a raw model id.
   // Falls back to the user's saved preference if the key is missing or unrecognized.
   let aiModelKey = isAiModelKey(modelKey) ? modelKey : null;
-  if (!aiModelKey) {
-    const saved = await db.user.findUnique({ where: { id: userId }, select: { aiModel: true } });
-    aiModelKey = isAiModelKey(saved?.aiModel) ? saved.aiModel : DEFAULT_MODEL_KEY;
+  let aiEffortKey = isAiEffortKey(effortKey) ? effortKey : null;
+  if (!aiModelKey || !aiEffortKey) {
+    const saved = await db.user.findUnique({ where: { id: userId }, select: { aiModel: true, aiEffort: true } });
+    aiModelKey ??= isAiModelKey(saved?.aiModel) ? saved.aiModel : DEFAULT_MODEL_KEY;
+    aiEffortKey ??= isAiEffortKey(saved?.aiEffort) ? saved.aiEffort : DEFAULT_EFFORT_KEY;
   }
 
   // Tells the model what "this"/"it" refers to when the user doesn't spell it out. Block
@@ -148,12 +150,16 @@ export async function POST(req: NextRequest) {
       };
 
       let currentMessages = messagesWithContext;
+      // Summed across every underlying API call this request makes (tool-result rounds and
+      // max_tokens continuations each count) and reported once at the end as a "usage" event.
+      const totalUsage = { input: 0, output: 0 };
 
       try {
         for (let attempt = 0; ; attempt++) {
           const stream = client.messages.stream({
             model: resolveModelId(aiModelKey),
-            max_tokens: 8192,
+            max_tokens: 16000,
+            output_config: { effort: aiEffortKey },
             system: systemPrompt,
             tools: pageType === "part-tree" ? getPartTreeTools(mode)
               : pageType === "document" ? getDocumentTools(mode)
@@ -165,6 +171,10 @@ export async function POST(req: NextRequest) {
           stream.on("text", (text) => emit({ type: "text", text }));
 
           const message = await stream.finalMessage();
+          totalUsage.input += (message.usage.input_tokens ?? 0)
+            + (message.usage.cache_creation_input_tokens ?? 0)
+            + (message.usage.cache_read_input_tokens ?? 0);
+          totalUsage.output += message.usage.output_tokens ?? 0;
           const toolUseBlocks = message.content.filter(
             (b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use",
           );
@@ -312,6 +322,9 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         emit({ type: "error", message: err instanceof Error ? err.message : "Something went wrong." });
       } finally {
+        if (totalUsage.input || totalUsage.output) {
+          try { emit({ type: "usage", input: totalUsage.input, output: totalUsage.output }); } catch { /* stream already cancelled */ }
+        }
         controller.close();
       }
     },

@@ -67,7 +67,7 @@ export default function CardBlock({
       valueTex = result.display.solution ?? "";
     } else {
       const show = autoShowMatrix(matrixSize);
-      valueTex = show ? result.display.solution : `\\text{[${matrixSize}]}`;
+      valueTex = show ? result.display.solution : `\\text{[${matrixSize}]}${result.display.matrixUnits ?? ""}`;
     }
   }
 

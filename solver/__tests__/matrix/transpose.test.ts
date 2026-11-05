@@ -121,3 +121,39 @@ describe("transpose — unit tests: SI values preserved through index swap", () 
     expect(r.solution.real["1-0"]).toBeCloseTo(6 * FT_M, 4);
   });
 });
+
+describe("transpose() keeps the unit of its argument", () => {
+  const M = [0, 0, 0, 1, 0, 0, 0, 0];
+
+  async function solveAll(defs: [string, string][]) {
+    const blocks: OrderedBlock[] = defs.map(([name, raw], i) => ({
+      id: `b${i}`, order: i + 1, type: "EQUATION",
+      definition: { raw: `${name} = ${raw}`, variableName: name, unit: "" },
+    }));
+    let map: any[] = [];
+    for (const b of blocks) {
+      const r = await solveDocument(blocks, b.id, map);
+      map = r.resolvedMap;
+    }
+    return Object.fromEntries(map.map((m: any) => [m.variableName, m]));
+  }
+
+  it("transpose([0m, 4m, 8m]) → column in m", async () => {
+    const r = await solveAll([["xn", "[0m, 4m, 8m]"], ["t", "transpose(xn)"]]);
+    expect(Array.from(r.t.solution.baseUnits)).toEqual(M);
+    expect(r.t.solution.real["2-0"]).toBeCloseTo(8);
+  });
+
+  it("Inc*transpose(xn) → m (unitless incidence matrix times lengths)", async () => {
+    const r = await solveAll([
+      ["xn", "[0m, 4m, 8m]"], ["Inc", "[-1,1,0; 0,-1,1]"], ["dx", "Inc*transpose(xn)"],
+    ]);
+    expect(Array.from(r.dx.solution.baseUnits)).toEqual(M);
+    expect(r.dx.solution.real["0-0"]).toBeCloseTo(4);
+  });
+
+  it("transpose of a unitless matrix stays unitless", async () => {
+    const r = await solveAll([["a", "[1, 2, 3]"], ["t", "transpose(a)"]]);
+    expect(Array.from(r.t.solution.baseUnits)).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+});

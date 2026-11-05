@@ -44,11 +44,12 @@ Workspace
 
 ### Solver Behavior
 
-- Dependency order is resolved **automatically**. Blocks do not need to be ordered manually.
+- **Blocks solve top to bottom, and order matters.** A block can only use variables defined in blocks **above** it. Dependency order is NOT resolved automatically — if an equation uses a variable defined further down the document, it errors as undefined.
+- **When inserting a block, place it by dependency.** Before adding an equation, check which variables it uses and which existing blocks use the variable it defines. If an existing block needs the new variable, insert the new block **before** that block (set `anchorBlockId` to that block and `position` to `"before"`) — never at the end of the document or after a block that depends on it. Omitting `anchorBlockId` appends to the end, which is only correct when every variable the new block uses is already defined above and nothing below needs its result.
 - **No solve on page load.** Solutions shown on load are from the last Save.
 - **Save is explicit.** All changes live in memory until the user presses Save.
 - **Circular dependencies** error. There is no implicit iteration.
-- **Undefined variables** error on the block that uses them, and cascade to dependent blocks.
+- **Undefined variables** error on the block that uses them, and cascade to dependent blocks. This includes a variable that is defined, but in a block further down the document than the one using it.
 
 ### Variable Naming
 
@@ -56,6 +57,7 @@ Workspace
 - Must start with a letter; underscores and digits allowed after the first character (e.g. `F_bolt_1`).
 - Do not shadow built-in names (`sin`, `pi`, etc.).
 - **Never name a variable after a unit, in any letter case.** A name like `M`, `m`, `N`, `s`, `S`, `g`, `K`, `ft`, `lb`, `Pa`, or `hr` collides with the unit of the same spelling, and the solver can substitute the variable's value where a unit was meant (e.g. with `M = 5kg` defined, `tau = 15N*m` silently becomes 75 kg²·m/s² instead of 15 N·m). Use a descriptive name with a suffix or subscript instead: `M_disk`, `m_total`, `F_bolt`, `t_hr`.
+- **Never name a variable after a built-in constant.** The names in the Built-in Constants table (`pi`, `e`, `grav`, `N_A`, `c_O`, `atm`, `R`, `k_e`, `epsilon_0`) are reserved and cannot be used as an equation name, even when the problem is about that quantity. If you need your own value for the same idea, use a descriptive name instead: `N_avogadro` rather than `N_A`, `R_gas` or `R_outer` rather than `R`, `e_eccentricity` rather than `e`.
 
 ---
 
@@ -163,7 +165,26 @@ t = 3.5s
 
 CadWolf equations have no comment syntax at all — this isn't Python or JavaScript. A unit suffix directly after a number is exclusively for a real physical unit. Never invent one to label, annotate, or explain what a number represents: `R_star = 2 starsPerYear` is **not valid** — "starsPerYear" isn't a real unit, and the solver will try to parse it as one rather than read it as a note.
 
-**If you're not certain something is a standard physical unit — a real length, mass, time, force, energy, etc., or a standard combination of those (like m/s² or kg·m/s²) — don't attach one.** Don't try to recall a complete list before deciding; when in doubt, leave it off. Write the plain number with no unit, and put the explanation (what the number counts, its rate, its domain-specific meaning) in a `text_block` or symbolic equation instead — not inside the equation itself.
+**If you're not certain something is a standard physical unit — a real length, mass, time, force, energy, etc., or a standard combination of those (like m/s² or kg·m/s²) — don't attach one.** This is about made-up or unfamiliar labels only; it never applies to standard units like `m`, `mm`, `kN`, `GPa` or `mm^2`, which always get attached to the quantities they describe (see Units Policy below). Don't try to recall a complete list before deciding; when in doubt about an unfamiliar label, leave it off. Write the plain number with no unit, and put the explanation (what the number counts, its rate, its domain-specific meaning) in a `text_block` or symbolic equation instead — not inside the equation itself.
+
+### Units Policy
+
+**Every given physical quantity gets its unit, exactly as the problem states it.** If the problem says `E = 200 GPa`, `A = 2500 mm²`, a 4 m span and a 40 kN load, write `E_mod = 200GPa`, `A_chord = 2500mm^2`, `L = 4m`, `F = 40kN`. The solver converts and tracks everything.
+
+- **Do not invent a unitless "kN and m" (or any other) working system.** Don't pre-convert to a base set and enter bare numbers (`E_mod = 200000000`, `A = 0.0025`) with the units described in a text block — the solver can't check, convert or label anything it can't see.
+- **Unitless is for genuinely dimensionless values only:** ratios, angles in radians, direction cosines, counts and indices.
+- **To report a result in a particular unit, divide by that unit** — this also strips the unit so the value is a plain number in the unit you name in the heading:
+
+```
+E_mod = 200GPa
+A = 2500mm^2
+L = 4m
+k = E_mod * A / L        → N/m (computed, so no suffix)
+F = 40kN
+u = F / k                → m
+u_mm = u / 1mm           → plain number in mm
+N_kN = F / 1kN           → plain number in kN
+```
 
 ### Propagation
 
@@ -526,9 +547,12 @@ Mass properties are fetched on demand when the user clicks "Refresh from CAD". T
 ## Guidance for the AI Assistant
 
 - Write equations using CadWolf syntax: `variableName = expression`.
-- Always annotate physical quantities with units: `F = 500N`.
+- Always annotate every given physical quantity with its unit, as the problem states it: `F = 500N`, `E_mod = 200GPa`, `A = 2500mm^2` — never an implicit unitless unit system (see Units Policy).
+- **Enter the givens, derive the rest.** Put the problem's given values (coordinates, dimensions, loads, material properties) into equations and let equations compute everything derived (lengths, angles, direction cosines, stiffnesses). Never work a number out by hand and type the result in as a constant.
+- **Prefer vectors over repeated scalar blocks.** For repeated calculations over members, nodes or elements, define vectors (`dx = [...]`) and use element-wise operations (`DotDiv`, `DotMult`), indexing and `root`/`power` instead of one scalar block per member.
+- **For a multi-step problem, state the method first** in one text block, then build in order: inputs → geometry → solve → results → checks.
 - **Never put a unit on a derived/computed value** — its unit already follows automatically from whatever it's computed from (e.g. `C = A * B`, never `C = A * B m^2`). Only ever attach a unit to a bare numeric literal being declared directly.
-- A unit suffix is for a real physical unit only, never a comment or descriptive label (no `starsPerYear`-style made-up units). When not certain something is a standard physical unit, default to leaving it off rather than guessing — write the plain number and put any explanation in a text_block.
+- A unit suffix is for a real physical unit only, never a comment or descriptive label (no `starsPerYear`-style made-up units). When not certain an unfamiliar label is a standard physical unit, default to leaving it off rather than guessing — write the plain number and put any explanation in a text_block. (Standard units such as `m`, `mm`, `kN`, `GPa` and `mm^2` are never in doubt: always attach them.)
 - Check unit family consistency before suggesting an equation.
 - When suggesting `power` or `root`, state the argument order explicitly.
 - When suggesting `ode4`, state the zero-indexed state variable naming convention (y0, y1, …).

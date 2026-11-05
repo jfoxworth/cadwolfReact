@@ -44,13 +44,16 @@ export const showSolution: StepFn = async (ctx: SolveContext): Promise<SolveCont
 
   let solution: string;
   let matrixSize: string | undefined;
+  let matrixUnits: string | undefined;
 
   if (ctx.solution.size !== "1x1") {
     matrixSize = ctx.solution.size;
+    const matUnits = ctx.solution.units ? ` \\, ${rawToLatex(ctx.solution.units)}` : "";
+    // Exposed so the UI can append the units when it shows only the size, e.g. [12x5] m
+    matrixUnits = matUnits;
 
     if (autoShowMatrix(matrixSize)) {
       const matMultiplier = ctx.solution.multiplier;
-      const matUnits = ctx.solution.units ? ` \\, ${rawToLatex(ctx.solution.units)}` : "";
 
       solution = formatMatrix(ctx.solution.real, ctx.solution.size);
       if (hasImag) {
@@ -58,7 +61,7 @@ export const showSolution: StepFn = async (ctx: SolveContext): Promise<SolveCont
       }
       solution += matUnits;
     } else {
-      solution = `\\text{[${matrixSize}]}`;
+      solution = `\\text{[${matrixSize}]}${matUnits}`;
     }
   } else {
     // solution.multiplier holds the conversion factor from the input unit to the SI
@@ -82,6 +85,6 @@ export const showSolution: StepFn = async (ctx: SolveContext): Promise<SolveCont
 
   return {
     ...ctx,
-    display: { ...ctx.display, solution, matrixSize },
+    display: { ...ctx.display, solution, matrixSize, matrixUnits },
   };
 };

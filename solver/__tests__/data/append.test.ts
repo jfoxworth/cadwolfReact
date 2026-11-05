@@ -161,3 +161,53 @@ describe("append — unit tests: SI values are used", () => {
     expect(r.solution?.real["0-1"]).toBeCloseTo(2, 4);
   });
 });
+
+describe("append() carries units through", () => {
+  const M = [0, 0, 0, 1, 0, 0, 0, 0];
+  const NONE = [0, 0, 0, 0, 0, 0, 0, 0];
+
+  async function solveAll(defs: [string, string][]) {
+    const blocks: OrderedBlock[] = defs.map(([name, raw], i) => ({
+      id: `b${i}`, order: i + 1, type: "EQUATION",
+      definition: { raw: `${name} = ${raw}`, variableName: name, unit: "" },
+    }));
+    let map: any[] = [];
+    let last: any;
+    for (const b of blocks) {
+      const r = await solveDocument(blocks, b.id, map);
+      map = r.resolvedMap;
+      last = r.results.find((x: any) => x.blockId === b.id);
+    }
+    return { map: Object.fromEntries(map.map((m: any) => [m.variableName, m])), last };
+  }
+
+  it("m + m → m", async () => {
+    const { map } = await solveAll([["a", "[1m, 2m]"], ["b", "[3m, 4m]"], ["c", "append(a, b, 1)"]]);
+    expect(Array.from(map.c.solution.baseUnits)).toEqual(M);
+    expect(map.c.solution.real["0-3"]).toBeCloseTo(4);
+  });
+
+  it("unitless padding takes the other part's unit (either order)", async () => {
+    const { map } = await solveAll([
+      ["a", "[1m, 2m]"], ["u", "[0, 0]"], ["c", "append(a, u, 1)"], ["d", "append(u, a, 0)"],
+    ]);
+    expect(Array.from(map.c.solution.baseUnits)).toEqual(M);
+    expect(Array.from(map.d.solution.baseUnits)).toEqual(M);
+  });
+
+  it("unitless + unitless stays unitless", async () => {
+    const { map } = await solveAll([["a", "[1, 2]"], ["b", "[3, 4]"], ["c", "append(a, b, 1)"]]);
+    expect(Array.from(map.c.solution.baseUnits)).toEqual(NONE);
+  });
+
+  it("different units in the same matrix is an error", async () => {
+    const { last } = await solveAll([["a", "[1m, 2m]"], ["f", "[1s, 2s]"], ["g", "append(a, f, 1)"]]);
+    expect(last.errors.join(" ")).toMatch(/different units/i);
+  });
+
+  it("ft + m converts to a common SI unit", async () => {
+    const { map } = await solveAll([["c", "append([1ft, 2ft], [1m], 1)"]]);
+    expect(Array.from(map.c.solution.baseUnits)).toEqual(M);
+    expect(map.c.solution.real["0-2"]).toBeCloseTo(1);
+  });
+});

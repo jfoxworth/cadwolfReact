@@ -80,7 +80,7 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
         // Units are propagated through * and / operators across all MATRIX tokens.
         let inferredUnits: number[] | undefined;
         let pendingOp = "*"; // treat first token as implicitly multiplied
-        const resolvedTokens = rawCellTokens.map((tok) => {
+        const resolvedTokens = rawCellTokens.map((tok, idx) => {
           if (tok.startsWith("MATRIX::")) {
             const mat = decodeMatrix(tok);
             const ba = mat?.baseArray?.some(v => v !== 0) ? mat.baseArray : null;
@@ -95,9 +95,18 @@ export const replaceMatrices: StepFn = async (ctx: SolveContext): Promise<SolveC
               // for + and -, units stay the same (operands must be compatible)
             }
             pendingOp = "*";
-            return String(mat?.real["0-0"] ?? 0);
+            const val = mat?.real["0-0"] ?? 0;
+            // Parenthesize negatives: a cell like "-c" with c = -0.5547 would otherwise be
+            // rejoined as "- -0.5547", which the sub-pipeline can't parse (and the error
+            // fallback below then silently stores 0).
+            return val < 0 ? `(${val})` : String(val);
           }
           if (tok === "*" || tok === "/" || tok === "+" || tok === "-") pendingOp = tok;
+          // Same "- -0.5547" problem as above, for negative numbers that arrive as plain
+          // text rather than MATRIX tokens (e.g. step 13 resolving "-dc_x[3]" to "-0.5547").
+          if (idx > 0 && rawCellTokens[idx - 1] === "-" && /^-(?:\d+\.?\d*|\.\d+)$/.test(tok)) {
+            return `(${tok})`;
+          }
           return tok;
         });
         if (!cellBaseUnits && inferredUnits?.some(v => v !== 0)) {

@@ -110,6 +110,7 @@ export interface DisplayState {
   equation: string;               // LaTeX string for LHS
   solution: string;               // LaTeX string for RHS + units
   matrixSize?: string;            // e.g. "3x1" — set for non-scalar results only
+  matrixUnits?: string;           // LaTeX suffix (e.g. " \, m") to append after a size-only "[3x1]"; "" if unitless
   numericalModel: string;         // RHS with numeric values substituted
   unitsModel: string;             // RHS with units substituted
   dimensionsModel: string;        // RHS with matrix dimensions substituted

@@ -188,8 +188,10 @@ model User {
   phone          String?
   // Tier: "free" | "pro"
   tier                 String    @default("free")
-  // AI chat model preference: "haiku" | "sonnet" | "opus" (see utils/aiModels.ts)
-  aiModel              String    @default("haiku") @map("ai_model")
+  // AI chat model preference: "haiku" | "sonnet" | "opus" (see utils/aiModels.ts); new users default to sonnet
+  aiModel              String    @default("sonnet") @map("ai_model")
+  // AI chat reasoning effort: "low" | "medium" | "high" | "xhigh" | "max" (see utils/aiModels.ts)
+  aiEffort             String    @default("medium") @map("ai_effort")
   storageUsed          BigInt    @default(0) @map("storage_used")
   storageQuota         BigInt    @default(524288000) @map("storage_quota")  // 500 MB default
   emailVerifiedAt      DateTime? @map("email_verified_at")

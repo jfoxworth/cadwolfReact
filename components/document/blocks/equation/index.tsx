@@ -117,7 +117,7 @@ export default function EquationBlock({
     // Non-scalar: determine showMatrix preference (use ref to avoid stale closure)
     const storedPref = showMatrixPrefRef.current;
     const show = storedPref === undefined ? autoShowMatrix(matrixSize) : storedPref;
-    setSolutionTex(show ? result.display.solution : `\\text{[${matrixSize}]}`);
+    setSolutionTex(show ? result.display.solution : `\\text{[${matrixSize}]}${result.display.matrixUnits ?? ""}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
@@ -186,7 +186,7 @@ export default function EquationBlock({
       setSolutionTex(
         effective
           ? result.display.solution
-          : `\\text{[${result.display.matrixSize}]}`,
+          : `\\text{[${result.display.matrixSize}]}${result.display.matrixUnits ?? ""}`,
       );
     }
   }

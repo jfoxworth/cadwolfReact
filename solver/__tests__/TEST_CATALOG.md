@@ -370,11 +370,11 @@ expect(r.solution?.real["0-0"]).toBeCloseTo(Math.ceil(3.7 * FT_M), 4); // 2 m
 - `solver/functions/trig/` — sin, cos, tan, asin, acos, atan, atan2, sinh, cosh, tanh, asinh, acosh, atanh, sec, csc, cot, asec, acsc, acot, asech, acsch, acoth
 - `solver/functions/log/` — ln, log10, log, root, power
 - `solver/functions/stats/` — mean, sum, median, mode, range, stdev, variance, cv
-- `solver/functions/matrix/` — transpose, size, createMatrix, identity, norm, csNorm, rsNorm, trace, conj, dotMult, dotDiv, dot, cross, threshold, isColumn, isRow, isMatrix, numEl, length, fliplr, flipud, diag
+- `solver/functions/matrix/` — transpose (unit passes through), size, createMatrix, identity, norm, csNorm, rsNorm, trace, conj, dotMult, dotDiv, dot, cross, threshold, isColumn, isRow, isMatrix, numEl, length, fliplr, flipud, diag
 - `solver/functions/linear-algebra/` — cholesky, luDecomp, inverseLu, gaussE, squash, det, matPow
 - `solver/functions/fitting/` — polyfit, powerfit, logfit, expfit, histogram
 - `solver/functions/calculus/` — integrate, derivative, derivativeUn
 - `solver/functions/numerical/` — incSearch, bisect, falsePos, secant, ode4
 - `solver/functions/signal/` — fft, fourier
-- `solver/functions/data/` — append, rand, randMat, numInds, intVec, row2mat, col2mat
+- `solver/functions/data/` — append (unit carried through; unitless padding adopts the other part's unit; mixed units error), rand, randMat, numInds, intVec, row2mat, col2mat
 - `solver/functions/utility/` — real, imag, rotate, parseDate, isPosDef, interpolate, ifElse, firstPos

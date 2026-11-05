@@ -361,6 +361,68 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         continue;
       }
 
+      // ── Special case: transpose(a) → only rearranges elements, so units pass through ──
+      // Without this transpose(xn) with xn in metres came back unitless, which then made
+      // Inc*transpose(xn), and every length derived from it, unitless.
+      if (parsed.name === "transpose") {
+        const aArg = complexArgs[0] ?? { real: {}, imag: {} };
+        const realResult = await fn([aArg.real], ctx);
+        const size = Object.keys(realResult).length > 0 ? inferSize(realResult) : "1x1";
+        const aBase = aArg.baseUnits;
+        tokens[i] = encodeMatrix(realResult, size, undefined, aBase && aBase.some((v) => v !== 0) ? [...aBase] : undefined);
+        keyArray[i] = 0;
+        continue;
+      }
+
+      // ── Special case: append(a, b, dim) → result keeps the unit of its parts ──
+      // Values are already SI, so only the unit label needs carrying. If both parts have
+      // the same unit, that is the result's unit. A unitless part (e.g. zero padding) takes
+      // on the other part's unit. Two different units can't share one matrix → error.
+      if (parsed.name === "append") {
+        const aArg = complexArgs[0] ?? { real: {}, imag: {} };
+        const bArg = complexArgs[1] ?? { real: {}, imag: {} };
+        const idxArg = complexArgs[2] ?? { real: { "0-0": 0 }, imag: {} };
+        const realResult = await fn([aArg.real, bArg.real, idxArg.real], ctx);
+        const size = Object.keys(realResult).length > 0 ? inferSize(realResult) : "1x1";
+
+        const hasUnits = (b?: number[]) => !!b && b.some((v) => v !== 0);
+        const aBase = hasUnits(aArg.baseUnits) ? aArg.baseUnits! : undefined;
+        const bBase = hasUnits(bArg.baseUnits) ? bArg.baseUnits! : undefined;
+        let outputBase: number[] | undefined = aBase ?? bBase;
+        if (aBase && bBase && aBase.some((v, idx) => v !== (bBase[idx] ?? 0))) {
+          errors.push(
+            `Append: cannot join matrices with different units (${baseArrayToUnitString(aBase)} and ${baseArrayToUnitString(bBase)})`,
+          );
+          outputBase = undefined;
+        }
+
+        tokens[i] = encodeMatrix(realResult, size, undefined, outputBase ? [...outputBase] : undefined);
+        keyArray[i] = 0;
+        continue;
+      }
+
+      // ── Special case: dotdiv(a, b) / dotmult(a, b) → element-wise unit propagation ──
+      // Without this the result came back unitless, so e.g. E*DotDiv(A, L) lost the m²/m
+      // and everything downstream (gaussE, force/displacement results) was mislabelled.
+      // output_units = a_units - b_units (dotdiv) or a_units + b_units (dotmult)
+      if (parsed.name === "dotdiv" || parsed.name === "dotmult") {
+        const aArg = complexArgs[0] ?? { real: {}, imag: {} };
+        const bArg = complexArgs[1] ?? { real: {}, imag: {} };
+        const realResult = await fn([aArg.real, bArg.real], ctx);
+        const size = Object.keys(realResult).length > 0 ? inferSize(realResult) : "1x1";
+
+        const aBase = aArg.baseUnits ?? [];
+        const bBase = bArg.baseUnits ?? [];
+        const sign = parsed.name === "dotdiv" ? -1 : 1;
+        const outputBase = Array.from({ length: 8 }, (_, idx) =>
+          (aBase[idx] ?? 0) + sign * (bBase[idx] ?? 0)
+        );
+
+        tokens[i] = encodeMatrix(realResult, size, undefined, outputBase.some((v) => v !== 0) ? outputBase : undefined);
+        keyArray[i] = 0;
+        continue;
+      }
+
       // ── Special case: gausse(A, b) → propagate units from b (minus units of A) ──
       // output_units = b_units / a_units (base-unit subtraction)
       // We embed the computed base units into the MATRIX token so step 26
