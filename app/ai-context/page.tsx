@@ -2,9 +2,9 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 export const metadata = {
-  title: "CadWolf AI Context",
+  title: "Engentic AI Context",
   description:
-    "System prompt and platform reference for the CadWolf AI assistant. " +
+    "System prompt and platform reference for the Engentic AI assistant. " +
     "This page is publicly accessible so external AI systems can fetch platform context.",
 };
 

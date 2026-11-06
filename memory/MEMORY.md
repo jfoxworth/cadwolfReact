@@ -1,4 +1,4 @@
-# CadWolf Project Memory
+# Engentic Project Memory
 
 ## Data Model
 

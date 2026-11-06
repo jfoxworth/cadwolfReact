@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-CadWolf is a web-based engineering calculation platform. Engineers write, solve, and share calculation documents made of ordered blocks (equations, sliders, datasets, plots, loops, if/else, etc.) that solve in sequence with full unit awareness and symbolic math support. Documents can link to CAD assemblies (Onshape, Autodesk Fusion) so model parameter changes flow into the calculation.
+Engentic is a web-based engineering calculation platform. Engineers write, solve, and share calculation documents made of ordered blocks (equations, sliders, datasets, plots, loops, if/else, etc.) that solve in sequence with full unit awareness and symbolic math support. Documents can link to CAD assemblies (Onshape, Autodesk Fusion) so model parameter changes flow into the calculation.
 
-The full platform reference used to prompt the CadWolf AI assistant is publicly served at `/ai-context` (`app/ai-context/page.tsx`) — it documents built-in functions, the unit system, constants, and solver behavior in detail beyond what's summarized here.
+The full platform reference used to prompt the Engentic AI assistant is publicly served at `/ai-context` (`app/ai-context/page.tsx`) — it documents built-in functions, the unit system, constants, and solver behavior in detail beyond what's summarized here.
 
 ## Commands
 

@@ -29,7 +29,7 @@ These documents are what agents will use to design systems and parts and will be
 
 ## Process
 
-0. All of this takes place after the user has created the desired requirements documents. This could be one document at the top level or no documents or some documents at some systems.
+0. All of this takes place after the user has created the desired requirements documents. This could be one document at the top level, no documents, or some documents at some systems.
 1. **Prompt.** When the requirements documents (and any folder structure) are set up, the user enters a prompt describing the system they want. This could be as simple as "Read the requirements documents and build the system in question.
 2. **Kickoff.** The prompt starts the coordinator. This prompt may be as simple as telling the model to read the requirements models and go from there or it may give all the guidance. Our documents will ask the user to utilize requirements documents.
 3. **Main Coordinator starts.** We will need to work on the prompt for this.

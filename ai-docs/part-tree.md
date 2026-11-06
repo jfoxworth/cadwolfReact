@@ -1,7 +1,7 @@
 # AI on Part Tree pages
 
 See [`README.md`](./README.md) first for how the assistant works in general. Part Tree pages
-have by far the most AI capability in CadWolf — everything below Build mode's staged wizard is
+have by far the most AI capability in Engentic — everything below Build mode's staged wizard is
 unique to this page type.
 
 ## Modes

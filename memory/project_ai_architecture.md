@@ -1,19 +1,19 @@
 ---
-name: CadWolf AI Architecture
-description: Vision, implementation decisions, and open questions for CadWolf AI integration
+name: Engentic AI Architecture
+description: Vision, implementation decisions, and open questions for Engentic AI integration
 type: project
 ---
 
-# CadWolf AI Integration — Architecture & Decisions
+# Engentic AI Integration — Architecture & Decisions
 
 ## Core Value Proposition
 
-CadWolf is not primarily a knowledge store or a training data source for AI. It is a **structured execution environment** — a runtime for engineering calculations. The AI generates structure; the solver validates whether the engineering is correct. That validation is the moat.
+Engentic is not primarily a knowledge store or a training data source for AI. It is a **structured execution environment** — a runtime for engineering calculations. The AI generates structure; the solver validates whether the engineering is correct. That validation is the moat.
 
 - Raw NASA docs: AI knows *that* von Mises stress determines yield. Unreliable about computing it correctly.
-- CadWolf part tree: AI has a working, solver-validated instance. Generating a variant means pattern-matching on structure, not re-deriving physics.
+- Engentic part tree: AI has a working, solver-validated instance. Generating a variant means pattern-matching on structure, not re-deriving physics.
 
-An AI can learn engineering from reading documentation alone, but it cannot *verify* outputs without a solver. CadWolf provides the feedback loop that makes AI-generated engineering trustworthy rather than just plausible.
+An AI can learn engineering from reading documentation alone, but it cannot *verify* outputs without a solver. Engentic provides the feedback loop that makes AI-generated engineering trustworthy rather than just plausible.
 
 ---
 
@@ -29,9 +29,9 @@ The AI creates the part tree and all documents inside it in a single operation, 
 
 ### Phase 1 — Chat Assistant (1–2 days to implement)
 
-A floating chat panel available within a document. Sends the current document's blocks + a system prompt (CadWolf function library, syntax rules) with each message. Streams Claude's response back.
+A floating chat panel available within a document. Sends the current document's blocks + a system prompt (Engentic function library, syntax rules) with each message. Streams Claude's response back.
 
-**Mode 1 (day 1):** Text responses only. User asks "what analysis should I do on this rod under 50 kN axial load?" — AI explains what's needed and writes equations in CadWolf syntax.
+**Mode 1 (day 1):** Text responses only. User asks "what analysis should I do on this rod under 50 kN axial load?" — AI explains what's needed and writes equations in Engentic syntax.
 
 **Mode 2 (incremental upgrade):** AI responds with plain-language explanation + a JSON array of blocks to insert. Frontend shows "Add these blocks to document?" button. On confirm, inserts as virtual blocks. Solver runs. Engineer reviews and saves if correct.
 
@@ -83,7 +83,7 @@ Typical 10-message chat session: ~$0.15–0.25. At $20/month subscription, a hea
 How exactly a requirements document interacts with the user and the AI to dictate solution requirements is still being worked out. Current thinking:
 
 - Requirements document: equation blocks only — named values (design loads, material properties, FoS limits). No calculations.
-- Analysis documents: normal CadWolf documents, import from requirements doc.
+- Analysis documents: normal Engentic documents, import from requirements doc.
 - Verification document: assert blocks only — compare analysis results against requirements, show pass/fail table.
 - Part tree view: green/red status per document rolled up from assert results.
 

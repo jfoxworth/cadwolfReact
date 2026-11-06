@@ -1,6 +1,6 @@
-# AI in CadWolf — overview
+# AI in Engentic — overview
 
-CadWolf has a built-in AI assistant ("April") embedded directly in the app. It's currently
+Engentic has a built-in AI assistant ("April") embedded directly in the app. It's currently
 gated to a single allow-listed user (`ALLOWED_CHAT_USER_ID`) — this is pre-launch/internal
 functionality, not yet available to users generally.
 

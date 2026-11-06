@@ -6,7 +6,7 @@ export default function Nav() {
     <header className="fixed top-0 w-full z-50 bg-gray-900/90 backdrop-blur-sm">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/">
-          <Image src="/engenticWhite.png" alt="CADWOLF" width={140} height={60} />
+          <Image src="/engenticWhite.png" alt="Engentic" width={140} height={60} />
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-gray-300">
           <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
