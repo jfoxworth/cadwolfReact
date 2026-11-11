@@ -417,7 +417,7 @@ function TreeNode({
           ) : null}
         </span>
 
-        <ItemIcon type={item.type} isAnalysis={item.isAnalysis} />
+        <ItemIcon type={item.type} isAnalysis={item.isAnalysis} isDesignDocument={item.isDesignDocument} />
 
         {isEditingTitle ? (
           <input
@@ -437,7 +437,7 @@ function TreeNode({
             className="flex-1 text-base border border-blue-400 rounded px-1 py-0 focus:outline-none"
           />
         ) : (
-          <span className="text-base truncate flex-1">{item.name}</span>
+          <span className={`text-base truncate flex-1 ${item.isDesignDocument ? "text-gray-400" : ""}`}>{item.name}</span>
         )}
 
         {/* CAD thumbnail — inline, just right of name */}

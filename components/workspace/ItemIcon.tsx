@@ -1,4 +1,4 @@
-import { Folder, FileText, Database, GitBranch, Image, Calculator } from "lucide-react";
+import { Folder, FileText, Database, GitBranch, Image, Calculator, ClipboardList } from "lucide-react";
 import type { ItemType } from "@/types/item";
 
 const iconMap: Record<ItemType, React.ReactNode> = {
@@ -10,7 +10,10 @@ const iconMap: Record<ItemType, React.ReactNode> = {
   IMAGE:     <Image size={18} className="text-pink-500" />,
 };
 
-export default function ItemIcon({ type, isAnalysis }: { type: ItemType; isAnalysis?: boolean }) {
+export default function ItemIcon({ type, isAnalysis, isDesignDocument }: { type: ItemType; isAnalysis?: boolean; isDesignDocument?: boolean }) {
+  if (isDesignDocument && type === "DOCUMENT") {
+    return <ClipboardList size={18} className="text-teal-500" />;
+  }
   if (isAnalysis && type === "DOCUMENT") {
     return <Calculator size={18} className="text-orange-500" />;
   }

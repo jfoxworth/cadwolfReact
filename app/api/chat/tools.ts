@@ -285,10 +285,8 @@ export const PART_TREE_TOOLS: Anthropic.Tool[] = [
 // search_documents and read_document stay available in every mode since they're lookups, not
 // mutations — Overview/Inspect's restriction is about changing the tree, not looking things up.
 export function getPartTreeTools(mode: string | undefined): Anthropic.Tool[] {
-  const readOnly = [SEARCH_TOOL, READ_DOCUMENT_TOOL, READ_PART_TREE_TOOL, FIND_SIMILAR_PART_TREES_TOOL];
-  return mode === "build"
-    ? [...PART_TREE_TOOLS, PROPOSE_REQUIREMENTS_REVIEW_TOOL, PROPOSE_BUILD_PLAN_TOOL, ...readOnly]
-    : readOnly;
+  const readOnly = [SEARCH_TOOL, READ_DOCUMENT_TOOL, READ_PART_TREE_TOOL];
+  return mode === "build" ? [...PART_TREE_TOOLS, ...readOnly] : readOnly;
 }
 
 // Document pages: Overview is intentionally read-only, same real enforcement as part-tree above
@@ -412,141 +410,16 @@ export const READ_PART_TREE_TOOL_NAME = "read_part_tree";
 export const READ_PART_TREE_TOOL: Anthropic.Tool = {
   name: READ_PART_TREE_TOOL_NAME,
   description:
-    "Read a specific OTHER part tree's full structure (subsystems, parts, quantities, and which parts import from which requirements documents) — the same kind of detail you have for the current page, for a different tree by id. Use this to compare an existing candidate's actual composition against what's being proposed, when name/description alone aren't conclusive. Only takes an id already visible to you (e.g. from find_similar_part_trees) — never invent one.",
+    "Read a specific OTHER part tree's full structure (subsystems, parts, quantities, and which parts import from which requirements documents) — the same kind of detail you have for the current page, for a different tree by id. Only takes an id already visible to you — never invent one.",
   input_schema: {
     type: "object",
     properties: {
       fileId: {
         type: "string",
-        description: "id of the part tree root to read, from a prior find_similar_part_trees result or other context.",
+        description: "id of the part tree root to read, from context already visible to you.",
       },
     },
     required: ["fileId"],
-  },
-};
-
-export const FIND_SIMILAR_PART_TREES_TOOL_NAME = "find_similar_part_trees";
-
-export const FIND_SIMILAR_PART_TREES_TOOL: Anthropic.Tool = {
-  name: FIND_SIMILAR_PART_TREES_TOOL_NAME,
-  description:
-    "Find existing part trees structurally/semantically similar to a description of a proposed new system, ranked by similarity — not just name matching. Use this before proposing a new structure from scratch, so the build can start from (or explicitly diverge from) something that already exists.",
-  input_schema: {
-    type: "object",
-    properties: {
-      description: {
-        type: "string",
-        description: "A description of the system being proposed, to compare against existing part trees.",
-      },
-    },
-    required: ["description"],
-  },
-};
-
-// A third category alongside server-executed (SEARCH_TOOL etc.) and client-mutating
-// (PART_TREE_TOOLS): this call has no side effect of its own and isn't a proposal the
-// user approves/rejects item-by-item — it's structured output for the Build-mode Stage-3
-// tree-preview UI. app/api/chat/route.ts recognizes this name specifically and streams it
-// to the client as its own event type (not a "tool_use" proposal card), same general idea
-// as SERVER_EXECUTED_TOOL_NAMES but a different client-side treatment. Nothing is created
-// in the database when this is called — only when the user later confirms the build,
-// which drives PartTreeWrapper.tsx's own creation loop directly from this tree, without
-// going back through the model.
-export const PROPOSE_BUILD_PLAN_TOOL_NAME = "propose_build_plan";
-
-// Deliberately not deep-JSON-Schema-recursive (no $ref) — Anthropic's tool-use schema
-// support for recursive $ref is unconfirmed, and a wrong guess there fails silently at
-// the API boundary. `children` is documented, not schema-enforced, to repeat the same
-// shape; the route/client validate the actual shape they receive before rendering it.
-const BUILD_PLAN_NODE_PROPERTIES = {
-  name: { type: "string" as const, description: "Name for this subsystem, part, or requirements document." },
-  nodeType: {
-    type: "string" as const,
-    enum: ["Workspace", "Document"] as const,
-    description: "\"Workspace\" is a subsystem (a folder grouping other nodes). \"Document\" is a part or a requirements document.",
-  },
-  isRequirementsDocument: {
-    type: "boolean" as const,
-    description: "Only meaningful when nodeType is \"Document\". True marks this as a requirements document — holds loads, safety factors, or other targets that physical parts import as variables — rather than a physical part. Omit or set false for an ordinary part.",
-  },
-  templateFileId: {
-    type: "number" as const,
-    description: "Only when a reference part tree was picked and read_part_tree on it showed a document clearly analogous to this node — its id, so this node's eventual content can be adapted from that document's real content instead of generated from nothing. Omit when there's no reference tree, or no clear analog. Carry this field forward unchanged on any re-proposal of the same node.",
-  },
-  dependsOnNodeNames: {
-    type: "array" as const,
-    description: "Only meaningful when nodeType is \"Document\" and this is a physical part. Names of OTHER nodes in this same plan that this part is physically mated to and derives a dimension from — a threaded fastener setting a bore diameter, a pin setting a hole size, a mating part's geometry constraining this one. Not for a shared target like a load or safety factor (that's a requirements document instead). Omit when this part has no such physical dependency.",
-    items: { type: "string" as const },
-  },
-  description: {
-    type: "string" as const,
-    description: "One or two sentences describing this node's role in the proposed system.",
-  },
-  children: {
-    type: "array" as const,
-    description: "Nested subsystems/parts/requirements documents inside this one, each following this exact same shape (name, nodeType, description, and optionally isRequirementsDocument/templateFileId/dependsOnNodeNames/children) recursively. Only meaningful when nodeType is \"Workspace\" — omit or leave empty for a Document.",
-    items: { type: "object" as const },
-  },
-};
-
-export const PROPOSE_BUILD_PLAN_TOOL: Anthropic.Tool = {
-  name: PROPOSE_BUILD_PLAN_TOOL_NAME,
-  description:
-    "Propose (or re-propose, after a requested change) the full structure of a new system being built from scratch — every subsystem, part, and requirements document, in the exact nesting the user will see and can adjust before anything is created. Call this once a reference part tree has been picked (or explicitly skipped as not close enough) and you're ready to show a concrete plan, and call it again with an updated tree whenever the user asks for a change to the plan (e.g. \"move the bolts under Fasteners\") — each call replaces the previously shown tree, it doesn't patch it. One node per distinct part, never one per repeated instance — a part that appears multiple times gets a `quantity` set when it's actually created later, not several nodes here. This call creates nothing by itself; the user reviews and confirms before any file is made.",
-  input_schema: {
-    type: "object",
-    properties: {
-      nodes: {
-        type: "array",
-        description: "Top-level subsystems/parts/requirements documents, created directly under the part tree root.",
-        items: {
-          type: "object",
-          properties: BUILD_PLAN_NODE_PROPERTIES,
-          required: ["name", "nodeType", "description"],
-        },
-      },
-    },
-    required: ["nodes"],
-  },
-};
-
-// Stage 3 of the build wizard (between candidate selection and the full tree proposal) — a
-// dedicated checkpoint for requirements documents specifically, so the user sees what's
-// actually driving the design before the full (larger, harder-to-review) tree shows up.
-// `items` may legitimately be empty — the route must still emit it (see app/api/chat/route.ts),
-// same reasoning as find_similar_part_trees's empty-candidates case.
-export const PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME = "propose_requirements_review";
-
-export const PROPOSE_REQUIREMENTS_REVIEW_TOOL: Anthropic.Tool = {
-  name: PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME,
-  description:
-    "Call this once a reference part tree has been picked (or explicitly skipped), before proposing the full tree with propose_build_plan. Lists the requirements documents that should exist in the new system — pulled from the reference tree's own existing requirements documents (read_part_tree it first) and/or inferred from the user's own prompt as a target shared across multiple parts (a load limit, a safety factor, a tolerance — not a plain physical dimension of one part). An empty items array is a valid, real result (nothing identified) — don't skip calling this just because you found nothing; the user needs to see that and decide whether to add one. Call this again with the full updated list if the user asks for a change. This proposes nothing created yet — the user reviews before the full tree (and then the actual files) are built.",
-  input_schema: {
-    type: "object",
-    properties: {
-      items: {
-        type: "array",
-        description: "Candidate requirements documents. Can be empty.",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string", description: "Name for this requirements document." },
-            description: { type: "string", description: "One or two sentences describing what it holds and why." },
-            source: {
-              type: "string",
-              enum: ["reference", "inferred_from_prompt"],
-              description: "\"reference\" if carried over from the picked reference part tree's own requirements document; \"inferred_from_prompt\" if you identified it from the user's own request instead.",
-            },
-            sourceFileId: {
-              type: "number",
-              description: "Only when source is \"reference\" — the id of the requirements document this was carried over from.",
-            },
-          },
-          required: ["name", "description", "source"],
-        },
-      },
-    },
-    required: ["items"],
   },
 };
 

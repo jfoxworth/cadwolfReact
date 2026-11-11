@@ -30,11 +30,12 @@ export function importsClause(item: Item, importsByItemId: Map<string, ImportEdg
     .join("; ");
 }
 
-/** "Part" / "Subsystem" / "Requirements Document" for a part-tree item — the vocabulary used
+/** "Part" / "Subsystem" / "Requirements Document" / "Design Document" for a part-tree item — the vocabulary used
  *  throughout the AI chat (page context, selection chip, tool descriptions) instead of the raw
  *  ItemType/fileTypeId strings, which don't distinguish a requirements document from a part. */
 export function itemTypeLabel(item: Item): string {
   if (item.type === "WORKSPACE") return "Subsystem";
+  if (item.type === "DOCUMENT" && item.isDesignDocument) return "Design Document";
   if (item.type === "DOCUMENT") return item.isAnalysis ? "Requirements Document" : "Part";
   return item.type;
 }

@@ -6,13 +6,11 @@ import { getSessionUser } from "@/utils/getSessionUser";
 import { TYPE_ROUTE } from "@/utils/resolveRoute";
 import {
   TOOLS_BY_PAGE_TYPE, SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME,
-  READ_PART_TREE_TOOL_NAME, FIND_SIMILAR_PART_TREES_TOOL_NAME, PROPOSE_BUILD_PLAN_TOOL_NAME,
-  PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME, getPartTreeTools, getDocumentTools,
+  READ_PART_TREE_TOOL_NAME, getPartTreeTools, getDocumentTools,
 } from "./tools";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { readDocumentForChat } from "@/utils/readDocument";
 import { readPartTreeForChat } from "@/utils/readPartTree";
-import { findSimilarPartTreesForChat } from "@/utils/findSimilarPartTrees";
 import { anthropicClient as client } from "@/utils/anthropicClient";
 import { db } from "@/utils/db";
 import { DEFAULT_MODEL_KEY, isAiModelKey, resolveModelId, DEFAULT_EFFORT_KEY, isAiEffortKey } from "@/utils/aiModels";
@@ -21,17 +19,7 @@ import { DEFAULT_MODEL_KEY, isAiModelKey, resolveModelId, DEFAULT_EFFORT_KEY, is
 // tool_result before the model finishes) rather than forwarded to the client as a proposal to
 // apply — see the toolResults loop below.
 const SERVER_EXECUTED_TOOL_NAMES = new Set([
-  SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME, READ_PART_TREE_TOOL_NAME, FIND_SIMILAR_PART_TREES_TOOL_NAME,
-]);
-
-// The Build-mode wizard's three checkpoint tools — each one is a point where the UI must stop
-// and let the user act (pick a candidate, settle requirements, approve a tree) before anything
-// else happens. Whichever of these appears first in a message wins: every other tool_use block
-// alongside it in that same message is dropped (not emitted, not executed) and the turn ends
-// right after handling it, rather than letting the model keep going — or skip straight past the
-// checkpoint — within the same request. See the toolUseBlocks loop below.
-const CHECKPOINT_TOOL_NAMES = new Set([
-  FIND_SIMILAR_PART_TREES_TOOL_NAME, PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME, PROPOSE_BUILD_PLAN_TOOL_NAME,
+  SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME, READ_PART_TREE_TOOL_NAME,
 ]);
 
 const PAGE_TYPES = new Set(Object.values(TYPE_ROUTE));
@@ -62,7 +50,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, currentFileId, mode, modelKey, effortKey } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, mode, modelKey, effortKey } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -180,48 +168,11 @@ export async function POST(req: NextRequest) {
           );
           const serverCalls = toolUseBlocks.filter((b) => SERVER_EXECUTED_TOOL_NAMES.has(b.name));
 
-          const checkpointBlock = toolUseBlocks.find((b) => CHECKPOINT_TOOL_NAMES.has(b.name));
-
           // Every tool call gets emitted to the client — including server-executed ones, so
           // they're visible in the transcript like any other call — but those are also executed
           // server-side below, unlike every other tool (which the client applies itself).
-          // propose_build_plan/propose_requirements_review are neither: they're structured-
-          // output calls with no side effect of their own, so each gets its own event instead
-          // of the generic tool_use shape the client would otherwise try to render as a
-          // mutating proposal card.
           for (const block of toolUseBlocks) {
-            if (checkpointBlock && block !== checkpointBlock) continue;
-            if (block.name === PROPOSE_BUILD_PLAN_TOOL_NAME) {
-              emit({ type: "tree_proposal", id: block.id, tree: block.input });
-            } else if (block.name === PROPOSE_REQUIREMENTS_REVIEW_TOOL_NAME) {
-              // Emitted even when items is empty — the review stage still needs to hear back so
-              // it can show its own "nothing found, want to add one?" state, same reasoning as
-              // find_similar_part_trees's empty-candidates case below.
-              emit({ type: "requirements_proposal", id: block.id, items: (block.input as { items?: unknown[] }).items ?? [] });
-            } else {
-              emit({ type: "tool_use", id: block.id, name: block.name, input: block.input });
-            }
-          }
-
-          if (checkpointBlock) {
-            if (checkpointBlock.name === FIND_SIMILAR_PART_TREES_TOOL_NAME) {
-              const description = (checkpointBlock.input as { description?: string }).description ?? "";
-              try {
-                const fileId = Number(currentFileId);
-                const { candidates } = await findSimilarPartTreesForChat(
-                  userId, description, Number.isFinite(fileId) ? fileId : null,
-                );
-                // Emitted even when empty — Stage 2 still needs to hear back so it can show its
-                // "nothing close, build from scratch" state instead of the request just going
-                // quiet after the model's "let me check for similar trees" text.
-                emit({ type: "candidates", items: candidates });
-              } catch (err) {
-                emit({ type: "text", text: `\n\n*(Search failed: ${err instanceof Error ? err.message : "unknown error"})*` });
-              }
-            }
-            // propose_build_plan / propose_requirements_review need no further handling here —
-            // already emitted as their own event in the per-block loop above.
-            break;
+            emit({ type: "tool_use", id: block.id, name: block.name, input: block.input });
           }
 
           if (serverCalls.length > 0) {
@@ -270,13 +221,10 @@ export async function POST(req: NextRequest) {
                 }
                 toolResults.push({ type: "tool_result", tool_use_id: block.id, content: resultText });
               } else {
-                // Covers mutating proposal tools (client applies them) and propose_build_plan/
-                // propose_requirements_review (already emitted above as their own event) —
-                // neither has anything to execute here, just a placeholder result so the API's
-                // per-tool_use requirement is satisfied on the rare path where one of these
-                // coexists with a server call in the same message. None of the three checkpoint
-                // tools (CHECKPOINT_TOOL_NAMES) ever reach this loop — they're handled, and the
-                // turn ended, above.
+                // Mutating proposal tools (the client applies them) have nothing to execute
+                // here — just a placeholder result so the API's per-tool_use requirement is
+                // satisfied on the rare path where one coexists with a server call in the
+                // same message.
                 toolResults.push({ type: "tool_result", tool_use_id: block.id, content: "Proposed to the user for review." });
               }
             }

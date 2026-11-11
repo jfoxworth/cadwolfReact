@@ -3,6 +3,7 @@ import { fileToItem } from "./transformers";
 import { fetchDescendants } from "./fetchDescendants";
 import type { ImportEdge } from "./partTreeToText";
 import type { Item } from "@/types/item";
+import { isDesignDocument } from "../agents/designDocument";
 import type { File } from "@prisma/client";
 
 export interface PartTreeGraphData {
@@ -22,7 +23,10 @@ export async function buildPartTreeGraphData(rootId: number): Promise<PartTreeGr
   const root = await db.file.findUnique({ where: { id: rootId } });
   if (!root || !["PartTree", "Part Tree"].includes(root.fileTypeId)) return null;
 
-  const descendants = await fetchDescendants(rootId);
+  // Design documents (agents/designDocument.ts) are the AI build's own record, not part of the
+  // structure: leaving them out keeps them out of the structural embedding and out of what the
+  // AI reads as the tree.
+  const descendants = (await fetchDescendants(rootId)).filter((d) => !isDesignDocument(d.itemData));
   const items = descendants.map(fileToItem);
   const rootItem = fileToItem(root);
 

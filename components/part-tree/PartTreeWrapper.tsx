@@ -9,14 +9,8 @@ import PartTreeCadModal from "./PartTreeCadModal";
 import PartTreeDescriptionModal from "./PartTreeDescriptionModal";
 import type { PartTreePageData } from "@/types/part-tree";
 import type { Item } from "@/types/item";
-import {
-  useChat, type BlockProposal, type BuildPlan, type BuildPlanNode,
-  type GeneratedDocState, type GenerationStatus,
-} from "@/context/ChatContext";
+import { useChat, type BlockProposal } from "@/context/ChatContext";
 import { buildPartTreePageContext, buildSelectedItemLocation, itemTypeLabel, importsClause, type ImportEdge } from "@/utils/partTreeToText";
-import { BLOCK_TYPE_TO_COMPONENT_ID } from "@/utils/transformers";
-import { rawToLatex } from "@/utils/rawToLatex";
-import type { BlockType } from "@/types/document";
 
 interface OnshapeConnInfo {
   documentId: string;
@@ -58,7 +52,7 @@ function computeCadDisplayValues(
   isRoot = false,
 ): EqValue {
   if (item.type === "DOCUMENT") {
-    if (item.isAnalysis) {
+    if (item.isAnalysis || item.isDesignDocument) {
       out.set(item.id, { value: null, unit: null });
       return { value: null, unit: null };
     }
@@ -117,7 +111,7 @@ function computeDisplayValues(
   isRoot = false,
 ): EqValue {
   if (item.type === "DOCUMENT") {
-    if (item.isAnalysis) {
+    if (item.isAnalysis || item.isDesignDocument) {
       out.set(item.id, { value: null, unit: null });
       return { value: null, unit: null };
     }
@@ -156,7 +150,7 @@ function computeDisplayValues(
 export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Props) {
   const { partTree } = data;
   const router = useRouter();
-  const { mode, setPageContext, setCurrentFileId, setSelectedBlock, registerProposalHandlers, setCanBuild, referenceTreeId } = useChat();
+  const { mode, setPageContext, setCurrentFileId, setSelectedBlock, registerProposalHandlers, setCanBuild } = useChat();
   const [items, setItems] = useState<Item[]>(data.items);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [valueToSum, setValueToSum] = useState("");
@@ -602,239 +596,6 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
     }
   }, []);
 
-  // Build mode Stage 5's confirm action — walks the already-approved propose_build_plan tree
-  // and creates each node as a real (empty) file, parent-before-child, reusing the same
-  // create path as a create_file proposal. Accumulates every created Document node (never
-  // Workspace/subsystem nodes — they have no content) into `out`, paired with its originating
-  // BuildPlanNode, so Stage 6 (content generation) can look up each one's description/
-  // templateFileId later without re-deriving them from proposedBuildPlan a second time.
-  async function buildPlanNode(node: BuildPlanNode, parentId: string, out: { item: Item; node: BuildPlanNode }[]) {
-    const created = await createFileFromChat(parentId, node.nodeType, node.name, node.isRequirementsDocument);
-    if (!created) throw new Error(`Couldn't create "${node.name}" — check you have edit access there.`);
-    if (node.nodeType === "Document") out.push({ item: created, node });
-    for (const child of node.children ?? []) {
-      await buildPlanNode(child, created.id, out);
-    }
-  }
-
-  // Holds the last build's created Document nodes (with their originating BuildPlanNode) —
-  // ChatContext's buildDocuments only carries {fileId, name, isRequirementsDocument}, so Stage
-  // 6's generation calls (which also need description/templateFileId) and per-row retries look
-  // the fuller pair up here instead.
-  const confirmedNodesRef = useRef<{ item: Item; node: BuildPlanNode }[]>([]);
-  // The requirements documents that successfully generated+solved during the current/last
-  // Stage 6 run — threaded through so a later individual retry (e.g. a part the user retries
-  // after the run finished) still has the full, current set of available imports to work with.
-  const solvedRequirementFileIdsRef = useRef<string[]>([]);
-  // Solved physical parts from the current/last Stage 6 run, keyed by their originating
-  // BuildPlanNode.name (not fileId — a dependency is declared by name in dependsOnNodeNames,
-  // since the dependent part is proposed before any file exists to have an id at all).
-  const solvedPartFileIdsByNameRef = useRef<Map<string, string>>(new Map());
-
-  async function handleConfirmBuild(tree: BuildPlan) {
-    const out: { item: Item; node: BuildPlanNode }[] = [];
-    for (const node of tree.nodes) {
-      await buildPlanNode(node, partTree.id, out);
-    }
-    confirmedNodesRef.current = out;
-    solvedRequirementFileIdsRef.current = [];
-    solvedPartFileIdsByNameRef.current = new Map();
-    return out.map(({ item, node }) => ({
-      fileId: item.id,
-      name: item.name,
-      isRequirementsDocument: !!node.isRequirementsDocument,
-    }));
-  }
-
-  // One document's generation + persistence + solve, shared by the initial Stage 6 run and a
-  // later per-row retry of a "failed" (nothing written yet) document. `createdAnyBlock` tracks
-  // whether persistence got far enough that a failure afterward must NOT be retried by calling
-  // this again (that would duplicate blocks) — see the "content_written_resolve_failed" status.
-  async function generateAndResolveDocument(
-    doc: { fileId: string; name: string; isRequirementsDocument: boolean },
-    node: BuildPlanNode | undefined,
-    requirementsContext: string[],
-    dependencyContext: string[] = [],
-  ): Promise<{ status: GenerationStatus; error?: string }> {
-    let createdAnyBlock = false;
-    try {
-      const res = await fetch("/api/part-tree/generate-document", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileId: Number(doc.fileId),
-          name: doc.name,
-          description: node?.description ?? "",
-          isRequirementsDocument: doc.isRequirementsDocument,
-          templateFileId: node?.templateFileId,
-          referenceTreeId,
-          requirementsContext: requirementsContext.map(Number),
-          dependencyContext: dependencyContext.map(Number),
-        }),
-      });
-      if (!res.ok) throw new Error("Content generation failed.");
-      const { blocks, imports } = await res.json() as {
-        blocks: { type: string; text?: string; level?: number; raw?: string; expression?: string }[];
-        imports: { sourceFileId: number; sourceFileName: string; sourceVariableName: string; localAlias: string; value: number; units?: string }[];
-      };
-
-      // Brand-new empty file — plain sequential order is correct as-is, unlike
-      // documentWrapper.tsx's insert-relative-to-an-anchor reassignment logic (which only
-      // matters when merging into an already-populated document).
-      for (let i = 0; i < blocks.length; i++) {
-        const b = blocks[i];
-        const blockType: BlockType =
-          b.type === "equation" ? "EQUATION" :
-          b.type === "header" ? "HEADER" :
-          b.type === "symbolic_equation" ? "SYMBOLIC_EQUATION" : "TEXT";
-        const definition =
-          blockType === "EQUATION" ? { raw: b.raw ?? "", displayEq: rawToLatex(b.raw ?? ""), width: "full" } :
-          blockType === "HEADER" ? { text: b.text ?? "", level: b.level ?? 2, width: "full" } :
-          blockType === "SYMBOLIC_EQUATION" ? { expression: b.expression ?? "", width: "full" } :
-          { text: b.text ?? "", width: "full" };
-        const componentRes = await fetch("/api/component", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileId: Number(doc.fileId),
-            componentTypeId: BLOCK_TYPE_TO_COMPONENT_ID[blockType],
-            content: JSON.stringify({ _v2: true, ...definition }),
-            order: i,
-          }),
-        });
-        if (!componentRes.ok) throw new Error(`Failed to write a block for "${doc.name}".`);
-        createdAnyBlock = true;
-      }
-
-      // FileImport rows must exist before resolving, or the document's own equations would
-      // solve without the values they're importing.
-      for (const imp of imports) {
-        const impRes = await fetch("/api/file-import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileId: Number(doc.fileId),
-            sourceFileId: imp.sourceFileId,
-            sourceFileName: imp.sourceFileName,
-            sourceVariableName: imp.sourceVariableName,
-            localAlias: imp.localAlias,
-            // FileImport.value is a String? column (confirmed in prisma/schema.prisma) — every
-            // other caller of this route (DocumentFileInputsModal.tsx) already sends a string;
-            // imp.value here is a real number from getSolvedDocumentVariables, so it must be
-            // stringified or Prisma rejects it outright ("Expected String or Null, provided Float").
-            value: String(imp.value),
-            units: imp.units,
-          }),
-        });
-        if (!impRes.ok) throw new Error(`Failed to wire an import for "${doc.name}".`);
-      }
-
-      const item = confirmedNodesRef.current.find((p) => p.item.id === doc.fileId)?.item;
-      if (item) {
-        const resolved = await handleResolve(item);
-        if (!resolved) return { status: "content_written_resolve_failed", error: "Generated but failed to solve." };
-      }
-      return { status: "done" };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to generate content.";
-      return { status: createdAnyBlock ? "content_written_resolve_failed" : "failed", error: message };
-    }
-  }
-
-  // Build mode Stage 6 — two sequential passes (no parallelism): requirements documents first
-  // (so their solved values exist before any part tries to import one), then parts, each given
-  // the full set of requirements documents that successfully solved so far. One failed
-  // requirements document never aborts the run — it's just absent from `requirementsContext`
-  // for every part generated after it, which the top-level banner (thrown here, surfaced by
-  // ChatContext as generationError) calls out explicitly rather than failing silently.
-  // Orders parts so a part always generates after every part it `dependsOnNodeNames` — a
-  // depth-first topological sort over that name graph. A cycle (or a name that doesn't resolve
-  // to another part in this batch) never deadlocks: visiting a node already mid-visit just skips
-  // re-entering it, dropping the back-edge rather than looping forever.
-  function topoSortParts(parts: GeneratedDocState[], nodeByFileId: Map<string, BuildPlanNode | undefined>): GeneratedDocState[] {
-    const nameToDoc = new Map<string, GeneratedDocState>();
-    for (const d of parts) {
-      const n = nodeByFileId.get(d.fileId)?.name;
-      if (n) nameToDoc.set(n, d);
-    }
-    const visited = new Set<string>();
-    const visiting = new Set<string>();
-    const sorted: GeneratedDocState[] = [];
-    function visit(d: GeneratedDocState) {
-      if (visited.has(d.fileId) || visiting.has(d.fileId)) return;
-      visiting.add(d.fileId);
-      for (const depName of nodeByFileId.get(d.fileId)?.dependsOnNodeNames ?? []) {
-        const depDoc = nameToDoc.get(depName);
-        if (depDoc) visit(depDoc);
-      }
-      visiting.delete(d.fileId);
-      visited.add(d.fileId);
-      sorted.push(d);
-    }
-    for (const d of parts) visit(d);
-    return sorted;
-  }
-
-  async function handleGenerateDocuments(
-    docs: GeneratedDocState[],
-    onStatus: (fileId: string, status: GenerationStatus, error?: string) => void,
-  ) {
-    const nodeByFileId = new Map(confirmedNodesRef.current.map((p) => [p.item.id, p.node]));
-    const requirementsDocs = docs.filter((d) => d.isRequirementsDocument);
-    const parts = topoSortParts(docs.filter((d) => !d.isRequirementsDocument), nodeByFileId);
-    const failedRequirementNames: string[] = [];
-
-    for (const doc of requirementsDocs) {
-      onStatus(doc.fileId, "generating");
-      const result = await generateAndResolveDocument(doc, nodeByFileId.get(doc.fileId), solvedRequirementFileIdsRef.current);
-      onStatus(doc.fileId, result.status, result.error);
-      if (result.status === "done") solvedRequirementFileIdsRef.current.push(doc.fileId);
-      else failedRequirementNames.push(doc.name);
-    }
-
-    for (const doc of parts) {
-      onStatus(doc.fileId, "generating");
-      const node = nodeByFileId.get(doc.fileId);
-      const dependencyContext = (node?.dependsOnNodeNames ?? [])
-        .map((depName) => solvedPartFileIdsByNameRef.current.get(depName))
-        .filter((id): id is string => id !== undefined);
-      const result = await generateAndResolveDocument(doc, node, solvedRequirementFileIdsRef.current, dependencyContext);
-      onStatus(doc.fileId, result.status, result.error);
-      if (result.status === "done" && node?.name) solvedPartFileIdsByNameRef.current.set(node.name, doc.fileId);
-    }
-
-    if (failedRequirementNames.length > 0) {
-      throw new Error(
-        `${failedRequirementNames.length} requirements document(s) failed to generate (${failedRequirementNames.join(", ")}) — parts generated after this point may be missing an intended import; review them.`,
-      );
-    }
-  }
-
-  // Per-row retry. A document still in "failed" has nothing persisted yet, so retrying means
-  // regenerating from scratch; "content_written_resolve_failed" must retry by re-solving only
-  // (the existing per-row onResolve action) — regenerating would duplicate its blocks.
-  async function handleRetryDocument(doc: GeneratedDocState): Promise<{ status: GenerationStatus; error?: string }> {
-    if (doc.status === "content_written_resolve_failed") {
-      const item = confirmedNodesRef.current.find((p) => p.item.id === doc.fileId)?.item;
-      if (!item) return { status: "failed", error: "Document no longer found." };
-      const resolved = await handleResolve(item);
-      return resolved ? { status: "done" } : { status: "content_written_resolve_failed", error: "Still failed to solve." };
-    }
-    const node = confirmedNodesRef.current.find((p) => p.item.id === doc.fileId)?.node;
-    const dependencyContext = (node?.dependsOnNodeNames ?? [])
-      .map((depName) => solvedPartFileIdsByNameRef.current.get(depName))
-      .filter((id): id is string => id !== undefined);
-    const result = await generateAndResolveDocument(doc, node, solvedRequirementFileIdsRef.current, dependencyContext);
-    if (result.status === "done") {
-      if (doc.isRequirementsDocument && !solvedRequirementFileIdsRef.current.includes(doc.fileId)) {
-        solvedRequirementFileIdsRef.current.push(doc.fileId);
-      } else if (node?.name) {
-        solvedPartFileIdsByNameRef.current.set(node.name, doc.fileId);
-      }
-    }
-    return result;
-  }
-
   async function handleToggleAnalysis(itemId: string, isAnalysis: boolean) {
     await fetch(`/api/file/${itemId}`, {
       method: "PUT",
@@ -902,9 +663,6 @@ export default function PartTreeWrapper({ data, userId, canEdit, canAdmin }: Pro
         }
       },
       onReject: () => {},
-      onConfirmBuild: handleConfirmBuild,
-      onGenerateDocuments: handleGenerateDocuments,
-      onRetryDocument: handleRetryDocument,
     });
     return () => registerProposalHandlers(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps

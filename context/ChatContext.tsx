@@ -55,67 +55,6 @@ export interface BlockProposal {
  *  being told which mode is active; tool-gating by mode beyond Build is still future work. */
 export type ChatMode = "overview" | "inspect" | "build";
 
-/** Part-tree Build mode only: the 6-stage wizard (prompt → candidate selection →
- *  requirements review → tree review → build → generate content). Stage 1 has no dedicated UI
- *  beyond the normal prompt box; 2-6 render in ChatPanel.tsx once the corresponding data
- *  (buildCandidates / proposedRequirements / proposedBuildPlan / buildDocuments) exists. */
-export type BuildStage = 1 | 2 | 3 | 4 | 5 | 6;
-
-/** One candidate from find_similar_part_trees, parsed server-side from the same tool result the
- *  model itself receives (app/api/chat/route.ts's "candidates" event) — not a second lookup. */
-export interface BuildCandidate {
-  fileId: number;
-  name: string;
-  distance: number;
-}
-
-/** One item of a propose_requirements_review tool call — mirrors its input_schema in
- *  app/api/chat/tools.ts. Stage 3, between candidate selection and the full tree proposal. */
-export interface RequirementItem {
-  name: string;
-  description: string;
-  source: "reference" | "inferred_from_prompt";
-  sourceFileId?: number;
-}
-
-/** One node of a propose_build_plan tool call — mirrors BUILD_PLAN_NODE_PROPERTIES in
- *  app/api/chat/tools.ts. No ids yet; nothing has been created. */
-export interface BuildPlanNode {
-  name: string;
-  nodeType: "Workspace" | "Document";
-  isRequirementsDocument?: boolean;
-  /** Id of a document in the reference part tree this node's content should be adapted from
-   *  (Stage 6) — set by the model at Stage 4 when read_part_tree already showed a clear analog.
-   *  Untrusted until Stage 6 actually resolves it (a bad/stale id just means no reference). */
-  templateFileId?: number;
-  /** Names of other Document nodes in this same plan that this part is physically mated to and
-   *  derives a dimension from (a threaded fastener setting a bore, a pin setting a hole size) —
-   *  not a shared target like a load or safety factor, which belongs in a requirements document
-   *  instead. Resolved to a real fileId at Stage 6 once that sibling has actually generated and
-   *  solved; a name that never resolves just means no dependency available. */
-  dependsOnNodeNames?: string[];
-  description: string;
-  children?: BuildPlanNode[];
-}
-
-export interface BuildPlan {
-  nodes: BuildPlanNode[];
-}
-
-/** Stage 6 — one Document node from the approved tree, as content generation is working
- *  through it. "content_written_resolve_failed" is distinct from "failed" because its retry
- *  action must be different: blocks already exist, so retrying must re-run resolve only, never
- *  regenerate (which would duplicate them). */
-export type GenerationStatus = "pending" | "generating" | "content_written_resolve_failed" | "done" | "failed";
-
-export interface GeneratedDocState {
-  fileId: string;
-  name: string;
-  isRequirementsDocument: boolean;
-  status: GenerationStatus;
-  error?: string;
-}
-
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -173,25 +112,6 @@ export interface DocumentProposalHandlers {
   /** Document only. Reverses one already-applied proposal: removes the block for an add,
    *  restores its prior content for an edit. May throw/reject. */
   onUndo?: (proposal: BlockProposal) => void | Promise<void>;
-  /** Part Tree Build mode only (Stage 5's confirm action). Walks the approved tree and creates
-   *  each node as an empty file, parent-before-child. May throw/reject (e.g. a permission
-   *  failure partway through) — confirmBuild surfaces that as buildError rather than silently
-   *  resetting the wizard. Returns the flattened list of created Document nodes (Workspace
-   *  nodes excluded — they have no content) so Stage 6 knows what to generate content for. */
-  onConfirmBuild?: (tree: BuildPlan) => Promise<{ fileId: string; name: string; isRequirementsDocument: boolean }[]>;
-  /** Part Tree Build mode only (Stage 6). Implements the actual two-pass (requirements docs,
-   *  then parts) sequential generation loop, calling `onStatus` between each document so the
-   *  UI can show live per-item progress. May throw for a run-level failure; a single document's
-   *  failure should be reported via onStatus instead, not by throwing. */
-  onGenerateDocuments?: (
-    docs: GeneratedDocState[],
-    onStatus: (fileId: string, status: GenerationStatus, error?: string) => void,
-  ) => Promise<void>;
-  /** Part Tree Build mode only (Stage 6, per-row retry). `doc` carries its pre-retry status —
-   *  "content_written_resolve_failed" must retry by re-solving only (re-running generation
-   *  would duplicate already-written blocks); any other failed status is safe to regenerate
-   *  from scratch, since nothing was persisted yet. */
-  onRetryDocument?: (doc: GeneratedDocState) => Promise<{ status: GenerationStatus; error?: string }>;
 }
 
 interface ChatContextType {
@@ -226,54 +146,14 @@ interface ChatContextType {
    *  pageContext so the model can actually see the pictures, not just a text label for them. */
   setPageImages: (urls: string[]) => void;
   /** The numeric id of the file the user is currently on (part-tree pages only, for now) —
-   *  sent with every chat request so the server can exclude it from find_similar_part_trees'
-   *  own results (otherwise the current tree is its own closest embedding match). */
+   *  the Build panel needs it to know which part tree to build. */
+  currentFileId: number | null;
   setCurrentFileId: (id: number | null) => void;
   registerProposalHandlers: (handlers: DocumentProposalHandlers | null) => void;
   approveProposal: (messageIndex: number, proposalId: string) => void;
   rejectProposal: (messageIndex: number, proposalId: string) => void;
   /** Reverses an already-applied Document proposal (status "applied") via onUndo. */
   undoProposal: (messageIndex: number, proposalId: string) => void;
-  /** Part Tree Build mode's 6-stage wizard. Jumping back to an earlier stage (clicking the
-   *  stage indicator) is just setBuildStage directly — buildCandidates/proposedRequirements/
-   *  proposedBuildPlan/buildDocuments are kept around rather than cleared, so going back and
-   *  forward again doesn't lose data. */
-  buildStage: BuildStage;
-  setBuildStage: (stage: BuildStage) => void;
-  buildCandidates: BuildCandidate[];
-  /** The fileId of the reference part tree the user picked from buildCandidates in Stage 2 (or
-   *  null if they skipped). Threaded through to Stage 6 content generation so each document's
-   *  template can be matched by real content (utils/findSimilarPartTreeDocuments.ts) instead of
-   *  the model guessing templateFileId from a name-only tree dump. */
-  referenceTreeId: number | null;
-  setReferenceTreeId: (id: number | null) => void;
-  proposedRequirements: RequirementItem[] | null;
-  proposedBuildPlan: BuildPlan | null;
-  /** True while onConfirmBuild's real file-creation calls are in flight. */
-  isBuildingFiles: boolean;
-  /** Set when onConfirmBuild throws — cleared on the next confirmBuild attempt. */
-  buildError: string | null;
-  /** Stage 5's confirm action: calls the registered onConfirmBuild with the current
-   *  proposedBuildPlan, and on success populates buildDocuments and moves to Stage 6 (instead
-   *  of resetting the wizard — that now happens when the user clicks "Finish" on Stage 6). */
-  confirmBuild: () => Promise<void>;
-  /** Stage 6 — one entry per Document node created in Stage 5, with live generation status. */
-  buildDocuments: GeneratedDocState[];
-  /** True while onGenerateDocuments' run is in flight. */
-  isGeneratingContent: boolean;
-  /** Run-level message (e.g. "N requirements documents failed") — distinct from a single
-   *  document's own per-item error, shown as a persistent banner for the rest of the run. */
-  generationError: string | null;
-  /** Stage 6's "Generate content" action: calls the registered onGenerateDocuments over the
-   *  current buildDocuments. Does not reset the wizard afterward — Stage 6 is a terminal
-   *  summary screen; "Finish" (clearMessages) is the explicit way back to Stage 1. */
-  runContentGeneration: () => Promise<void>;
-  /** Updates one buildDocuments entry's status/error in place — passed to onGenerateDocuments
-   *  as its onStatus callback. */
-  updateDocumentStatus: (fileId: string, status: GenerationStatus, error?: string) => void;
-  /** Per-row retry for one failed/content_written_resolve_failed document — calls the
-   *  registered onRetryDocument with that document's current (pre-retry) state. */
-  retryDocument: (fileId: string) => Promise<void>;
   /** Called by the document page whenever the selected block changes. `onClear` is invoked if the
    *  chat UI clears the selection itself (e.g. the chip's dismiss button), so the canvas selection
    *  stays in sync. */
@@ -321,19 +201,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
   }, []);
   const [canBuild, setCanBuild] = useState(true);
-  const [buildStage, setBuildStage] = useState<BuildStage>(1);
-  const [buildCandidates, setBuildCandidates] = useState<BuildCandidate[]>([]);
-  const [referenceTreeId, setReferenceTreeId] = useState<number | null>(null);
-  const [proposedRequirements, setProposedRequirements] = useState<RequirementItem[] | null>(null);
-  const [proposedBuildPlan, setProposedBuildPlan] = useState<BuildPlan | null>(null);
-  const [isBuildingFiles, setIsBuildingFiles] = useState(false);
-  const [buildError, setBuildError] = useState<string | null>(null);
-  const [buildDocuments, setBuildDocuments] = useState<GeneratedDocState[]>([]);
-  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(null);
   const pageContextRef = useRef<string | null>(null);
   const pageImagesRef = useRef<string[]>([]);
-  const currentFileIdRef = useRef<number | null>(null);
+  const [currentFileId, setCurrentFileIdState] = useState<number | null>(null);
   const clearSelectionRef = useRef<(() => void) | null>(null);
   const proposalHandlersRef = useRef<DocumentProposalHandlers | null>(null);
   const setPageContext = useCallback((context: string | null) => {
@@ -343,7 +213,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     pageImagesRef.current = urls;
   }, []);
   const setCurrentFileId = useCallback((id: number | null) => {
-    currentFileIdRef.current = id;
+    setCurrentFileIdState(id);
   }, []);
 
   const setSelectedBlock = useCallback((info: SelectedBlockInfo | null, onClear?: () => void) => {
@@ -428,66 +298,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const toggleChat = useCallback(() => setIsOpen((v) => !v), []);
   const openChat = useCallback(() => setIsOpen(true), []);
-  // A "new build conversation" is exactly "the user cleared the chat" — there's no other
-  // signal for it, and reusing clearMessages keeps the wizard from drifting out of sync with
-  // what the model can actually see (it has no memory of a cleared conversation either).
   const clearMessages = useCallback(() => {
     setMessages([]);
-    setBuildStage(1);
-    setBuildCandidates([]);
-    setReferenceTreeId(null);
-    setProposedRequirements(null);
-    setProposedBuildPlan(null);
-    setBuildError(null);
-    setBuildDocuments([]);
-    setGenerationError(null);
   }, []);
-
-  const confirmBuild = useCallback(async () => {
-    if (!proposedBuildPlan) return;
-    setIsBuildingFiles(true);
-    setBuildError(null);
-    try {
-      if (!proposalHandlersRef.current?.onConfirmBuild) throw new Error("This page isn't set up to build this.");
-      const created = await proposalHandlersRef.current.onConfirmBuild(proposedBuildPlan);
-      setBuildDocuments(created.map((d) => ({ ...d, status: "pending" as const })));
-      setBuildStage(6);
-    } catch (err) {
-      setBuildError(err instanceof Error ? err.message : "Failed to build.");
-    } finally {
-      setIsBuildingFiles(false);
-    }
-  }, [proposedBuildPlan]);
-
-  const updateDocumentStatus = useCallback((fileId: string, status: GenerationStatus, error?: string) => {
-    setBuildDocuments((prev) => prev.map((d) => (d.fileId === fileId ? { ...d, status, error } : d)));
-  }, []);
-
-  const retryDocument = useCallback(async (fileId: string) => {
-    const doc = buildDocuments.find((d) => d.fileId === fileId);
-    if (!doc) return;
-    updateDocumentStatus(fileId, "generating");
-    try {
-      if (!proposalHandlersRef.current?.onRetryDocument) throw new Error("This page isn't set up to retry this.");
-      const result = await proposalHandlersRef.current.onRetryDocument(doc);
-      updateDocumentStatus(fileId, result.status, result.error);
-    } catch (err) {
-      updateDocumentStatus(fileId, "failed", err instanceof Error ? err.message : "Retry failed.");
-    }
-  }, [buildDocuments, updateDocumentStatus]);
-
-  const runContentGeneration = useCallback(async () => {
-    setIsGeneratingContent(true);
-    setGenerationError(null);
-    try {
-      if (!proposalHandlersRef.current?.onGenerateDocuments) throw new Error("This page isn't set up to generate content.");
-      await proposalHandlersRef.current.onGenerateDocuments(buildDocuments, updateDocumentStatus);
-    } catch (err) {
-      setGenerationError(err instanceof Error ? err.message : "Failed to generate content.");
-    } finally {
-      setIsGeneratingContent(false);
-    }
-  }, [buildDocuments, updateDocumentStatus]);
 
   const sendMessage = useCallback(async (content: string, pagePath?: string) => {
     const userMessage: ChatMessage = { role: "user", content };
@@ -513,7 +326,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           pagePath,
           pageContext: pageContextRef.current,
           pageImages: pageImagesRef.current,
-          currentFileId: currentFileIdRef.current,
           selectedBlockContext,
           mode,
           modelKey,
@@ -589,15 +401,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             proposalHandlersRef.current?.onPropose?.(proposal);
           } else if (event.type === "usage") {
             setLastUsage({ input: event.input as number, output: event.output as number });
-          } else if (event.type === "candidates") {
-            setBuildCandidates(event.items as BuildCandidate[]);
-            setBuildStage(2);
-          } else if (event.type === "requirements_proposal") {
-            setProposedRequirements(event.items as RequirementItem[]);
-            setBuildStage(3);
-          } else if (event.type === "tree_proposal") {
-            setProposedBuildPlan(event.tree as BuildPlan);
-            setBuildStage(4);
           } else if (event.type === "error") {
             const message = event.message as string;
             setMessages((prev) => {
@@ -709,6 +512,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         clearMessages,
         setPageContext,
         setPageImages,
+        currentFileId,
         setCurrentFileId,
         setSelectedBlock,
         clearSelectedBlock,
@@ -716,22 +520,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         approveProposal,
         rejectProposal,
         undoProposal,
-        buildStage,
-        setBuildStage,
-        buildCandidates,
-        referenceTreeId,
-        setReferenceTreeId,
-        proposedRequirements,
-        proposedBuildPlan,
-        isBuildingFiles,
-        buildError,
-        confirmBuild,
-        buildDocuments,
-        isGeneratingContent,
-        generationError,
-        runContentGeneration,
-        updateDocumentStatus,
-        retryDocument,
       }}
     >
       {children}

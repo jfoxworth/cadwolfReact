@@ -2,6 +2,13 @@ import type { PrismaClient, Component } from "@prisma/client";
 import { componentToBlock } from "./transformers";
 import { blockToContextLine, chunkTextBlock } from "./blockToText";
 import { voyageEmbed, VOYAGE_MODEL } from "./voyageEmbed";
+import { isDesignDocument } from "../agents/designDocument";
+
+/** Design documents (agents/designDocument.ts) must never be vectorized. */
+async function designDocumentFileIds(db: PrismaClient, fileIds: number[]): Promise<Set<number>> {
+  const files = await db.file.findMany({ where: { id: { in: fileIds } }, select: { id: true, itemData: true } });
+  return new Set(files.filter((f) => isDesignDocument(f.itemData)).map((f) => f.id));
+}
 
 /** (Re-)computes and stores every embedding chunk for one Component — used by both the
  *  keep-current save hooks (app/api/component routes) and the one-time backfill script, so
@@ -14,6 +21,7 @@ import { voyageEmbed, VOYAGE_MODEL } from "./voyageEmbed";
  *  which callers should treat as non-fatal to whatever save triggered it. */
 export async function embedComponent(db: PrismaClient, component: Component): Promise<void> {
   await db.blockEmbedding.deleteMany({ where: { componentId: component.id } });
+  if ((await designDocumentFileIds(db, [component.fileId])).size > 0) return;
 
   const block = componentToBlock(component);
   const line = blockToContextLine(block);
@@ -51,9 +59,11 @@ export async function embedComponentsBatch(
   if (components.length === 0) return { succeededIds: [], failed: [] };
 
   await db.blockEmbedding.deleteMany({ where: { componentId: { in: components.map((c) => c.id) } } });
+  const designFiles = await designDocumentFileIds(db, [...new Set(components.map((c) => c.fileId))]);
 
   const flat: { component: Component; chunkIndex: number; text: string }[] = [];
   for (const component of components) {
+    if (designFiles.has(component.fileId)) continue; // never embedded
     const block = componentToBlock(component);
     const line = blockToContextLine(block);
     if (!line) continue; // nothing to embed (e.g. LINE_BREAK) — not a failure

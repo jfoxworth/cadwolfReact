@@ -15,7 +15,7 @@ export interface SolvedVariable {
  *  app/api/part-tree/generate-document) — it does no access control itself. */
 export async function getSolvedDocumentVariables(fileId: number): Promise<{ name: string; variables: SolvedVariable[] }> {
   const file = await db.file.findUnique({ where: { id: fileId }, select: { name: true } });
-  const components = await db.component.findMany({ where: { fileId }, orderBy: { order: "asc" } });
+  const components = await db.component.findMany({ where: { fileId, deletedAt: null }, orderBy: { order: "asc" } });
 
   const variables: SolvedVariable[] = [];
   for (const component of components) {

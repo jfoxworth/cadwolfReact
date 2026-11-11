@@ -73,5 +73,6 @@ export interface Item {
   lockedBy?: number | null;   // DOCUMENT/DATASET — userId of the user who has it checked out
   lockedAt?: string | null;   // ISO timestamp of when it was checked out
   order?: number;             // display order within parent workspace/folder
+  isDesignDocument?: boolean; // DOCUMENT — written by the AI build to record its design (agents/designDocument.ts); never embedded, skipped by rollups
   isAnalysis?: boolean;       // DOCUMENT — marks a document as an analysis/calculation (not a physical part)
 }
