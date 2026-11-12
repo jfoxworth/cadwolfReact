@@ -28,14 +28,7 @@ const items = [
     title: "Examples",
     description:
       "The examples workspace provides a few examples designed to get the user started working with ENGENTIC and using part trees.",
-  },
-  {
-    Icon: MessageSquare,
-    link: "https://www.reddit.com/r/CADWOLF/",
-    title: "Reddit",
-    description:
-      "Visit our subreddit to ask general questions, address bugs, or suggest an improvement.",
-  },
+  }
 ];
 
 export default function Community() {

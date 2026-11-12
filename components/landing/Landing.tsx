@@ -1,9 +1,9 @@
 import Nav from "./Nav";
 import Hero from "./Hero";
-import AiShowcase from "./AiShowcase";
+import WhatIsEngentic from "./WhatIsEngentic";
 import TextToSpaceship from "./TextToSpaceship";
-import ProblemSolution from "./ProblemSolution";
 import AiPrompts from "./AiPrompts";
+import EngenticAI from "./EngenticAI";
 import OverviewPanels from "./OverviewPanels";
 import CadBreak from "./CadBreak";
 import ReplaceThem from "./ReplaceThem";
@@ -19,13 +19,10 @@ export default function Landing() {
     <div className="flex flex-col min-h-screen font-sans bg-white">
       <Nav />
       <Hero />
-      <AiShowcase />
+      <WhatIsEngentic />
+      <EngenticAI/>
       <TextToSpaceship />
-      <ProblemSolution />
-      <AiPrompts />
-      <OverviewPanels />
       <CadBreak />
-      <ReplaceThem />
       <ComparisonTable />
       <StartNow />
       <Community />
