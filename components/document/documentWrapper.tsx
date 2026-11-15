@@ -870,7 +870,7 @@ export default function DocumentWrapper({
   // Debug: expose blocks on window for console inspection
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).cwBlocks = virtualBlocks;
 
-  const { setPageContext, setPageImages, setSelectedBlock, registerProposalHandlers, setCanBuild, mode } = useChat();
+  const { setPageContext, setPageImages, setPageEquations, setSelectedBlock, registerProposalHandlers, setCanBuild, mode } = useChat();
 
   // Build mode adds new blocks — that requires both edit permission and having this document
   // actually checked out (effectiveCanEdit already is exactly that combination), same as every
@@ -1269,10 +1269,18 @@ export default function DocumentWrapper({
       .map((b) => (b.definition as { src?: string }).src)
       .filter((src): src is string => !!src);
     setPageImages(imageUrls);
+    // Build mode solves the model's new equations on the server (app/api/chat/documentBuild.ts),
+    // after the equations already here, so it can use their variables.
+    setPageEquations(
+      visibleBlocks
+        .filter((b) => b.type === "EQUATION")
+        .map((b) => (b.definition as { raw?: string }).raw)
+        .filter((raw): raw is string => typeof raw === "string" && raw.trim() !== ""),
+    );
     // Clear on unmount so navigating to a page that doesn't set its own context
     // (or that sets it after a render delay) doesn't inherit this document's stale dump.
-    return () => { setPageContext(null); setPageImages([]); };
-  }, [virtualBlocks, solverResults, mode, selectedBlockId, setPageContext, setPageImages]);
+    return () => { setPageContext(null); setPageImages([]); setPageEquations([]); };
+  }, [virtualBlocks, solverResults, mode, selectedBlockId, setPageContext, setPageImages, setPageEquations]);
 
   // Single shared TipTap editor for all rich-text blocks
   const editor = useEditor({

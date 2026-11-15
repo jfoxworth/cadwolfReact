@@ -16,13 +16,14 @@ export const metadata: Metadata = {
 const prompt = (file: string) => readFileSync(join(process.cwd(), "prompts", file), "utf-8");
 
 const ALL_TOOLS = "equation_block, symbolic_equation_block, text_block, header_block, if_else_block, search_documents";
+const TOOLS_NOTE = `${ALL_TOOLS} (Overview: only search_documents. Build uses its own two calls, shown below)`;
 const ALSO_SENT =
   "your latest message, with the page address, a note that \"this\" means the whole document, the document as text and any images added to the front of it; and the earlier messages in the chat.";
 
 const SYSTEM_PROMPT_VIEW: PromptView = {
   agent: "April, the document assistant",
-  call: "System prompt, sent with every message",
-  tool: `${ALL_TOOLS} (in Overview mode, only search_documents)`,
+  call: "System prompt, sent with every Overview and Inspect message",
+  tool: TOOLS_NOTE,
   alsoSent: ALSO_SENT,
   prompt: `${prompt("_shared.md")}\n\n${prompt("document.md")}`,
 };
@@ -30,11 +31,36 @@ const SYSTEM_PROMPT_VIEW: PromptView = {
 const TOOLS_VIEW: PromptView = {
   agent: "April, the document assistant",
   call: "Tool definitions: what the model is told it can do",
-  tool: `${ALL_TOOLS} (in Overview mode, only search_documents)`,
+  tool: TOOLS_NOTE,
   alsoSent: ALSO_SENT,
   prompt:
-    "In Inspect and Build mode the model is given all of these. In Overview mode it is given only search_documents.\n\n" +
+    "In Inspect mode the model is given all of these. In Overview mode it is given only search_documents. Build mode does not use these: it makes two calls with solve_problem and write_document instead.\n\n" +
     JSON.stringify([...CHAT_TOOLS, SEARCH_TOOL], null, 2),
+};
+
+const PLATFORM_REFERENCE = prompt("document.md").split("\n## Modes")[0];
+const BUILD_ALSO_SENT =
+  "your latest message, with the page address, the document as text and any images added to the front of it; and the earlier messages in the chat. Both steps also get the platform reference, shown below the prompt.";
+
+const SOLVE_VIEW: PromptView = {
+  agent: "April, Build mode, step 1: the mathematics",
+  call: "System prompt for the solving call",
+  tool: "solve_problem, search_documents",
+  alsoSent: BUILD_ALSO_SENT,
+  prompt: `${prompt("_shared.md")}\n\n${prompt("document-solve.md")}`,
+  appendixTitle: "Platform reference (equation syntax, units, functions, constants)",
+  appendix: PLATFORM_REFERENCE,
+};
+
+const WRITE_VIEW: PromptView = {
+  agent: "April, Build mode, step 2: writing the document",
+  call: "System prompt for the writing call",
+  tool: "write_document",
+  alsoSent:
+    BUILD_ALSO_SENT + " It is also given the solved steps from step 1, each with its equation, result and reason.",
+  prompt: `${prompt("_shared.md")}\n\n${prompt("document-write.md")}`,
+  appendixTitle: "Platform reference (equation syntax, units, functions, constants)",
+  appendix: PLATFORM_REFERENCE,
 };
 
 export default function DocumentAiPage() {
@@ -44,14 +70,14 @@ export default function DocumentAiPage() {
         <h1 className="text-3xl font-bold">How the AI works in a document</h1>
         <p className="mt-2 max-w-3xl text-slate-600">
           On a document page, the chat panel talks to an assistant called April. It reads the document as you see it, can
-          answer questions about it, and can add or change blocks. Its changes appear in the document straight away, and you
-          can undo them.
+          answer questions about it, and can add blocks or change the selected one. In Build mode it first solves the maths, then writes the document around
+          the solved equations. Its changes appear in the document straight away, and you can undo them.
         </p>
 
         {/* 1. One message */}
         <Section
-          title="One message, start to finish"
-          intro="Each message you send is one trip through these steps. The model has no memory of its own between messages. Everything it knows comes from what is sent with the message."
+          title="One message in Overview or Inspect mode"
+          intro="Each message you send is one trip through these steps. The model has no memory of its own between messages. Everything it knows comes from what is sent with the message. Build mode works differently: see further down."
         >
           <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-stretch">
             <Card title="You" tone="slate" className="md:w-1/5">
@@ -102,7 +128,7 @@ export default function DocumentAiPage() {
         {/* 2. Modes */}
         <Section
           title="The three modes"
-          intro="The mode decides which tools the model is given. You switch modes in the chat panel."
+          intro="The mode decides what the model is allowed to do, and in Build how it works. You switch modes in the chat panel."
         >
           <div className="grid gap-3 md:grid-cols-3">
             <Card title="Overview" tone="violet">
@@ -111,10 +137,56 @@ export default function DocumentAiPage() {
             </Card>
             <Card title="Inspect" tone="violet">
               One block is selected. The model is given the block tools and is told to change only the selected block. That
-              limit is in the prompt only. The tools are the same as in Build.
+              limit is in the prompt only. It works in one call, like Overview.
             </Card>
             <Card title="Build" tone="violet">
-              The block tools, anywhere in the document: add new blocks, or change existing ones.
+              Adds blocks to the document. Each message runs in two steps: the maths is solved and checked first, then the
+              document is written around it. See below.
+            </Card>
+          </div>
+        </Section>
+
+        {/* 2b. Build in two steps */}
+        <Section
+          title="Build mode: solve first, then write"
+          intro="In Build mode a message is not one call to the model. It is two, each with its own instructions, so the maths can be checked before anyone writes about it."
+        >
+          <div className="flex flex-col gap-2 md:flex-row md:items-stretch">
+            <Card
+              title="1. Solve"
+              tone="amber"
+              className="md:w-1/3"
+              action={<PromptButton view={SOLVE_VIEW} />}
+            >
+              The model is asked only for the equations, each with a short reason. The server solves them with the real
+              solver, after the equations already in your document, and sends back every result and error. The model fixes
+              what is wrong and tries again, up to 6 times. Nothing reaches your document yet.
+            </Card>
+            <Arrow label="solved equations" />
+            <Card
+              title="2. Write"
+              tone="blue"
+              className="md:w-1/3"
+              action={<PromptButton view={WRITE_VIEW} />}
+            >
+              A second call is given the solved equations and their reasons. It writes the summary, headers, text and
+              symbolic formulas around them, and places each solved equation by its number, so it cannot change a value.
+              It gets up to 3 tries.
+            </Card>
+            <Arrow label="checked by code" />
+            <Card title="3. Checked and added" tone="teal" className="md:w-1/3">
+              Code checks that every solved equation appears exactly once, in order, and that there is text. The blocks
+              then reach your browser like any other change: applied together, solved, with Undo.
+            </Card>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <Card title="If a problem can't be fixed" tone="slate">
+              After 6 rounds the last version goes on to step 2 along with the problems that are left. The document says
+              plainly that those are unresolved. It does not present them as solved.
+            </Card>
+            <Card title="If it needs no maths" tone="slate">
+              For a question, a note or a heading, step 1 returns an empty list and step 2 answers or adds the blocks. That
+              costs one extra short call.
             </Card>
           </div>
         </Section>
@@ -152,7 +224,7 @@ export default function DocumentAiPage() {
         {/* 4. What it can change */}
         <Section
           title="What it can change"
-          intro="Five tools change the document. To change an existing block the tool names the block. To add one, it names a block to put the new one before or after."
+          intro="In Inspect mode, five tools change the document. To change an existing block the tool names the block. To add one, it names a block to put the new one before or after. Build mode adds the same kinds of block (equations, symbolic equations, text and headers) through its writing step instead."
         >
           <div className="flex flex-wrap gap-2">
             <Pill tone="blue">equation_block</Pill>
@@ -207,7 +279,9 @@ export default function DocumentAiPage() {
             <li>The chat is limited to one allow-listed user for now.</li>
             <li>It cannot add or change plots, images, video, sliders, dropdowns, select blocks, loops or cards.</li>
             <li>In Inspect mode, staying on the selected block is a request in the prompt, not something the code enforces.</li>
-            <li>It cannot check an equation solves until the equation is in the document, so it only learns the result on your next message.</li>
+            <li>In Inspect mode it cannot check an equation solves until the equation is in the document, so it only learns the result on your next message. Build mode checks first.</li>
+            <li>In Build mode, new equations are solved after the equations already in the document. Variables that come from sliders, datasets, loops or CAD links are not passed to the server, so an equation using one will report it as undefined.</li>
+            <li>Build mode adds blocks. It does not edit existing ones, because it has no way to know a block&apos;s id.</li>
           </ul>
         </Section>
       </div>

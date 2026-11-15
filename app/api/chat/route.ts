@@ -8,6 +8,7 @@ import {
   TOOLS_BY_PAGE_TYPE, SEARCH_TOOL_NAME, READ_DOCUMENT_TOOL_NAME,
   READ_PART_TREE_TOOL_NAME, getPartTreeTools, getDocumentTools,
 } from "./tools";
+import { runDocumentBuild } from "./documentBuild";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { readDocumentForChat } from "@/utils/readDocument";
 import { readPartTreeForChat } from "@/utils/readPartTree";
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, mode, modelKey, effortKey } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, pageEquations, mode, modelKey, effortKey, trace } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -131,6 +132,9 @@ export async function POST(req: NextRequest) {
   // call (see the continuation loop below) — the client can't tell the difference,
   // it just sees more events arrive before the stream closes.
   let currentStream: ReturnType<typeof client.messages.stream> | null = null;
+  // Build mode on a Document page runs in two steps (solve, then write) — see documentBuild.ts.
+  const twoStepBuild = pageType === "document" && mode === "build";
+  const buildAbort = new AbortController();
   const readable = new ReadableStream({
     async start(controller) {
       const emit = (event: Record<string, unknown>) => {
@@ -143,12 +147,29 @@ export async function POST(req: NextRequest) {
       const totalUsage = { input: 0, output: 0 };
 
       try {
-        for (let attempt = 0; ; attempt++) {
+        if (twoStepBuild) {
+          await runDocumentBuild({
+            messages: messagesWithContext as Anthropic.MessageParam[],
+            existingEquations: (Array.isArray(pageEquations) ? pageEquations : [])
+              .filter((r: unknown): r is string => typeof r === "string"),
+            userId,
+            modelKey: aiModelKey,
+            effortKey: aiEffortKey,
+            emit,
+            usage: totalUsage,
+            signal: buildAbort.signal,
+            // Set only by the playground (/ai/playground) to also stream what each call sent and thought.
+            trace: trace === true,
+          });
+        } else for (let attempt = 0; ; attempt++) {
           const stream = client.messages.stream({
             model: resolveModelId(aiModelKey),
             max_tokens: 16000,
             output_config: { effort: aiEffortKey },
-            system: systemPrompt,
+            // Prompt caching: the system prompt and tools are large and unchanging, and the
+            // conversation grows from turn to turn. See the same two markers in documentBuild.ts.
+            cache_control: { type: "ephemeral" },
+            system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
             tools: pageType === "part-tree" ? getPartTreeTools(mode)
               : pageType === "document" ? getDocumentTools(mode)
               : (TOOLS_BY_PAGE_TYPE[pageType] ?? []),
@@ -278,6 +299,7 @@ export async function POST(req: NextRequest) {
     },
     cancel() {
       currentStream?.controller.abort();
+      buildAbort.abort();
     },
   });
 

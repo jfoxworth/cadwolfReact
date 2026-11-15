@@ -145,6 +145,9 @@ interface ChatContextType {
    *  unauthenticated S3 links, see components/document/blocks/image/index.tsx), sent alongside
    *  pageContext so the model can actually see the pictures, not just a text label for them. */
   setPageImages: (urls: string[]) => void;
+  /** Document pages only — the raw text of every equation block, in order. Build mode solves the
+   *  model's new equations after these on the server, so they can use the document's variables. */
+  setPageEquations: (raws: string[]) => void;
   /** The numeric id of the file the user is currently on (part-tree pages only, for now) —
    *  the Build panel needs it to know which part tree to build. */
   currentFileId: number | null;
@@ -203,6 +206,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [canBuild, setCanBuild] = useState(true);
   const pageContextRef = useRef<string | null>(null);
   const pageImagesRef = useRef<string[]>([]);
+  const pageEquationsRef = useRef<string[]>([]);
   const [currentFileId, setCurrentFileIdState] = useState<number | null>(null);
   const clearSelectionRef = useRef<(() => void) | null>(null);
   const proposalHandlersRef = useRef<DocumentProposalHandlers | null>(null);
@@ -211,6 +215,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, []);
   const setPageImages = useCallback((urls: string[]) => {
     pageImagesRef.current = urls;
+  }, []);
+  const setPageEquations = useCallback((raws: string[]) => {
+    pageEquationsRef.current = raws;
   }, []);
   const setCurrentFileId = useCallback((id: number | null) => {
     setCurrentFileIdState(id);
@@ -326,6 +333,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           pagePath,
           pageContext: pageContextRef.current,
           pageImages: pageImagesRef.current,
+          pageEquations: pageEquationsRef.current,
           selectedBlockContext,
           mode,
           modelKey,
@@ -512,6 +520,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         clearMessages,
         setPageContext,
         setPageImages,
+        setPageEquations,
         currentFileId,
         setCurrentFileId,
         setSelectedBlock,
