@@ -62,7 +62,7 @@ export default function Hero() {
       </svg>
 
       <div className="relative z-10 max-w-3xl px-6">
-        <div className="inline-block bg-white rounded-2xl shadow-lg px-8 py-5 mb-8">
+        <div className="inline-block">
           <Image src="/engenticLogo.png" alt="Engentic" width={560} height={120} priority />
         </div>
         <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight text-gray-900">
