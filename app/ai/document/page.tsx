@@ -189,7 +189,7 @@ export default function DocumentAiPage() {
             >
               The model is asked only for the equations, each with a short reason. The server solves them with the real
               solver, after the equations already in your document, and sends back every result and error. The model fixes
-              what is wrong and tries again, up to 6 times. Nothing reaches your document yet.
+              what is wrong and tries again, up to 2 calls in all. Nothing reaches your document yet.
             </Card>
             <Arrow label="solved equations" />
             <Card
@@ -200,7 +200,7 @@ export default function DocumentAiPage() {
             >
               A second call is given the solved equations and their reasons. It writes the summary, headers, text and
               symbolic formulas around them, and places each solved equation by its number, so it cannot change a value.
-              It gets up to 3 tries.
+              It gets up to 2 tries.
             </Card>
             <Arrow label="checked by code" />
             <Card title="4. Checked and added" tone="teal" className="md:w-1/4">
@@ -223,7 +223,7 @@ export default function DocumentAiPage() {
               carries on without them, as it did before this step existed.
             </Card>
             <Card title="If a problem can't be fixed" tone="slate">
-              After 6 rounds the last version goes on to step 3 along with the problems that are left. The document says
+              After 2 rounds the last version goes on to step 3 along with the problems that are left. The document says
               plainly that those are unresolved. It does not present them as solved.
             </Card>
             <Card title="If it needs no maths" tone="slate">
@@ -240,7 +240,7 @@ export default function DocumentAiPage() {
             </Card>
             <Card title="Step 2: what the server checks after every attempt" tone="slate">
               After each attempt the server solves the equations and builds a list of problems. That list is sent back to
-              the model, and the attempt is repeated until the list is empty or the 6 rounds are used. A problem is added
+              the model, and the attempt is repeated until the list is empty or the 2 rounds are used. A problem is added
               when:
               <ul className="mt-1 list-disc space-y-0.5 pl-5">
                 <li>an entry has no &ldquo;=&rdquo; in it. It is skipped.</li>
@@ -260,7 +260,7 @@ export default function DocumentAiPage() {
             </Card>
             <Card title="Step 3: what the server checks and what happens if it fails" tone="slate">
               The written blocks must include every solved equation once, in order, and some text, and are limited to 300
-              blocks. If something is wrong the model is told and tries again, up to 3 times. If it never produces a valid
+              blocks. If something is wrong the model is told and tries again, up to 2 calls in all. If it never produces a valid
               document, the server adds each solved equation with its reason as plain text and tells you it could not write
               the full explanation.
             </Card>

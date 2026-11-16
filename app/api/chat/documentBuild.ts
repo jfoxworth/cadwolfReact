@@ -33,9 +33,9 @@ export const CLASSIFY_TOOL_NAME = "classify_request";
 export const SOLVE_PROBLEM_TOOL_NAME = "solve_problem";
 export const WRITE_DOCUMENT_TOOL_NAME = "write_document";
 
-const MAX_CLASSIFY_ROUNDS = 3;
-const MAX_SOLVE_ROUNDS = 6;
-const MAX_WRITE_ROUNDS = 3;
+const MAX_CLASSIFY_ROUNDS = 2;
+const MAX_SOLVE_ROUNDS = 2;
+const MAX_WRITE_ROUNDS = 2;
 const MAX_STEPS = 120;
 const MAX_BLOCKS = 300;
 const MAX_TOKENS = 16000;
