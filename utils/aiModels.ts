@@ -8,7 +8,7 @@ export const AI_MODELS = [
 
 export type AiModelKey = (typeof AI_MODELS)[number]["key"];
 
-export const DEFAULT_MODEL_KEY: AiModelKey = "sonnet";
+export const DEFAULT_MODEL_KEY: AiModelKey = "haiku";
 
 export function isAiModelKey(value: unknown): value is AiModelKey {
   return AI_MODELS.some((m) => m.key === value);

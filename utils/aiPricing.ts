@@ -1,5 +1,5 @@
 // What a model call costs, worked out from its token counts. Used by the playground
-// (/ai/playground) to show estimates. Free of server-only imports so the page can use it.
+// (/ai/documentPlayground) to show estimates. Free of server-only imports so the page can use it.
 //
 // Dollars per million tokens, as listed in the Claude API reference for each model. These are
 // list prices: check them against Anthropic's pricing page when a model or price changes. Cache
@@ -33,6 +33,20 @@ const HAIKU_LONG_PROMPT = 100_000;
 export function ratesFor(model: AiModelKey, tokens: TokenParts): TokenParts {
   const prompt = tokens.input + tokens.cacheRead + tokens.cacheWrite;
   return model === "haiku" && prompt > HAIKU_LONG_PROMPT ? HAIKU_LONG : RATES[model];
+}
+
+/** The estimated cost in dollars of one finished API message, from the usage it reports. */
+export function messageCost(
+  model: AiModelKey,
+  message: { usage: { input_tokens?: number | null; output_tokens?: number | null; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null } },
+): number {
+  const u = message.usage;
+  return callCost(model, {
+    input: u.input_tokens ?? 0,
+    cacheRead: u.cache_read_input_tokens ?? 0,
+    cacheWrite: u.cache_creation_input_tokens ?? 0,
+    output: u.output_tokens ?? 0,
+  }).total;
 }
 
 /** The cost of one call in dollars, in parts and in total. */

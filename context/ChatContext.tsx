@@ -58,6 +58,8 @@ export type ChatMode = "overview" | "inspect" | "build";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Build mode only: the problem statement the first step wrote, shown above the reply. */
+  understood?: string;
   /** Any block proposals this assistant message made — approved/rejected in place via their status. */
   proposals?: BlockProposal[];
 }
@@ -128,7 +130,7 @@ interface ChatContextType {
   effortKey: AiEffortKey;
   setEffortKey: (key: AiEffortKey) => void;
   /** Tokens used by the most recent request (summed over all its API calls); null until one completes. */
-  lastUsage: { input: number; output: number } | null;
+  lastUsage: { input: number; output: number; cost: number | null } | null;
   /** Whether Build mode is currently allowed on this page — true by default (Workspace/Dataset
    *  have no checkout concept and never call setCanBuild); Document sets this to
    *  canEdit && checked-out-by-me, since adding blocks requires both. */
@@ -174,7 +176,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ChatMode>("overview");
   const [modelKey, setModelKeyState] = useState<AiModelKey>(DEFAULT_MODEL_KEY);
   const [effortKey, setEffortKeyState] = useState<AiEffortKey>(DEFAULT_EFFORT_KEY);
-  const [lastUsage, setLastUsage] = useState<{ input: number; output: number } | null>(null);
+  const [lastUsage, setLastUsage] = useState<{ input: number; output: number; cost: number | null } | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -379,6 +381,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               }
               return updated;
             });
+          } else if (event.type === "understood") {
+            const problem = event.problem as string;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              if (last.role === "assistant") updated[updated.length - 1] = { ...last, understood: problem };
+              return updated;
+            });
           } else if (event.type === "tool_use") {
             if (SERVER_EXECUTED_TOOL_NAMES.has(event.name as string)) continue;
             const input = { ...(event.input as Record<string, unknown>) };
@@ -408,7 +418,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             });
             proposalHandlersRef.current?.onPropose?.(proposal);
           } else if (event.type === "usage") {
-            setLastUsage({ input: event.input as number, output: event.output as number });
+            setLastUsage({
+              input: event.input as number,
+              output: event.output as number,
+              cost: typeof event.cost === "number" ? event.cost : null,
+            });
           } else if (event.type === "error") {
             const message = event.message as string;
             setMessages((prev) => {

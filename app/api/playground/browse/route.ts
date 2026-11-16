@@ -10,7 +10,7 @@ export interface PlaygroundBrowseItem {
 }
 
 // GET /api/playground/browse?parentId=null|<id>
-// Used by the document chooser on /ai/playground. Unlike /api/file-browse it lists workspaces
+// Used by the document chooser on /ai/documentPlayground. Unlike /api/file-browse it lists workspaces
 // nested inside workspaces (most of the tree is made of them), and only returns what the user is
 // allowed to view.
 //   No parentId -> the user's own top-level workspaces

@@ -233,7 +233,7 @@ export function Playground(props: {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="text-2xl font-semibold text-gray-900">Document build playground</h1>
       <p className="mt-2 text-sm text-gray-700">
-        Runs a whole Document Build on a saved document: the solve step with the solver&apos;s replies and retries, then the write step.
+        Runs a whole Document Build on a saved document: the classify step (scenario and problem statement), the solve step with the solver&apos;s replies and retries, then the write step.
         For every model call you see what was sent, the model&apos;s thinking, its tool calls and what the server answered.
         Nothing is added to the document or saved.
       </p>
@@ -295,12 +295,23 @@ export function Playground(props: {
                 {c.thinking ? <Pre>{c.thinking}</Pre>
                   : <p className="text-sm text-gray-600">{waiting ? "Waiting for the model…" : "No thinking summary."}</p>}
                 {c.text && <><Sub title="Text" /><Pre>{c.text}</Pre></>}
-                {c.tools.map((t, j) => (
-                  <div key={j} className="space-y-1">
-                    <Sub title={`Tool call: ${t.name}`} />
-                    <Pre>{JSON.stringify(t.input, null, 2)}</Pre>
-                  </div>
-                ))}
+                {c.tools.map((t, j) => {
+                  // The classify step's two fields are prose, so show them as written, not as escaped JSON.
+                  const spec = t.name === "classify_request" ? (t.input as { scenario?: unknown; problem_statement?: unknown }) : null;
+                  return spec ? (
+                    <div key={j} className="space-y-1">
+                      <Sub title="Scenario" />
+                      <Pre>{typeof spec.scenario === "string" ? spec.scenario : ""}</Pre>
+                      <Sub title="Problem statement" />
+                      <Pre>{typeof spec.problem_statement === "string" ? spec.problem_statement : ""}</Pre>
+                    </div>
+                  ) : (
+                    <div key={j} className="space-y-1">
+                      <Sub title={`Tool call: ${t.name}`} />
+                      <Pre>{JSON.stringify(t.input, null, 2)}</Pre>
+                    </div>
+                  );
+                })}
                 {c.replies.length > 0 && (
                   <><Sub title="What the server sent back" /><Pre>{c.replies.join("\n\n")}</Pre></>
                 )}

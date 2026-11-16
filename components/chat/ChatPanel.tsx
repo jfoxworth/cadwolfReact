@@ -382,23 +382,25 @@ function ModeHex({
 }
 
 /** Model and effort selectors shown directly above the message input. */
-function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, disabled }: {
+function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, disabled, className = "" }: {
   modelKey: AiModelKey;
   onChange: (k: AiModelKey) => void;
   effortKey: AiEffortKey;
   onEffortChange: (k: AiEffortKey) => void;
-  lastUsage: { input: number; output: number } | null;
+  lastUsage: { input: number; output: number; cost: number | null } | null;
   disabled: boolean;
+  className?: string;
 }) {
   const selectClass = "rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 disabled:opacity-50";
   return (
-    <div className="flex items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0">
+    <div className={`flex items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0 ${className}`}>
       {lastUsage && (
         <span
           className="mr-auto min-w-0 truncate text-xs text-gray-400"
-          title="Tokens used by the last request, summed over all its API calls"
+          title="Tokens and estimated cost of the last request, summed over all its API calls. The cost is worked out from list prices, not your bill."
         >
           Last: {lastUsage.input.toLocaleString()} in · {lastUsage.output.toLocaleString()} out
+          {lastUsage.cost !== null && ` · ~$${lastUsage.cost.toFixed(lastUsage.cost < 0.1 ? 4 : 2)}`}
         </span>
       )}
       <label htmlFor="ai-model-picker">Model</label>
@@ -491,6 +493,12 @@ export default function ChatPanel() {
             <div key={i} className="flex gap-3">
               <HexBadge size={22} iconSize={11} />
               <div className="flex-1 min-w-0 text-sm text-gray-800 prose prose-sm max-w-none pt-0.5">
+                {msg.understood && (
+                  <details className="not-prose mb-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                    <summary className="cursor-pointer font-semibold text-gray-800">What I understood</summary>
+                    <p className="mt-2 whitespace-pre-wrap">{msg.understood}</p>
+                  </details>
+                )}
                 {msg.content === "" && isLoading ? (
                   <span className="inline-block w-2 h-4 bg-gray-400 animate-pulse" />
                 ) : (
@@ -861,7 +869,7 @@ export default function ChatPanel() {
               things and that's exactly what's blocked; the notice above already explains why. */}
           {!(mode === "build" && !canBuild) && (
             <>
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} disabled={isLoading} />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} disabled={isLoading} className="pb-3" />
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">
               <textarea
                 ref={textareaRef}
@@ -869,9 +877,9 @@ export default function ChatPanel() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask a question or describe a structure..."
-                rows={3}
+                rows={6}
                 className="flex-1 resize-none rounded-lg px-3 py-2.5 text-sm outline-none max-h-48 overflow-y-auto transition-colors"
-                style={{ minHeight: "72px", border: `1.5px solid ${MODE_COLORS[mode].border}` }}
+                style={{ minHeight: "144px", border: `1.5px solid ${MODE_COLORS[mode].border}` }}
               />
               <button
                 onClick={handleSend}

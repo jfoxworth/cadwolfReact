@@ -1,10 +1,15 @@
-// Build mode on a Document page works in two steps instead of one:
+// Build mode on a Document page works in three steps instead of one:
 //
-//   1. Solve (prompts/document-solve.md + the platform reference). The model's only job is the
+//   1. Classify (prompts/document-classify.md). The model reads the request and the document and
+//      submits classify_request: a scenario (what job the next steps are doing and what they are
+//      being given) and a problem statement (the problem, its inputs and the expected result).
+//      Both are added to the end of the user's message, which already holds the document, so the
+//      next two steps receive them. If this step fails, the build carries on without them.
+//   2. Solve (prompts/document-solve.md + the platform reference). The model's only job is the
 //      mathematics: it submits the equations with solve_problem. They are solved here, on the
 //      server, and the results, errors and impossible values go back to it until they are clean or
 //      the rounds run out. Nothing reaches the user's document in this step.
-//   2. Write (prompts/document-write.md + the platform reference). A separate call is given the
+//   3. Write (prompts/document-write.md + the platform reference). A separate call is given the
 //      solved equations and writes the document around them with write_document: headers, text,
 //      symbolic equations, and each solved equation placed by step number, so this step cannot
 //      change a number. Code checks every step appears once, in order. The blocks are then sent to
@@ -17,15 +22,18 @@ import { join } from "path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropicClient as client } from "@/utils/anthropicClient";
 import { resolveModelId, type AiEffortKey, type AiModelKey } from "@/utils/aiModels";
+import { messageCost } from "@/utils/aiPricing";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { solvePartEquations, type SolvedEquation } from "@/agents/solvePartDocument";
 import { STEP_ROLES, type StepRole } from "@/agents/partAgentTools";
 import { textToHtml } from "@/agents/writeDesignDocument";
 import { SEARCH_TOOL, SEARCH_TOOL_NAME } from "./tools";
 
+export const CLASSIFY_TOOL_NAME = "classify_request";
 export const SOLVE_PROBLEM_TOOL_NAME = "solve_problem";
 export const WRITE_DOCUMENT_TOOL_NAME = "write_document";
 
+const MAX_CLASSIFY_ROUNDS = 3;
 const MAX_SOLVE_ROUNDS = 6;
 const MAX_WRITE_ROUNDS = 3;
 const MAX_STEPS = 120;
@@ -33,6 +41,28 @@ const MAX_BLOCKS = 300;
 const MAX_TOKENS = 16000;
 
 // ─── tools ──────────────────────────────────────────────────────────────────
+
+export const CLASSIFY_TOOL: Anthropic.Tool = {
+  name: CLASSIFY_TOOL_NAME,
+  description:
+    "Set the task up for the steps after you. Give the scenario and the problem statement. Do not solve anything and do not write any of the document.",
+  input_schema: {
+    type: "object",
+    properties: {
+      scenario: {
+        type: "string",
+        description:
+          "One or two sentences addressed to the next steps (\"You are ...\") saying what job they are doing and what the problem statement and the document are for in it.",
+      },
+      problem_statement: {
+        type: "string",
+        description:
+          "The task in plain prose: the problem, the inputs it gives (values and units as stated), and the expected result. Self-contained. No solution.",
+      },
+    },
+    required: ["scenario", "problem_statement"],
+  },
+};
 
 export const SOLVE_PROBLEM_TOOL: Anthropic.Tool = {
   name: SOLVE_PROBLEM_TOOL_NAME,
@@ -274,6 +304,10 @@ function platformReference(): string {
   return readPrompt("document.md").split("\n## Modes")[0];
 }
 
+export function classifySystemPrompt(): string {
+  return `${readPrompt("_shared.md")}\n\n${readPrompt("document-classify.md")}`;
+}
+
 export function solveSystemPrompt(): string {
   return `${readPrompt("_shared.md")}\n\n${readPrompt("document-solve.md")}\n\n# Platform reference\n\n${platformReference()}`;
 }
@@ -322,10 +356,12 @@ export interface DocumentBuildRun {
   modelKey: AiModelKey;
   effortKey: AiEffortKey;
   emit: (event: Record<string, unknown>) => void;
-  /** Summed across every call; the route reports it once at the end. */
-  usage: { input: number; output: number };
+  /** Summed across every call; the route reports it once at the end. `cost` is the estimated
+   *  dollars (utils/aiPricing.ts), worked out per call because cache reads and writes are priced
+   *  differently from plain input. */
+  usage: { input: number; output: number; cost: number };
   signal?: AbortSignal;
-  /** Playground (/ai/playground) only: also stream, for every model call, what was sent, the
+  /** Playground (/ai/documentPlayground) only: also stream, for every model call, what was sent, the
    *  thinking, the tool calls and what the server replied. Normal chat requests never set it. */
   trace?: boolean;
 }
@@ -335,6 +371,7 @@ function addUsage(run: DocumentBuildRun, message: Anthropic.Message) {
     + (message.usage.cache_creation_input_tokens ?? 0)
     + (message.usage.cache_read_input_tokens ?? 0);
   run.usage.output += message.usage.output_tokens ?? 0;
+  run.usage.cost += messageCost(run.modelKey, message);
 }
 
 /** The last message as plain text: what the model was newly given in this call. */
@@ -405,7 +442,70 @@ async function ask(
 const CUT_OFF =
   "[You were cut off by a length limit before finishing, so that call was not used. Do it again with fewer words: shorter 'why' and text entries.]";
 
-/** Step 1. Returns the last solution the model produced; `problems` is empty if it was clean.
+interface Classification {
+  scenario: string;
+  problemStatement: string;
+}
+
+/** Step 1. Returns the scenario and problem statement, or null if the model did not give both
+ *  (the build then carries on without them). */
+async function runClassify(run: DocumentBuildRun): Promise<Classification | null> {
+  const system = classifySystemPrompt();
+  const messages: Anthropic.MessageParam[] = run.messages.slice();
+  let nudged = false;
+
+  for (let round = 0; round < MAX_CLASSIFY_ROUNDS; round++) {
+    if (run.signal?.aborted) break;
+    const message = await ask(run, `Step 1: Classify, call ${round + 1}`, system, [CLASSIFY_TOOL], messages);
+
+    if (message.stop_reason === "max_tokens") {
+      if (run.trace) run.emit({ type: "reply", text: CUT_OFF });
+      messages.push({ role: "assistant", content: textOf(message) || "(continuing)" });
+      messages.push({ role: "user", content: CUT_OFF });
+      continue;
+    }
+
+    const uses = toolUses(message).filter((u) => u.name === CLASSIFY_TOOL_NAME);
+    messages.push({ role: "assistant", content: message.content });
+    if (uses.length === 0) {
+      if (nudged) break;
+      nudged = true;
+      messages.push({ role: "user", content: `Call ${CLASSIFY_TOOL_NAME} now. It is your only output.` });
+      continue;
+    }
+
+    const input = uses[0].input as { scenario?: unknown; problem_statement?: unknown };
+    const scenario = typeof input.scenario === "string" ? input.scenario.trim() : "";
+    const problemStatement = typeof input.problem_statement === "string" ? input.problem_statement.trim() : "";
+    if (scenario && problemStatement) {
+      if (run.trace) run.emit({ type: "reply", text: "Accepted." });
+      return { scenario, problemStatement };
+    }
+
+    const reply = `${!scenario ? "The scenario is empty. " : ""}${!problemStatement ? "The problem statement is empty. " : ""}Call ${CLASSIFY_TOOL_NAME} again with both.`;
+    if (run.trace) run.emit({ type: "reply", text: reply });
+    messages.push({
+      role: "user",
+      content: message.content
+        .filter((b): b is Extract<Anthropic.ContentBlock, { type: "tool_use" }> => b.type === "tool_use")
+        .map((u): Anthropic.ToolResultBlockParam => ({
+          type: "tool_result",
+          tool_use_id: u.id,
+          content: u.name === CLASSIFY_TOOL_NAME ? reply : "Unknown tool.",
+          is_error: true,
+        })),
+    });
+  }
+  return null;
+}
+
+/** How the next two steps are shown what step 1 produced. The document is already in the last
+ *  user message, which this is added to the end of. */
+function formatClassification(c: Classification): string {
+  return `[Step 1 set the task up.\n\nScenario: ${c.scenario}\n\nProblem statement: ${c.problemStatement}]`;
+}
+
+/** Step 2. Returns the last solution the model produced; `problems` is empty if it was clean.
  *  `notes` is anything the model said in words with no tool call. */
 async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | null; notes: string }> {
   const system = solveSystemPrompt();
@@ -416,7 +516,7 @@ async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | n
 
   for (let round = 0; round < MAX_SOLVE_ROUNDS; round++) {
     if (run.signal?.aborted) break;
-    const message = await ask(run, `Step 1: Solve, call ${round + 1}`, system, [SOLVE_PROBLEM_TOOL, SEARCH_TOOL], messages);
+    const message = await ask(run, `Step 2: Solve, call ${round + 1}`, system, [SOLVE_PROBLEM_TOOL, SEARCH_TOOL], messages);
 
     // A cut-off answer can hold a half-written tool call, so it is never used.
     if (message.stop_reason === "max_tokens") {
@@ -466,7 +566,7 @@ async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | n
 
 /** How the writing step introduces the solved steps. The closing "]" is added after the steps. */
 const WRITE_LEAD =
-  "[Step 1 is done. The mathematics for this request was solved by the platform's solver. These are the solved steps, in order. Write the blocks that go into the document around them, placing each step once as an equation block with its number.";
+  "[Step 2 is done. The mathematics for this request was solved by the platform's solver. These are the solved steps, in order. Write the blocks that go into the document around them, placing each step once as an equation block with its number.";
 
 /** Step 2. Streams the model's words to the chat and sends the accepted blocks to the browser. */
 async function runWrite(run: DocumentBuildRun, solution: Solution | null, notes: string): Promise<void> {
@@ -481,9 +581,9 @@ async function runWrite(run: DocumentBuildRun, solution: Solution | null, notes:
     }
     parts.push("]");
   } else {
-    parts.push("[Step 1 found nothing to calculate for this request. Write whatever blocks it needs, or just answer in words.]");
+    parts.push("[Step 2 found nothing to calculate for this request. Write whatever blocks it needs, or just answer in words.]");
   }
-  if (notes.trim()) parts.push(`[Notes from step 1: ${notes.trim()}]`);
+  if (notes.trim()) parts.push(`[Notes from step 2: ${notes.trim()}]`);
 
   const messages: Anthropic.MessageParam[] = appendToLast(run.messages, parts.join("\n\n"));
   const emitBlocks = (blocks: ProposedBlock[]) => {
@@ -494,7 +594,7 @@ async function runWrite(run: DocumentBuildRun, solution: Solution | null, notes:
   let nudged = false;
   for (let round = 0; round < MAX_WRITE_ROUNDS; round++) {
     if (run.signal?.aborted) return;
-    const message = await ask(run, `Step 2: Write, call ${round + 1}`, system, [WRITE_DOCUMENT_TOOL], messages, (text) => run.emit({ type: "text", text }));
+    const message = await ask(run, `Step 3: Write, call ${round + 1}`, system, [WRITE_DOCUMENT_TOOL], messages, (text) => run.emit({ type: "text", text }));
 
     if (message.stop_reason === "max_tokens") {
       if (run.trace) run.emit({ type: "reply", text: CUT_OFF });
@@ -544,8 +644,16 @@ async function runWrite(run: DocumentBuildRun, solution: Solution | null, notes:
   }
 }
 
-/** Runs both steps for one Build-mode message. */
-export async function runDocumentBuild(run: DocumentBuildRun): Promise<void> {
+/** Runs the three steps for one Build-mode message. */
+export async function runDocumentBuild(input: DocumentBuildRun): Promise<void> {
+  const classification = await runClassify(input);
+  // The chat shows the problem statement, so the user can see what the task was taken to be.
+  // The scenario is written to the later steps, not to the user, so it is not sent.
+  if (classification) input.emit({ type: "understood", problem: classification.problemStatement });
+  // Solve and Write both get the scenario and problem statement after the user's message.
+  const run: DocumentBuildRun = classification
+    ? { ...input, messages: appendToLast(input.messages, formatClassification(classification)) }
+    : input;
   const { solution, notes } = await runSolve(run);
   if (solution && solution.steps.length > 0) {
     const n = solution.steps.length;

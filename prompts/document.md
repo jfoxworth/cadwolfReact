@@ -546,10 +546,11 @@ Mass properties are fetched on demand when the user clicks "Refresh from CAD". T
 - **Inspect** — a specific block is selected (see the `[User has this block selected — ...]`
   line, if present). You have the block tools below, but scoped to that one block: edit the
   selected block when asked, don't propose new unrelated blocks elsewhere in the document.
-- **Build** — adds blocks anywhere in the document. A Build request runs in two steps, each its
-  own call with its own instructions (`prompts/document-solve.md`, `prompts/document-write.md`):
-  the mathematics is solved and checked first, then the text and headings are written around the
-  solved equations. You will be told which step you are in.
+- **Build** — adds blocks anywhere in the document. A Build request runs in three steps, each its
+  own call with its own instructions (`prompts/document-classify.md`, `prompts/document-solve.md`,
+  `prompts/document-write.md`): the task is set up first, then the mathematics is solved and
+  checked, then the text and headings are written around the solved equations. You will be told
+  which step you are in.
 
 ## Guidance for the AI Assistant
 

@@ -9,6 +9,7 @@ import {
   READ_PART_TREE_TOOL_NAME, getPartTreeTools, getDocumentTools,
 } from "./tools";
 import { runDocumentBuild } from "./documentBuild";
+import { messageCost } from "@/utils/aiPricing";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { readDocumentForChat } from "@/utils/readDocument";
 import { readPartTreeForChat } from "@/utils/readPartTree";
@@ -87,7 +88,11 @@ export async function POST(req: NextRequest) {
   const contextPrefix = [
     pagePath ? `[User is on page: ${pagePath}]` : null,
     referentHint,
-    pageContext ? `[Current page contents:\n${pageContext}\n]` : null,
+    pageContext ? `[Current page contents:\n${pageContext}\n]`
+      // An empty document sends an empty string. Without this line the model sees no page
+      // contents at all and reads that as "the document was not provided".
+      : pageContext === "" && derivePageType(pagePath) === "document" ? `[Current page contents: the document is empty. This is a blank document, not a missing one.]`
+      : null,
   ].filter(Boolean).join("\n");
 
   // Document pages' IMAGE blocks (context/ChatContext.tsx's pageImagesRef, set from
@@ -97,18 +102,20 @@ export async function POST(req: NextRequest) {
     .filter((url: unknown): url is string => typeof url === "string" && url.length > 0)
     .map((url: string) => ({ type: "image", source: { type: "url", url } }));
 
+  // The user's own words in the latest message are marked as theirs, so the model can tell them
+  // apart from the page context and the notes the server adds around them.
   const lastIndex = messages.length - 1;
   const messagesWithContext = contextPrefix
-    ? messages.map((msg: { role: string; content: string }, i: number) =>
-        i === lastIndex && msg.role === "user"
-          ? {
-              ...msg,
-              content: imageBlocks.length > 0
-                ? [{ type: "text", text: `${contextPrefix}\n\n${msg.content}` }, ...imageBlocks] as Anthropic.ContentBlockParam[]
-                : `${contextPrefix}\n\n${msg.content}`,
-            }
-          : msg
-      )
+    ? messages.map((msg: { role: string; content: string }, i: number) => {
+        if (i !== lastIndex || msg.role !== "user") return msg;
+        const text = `${contextPrefix}\n\nUser prompt:\n${msg.content}`;
+        return {
+          ...msg,
+          content: imageBlocks.length > 0
+            ? [{ type: "text", text }, ...imageBlocks] as Anthropic.ContentBlockParam[]
+            : text,
+        };
+      })
     : messages;
 
   const pageType = derivePageType(pagePath);
@@ -132,7 +139,7 @@ export async function POST(req: NextRequest) {
   // call (see the continuation loop below) — the client can't tell the difference,
   // it just sees more events arrive before the stream closes.
   let currentStream: ReturnType<typeof client.messages.stream> | null = null;
-  // Build mode on a Document page runs in two steps (solve, then write) — see documentBuild.ts.
+  // Build mode on a Document page runs in three steps (classify, solve, then write) — see documentBuild.ts.
   const twoStepBuild = pageType === "document" && mode === "build";
   const buildAbort = new AbortController();
   const readable = new ReadableStream({
@@ -144,7 +151,7 @@ export async function POST(req: NextRequest) {
       let currentMessages = messagesWithContext;
       // Summed across every underlying API call this request makes (tool-result rounds and
       // max_tokens continuations each count) and reported once at the end as a "usage" event.
-      const totalUsage = { input: 0, output: 0 };
+      const totalUsage = { input: 0, output: 0, cost: 0 };
 
       try {
         if (twoStepBuild) {
@@ -158,7 +165,7 @@ export async function POST(req: NextRequest) {
             emit,
             usage: totalUsage,
             signal: buildAbort.signal,
-            // Set only by the playground (/ai/playground) to also stream what each call sent and thought.
+            // Set only by the playground (/ai/documentPlayground) to also stream what each call sent and thought.
             trace: trace === true,
           });
         } else for (let attempt = 0; ; attempt++) {
@@ -184,6 +191,7 @@ export async function POST(req: NextRequest) {
             + (message.usage.cache_creation_input_tokens ?? 0)
             + (message.usage.cache_read_input_tokens ?? 0);
           totalUsage.output += message.usage.output_tokens ?? 0;
+          totalUsage.cost += messageCost(aiModelKey, message);
           const toolUseBlocks = message.content.filter(
             (b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use",
           );
@@ -292,7 +300,7 @@ export async function POST(req: NextRequest) {
         emit({ type: "error", message: err instanceof Error ? err.message : "Something went wrong." });
       } finally {
         if (totalUsage.input || totalUsage.output) {
-          try { emit({ type: "usage", input: totalUsage.input, output: totalUsage.output }); } catch { /* stream already cancelled */ }
+          try { emit({ type: "usage", input: totalUsage.input, output: totalUsage.output, cost: totalUsage.cost }); } catch { /* stream already cancelled */ }
         }
         controller.close();
       }
