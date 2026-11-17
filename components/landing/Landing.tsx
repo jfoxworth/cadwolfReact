@@ -1,17 +1,16 @@
 import Nav from "./Nav";
 import Hero from "./Hero";
 import WhatIsEngentic from "./WhatIsEngentic";
+import DocumentTour from "./DocumentTour";
+import WorkspaceTour from "./WorkspaceTour";
 import TextToSpaceship from "./TextToSpaceship";
-import AiPrompts from "./AiPrompts";
+import PartTreeBuildTour from "./PartTreeBuildTour";
 import EngenticAI from "./EngenticAI";
-import OverviewPanels from "./OverviewPanels";
+import BuildTour from "./BuildTour";
 import CadBreak from "./CadBreak";
-import ReplaceThem from "./ReplaceThem";
 import ComparisonTable from "./ComparisonTable";
 import StartNow from "./StartNow";
 import Community from "./Community";
-import TutorialBreak from "./TutorialBreak";
-import Demos from "./Demos";
 import Footer from "./Footer";
 
 export default function Landing() {
@@ -20,14 +19,15 @@ export default function Landing() {
       <Nav />
       <Hero />
       <WhatIsEngentic />
-      <EngenticAI/>
-      <TextToSpaceship />
-      <CadBreak />
-      <ComparisonTable />
-      <StartNow />
+      <DocumentTour />
       <Community />
-      <TutorialBreak />
-      <Demos />
+      <WorkspaceTour />
+      <EngenticAI/>
+      <BuildTour />
+      <TextToSpaceship />
+      <PartTreeBuildTour />
+      <CadBreak />
+      <StartNow />
       <a
         href="/register"
         className="block bg-blue-700 hover:bg-blue-600 transition-colors py-6 text-white text-center"
