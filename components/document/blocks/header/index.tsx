@@ -48,8 +48,10 @@ export default memo(function HeaderBlock({
 
   useEffect(() => { if (!isSelected) setEditing(false); }, [isSelected]); // eslint-disable-line react-hooks/exhaustive-deps
   const [draftLevel,   setDraftLevel]   = useState<Level>(initialLevel);
-  const [displayText,  setDisplayText]  = useState(initialText);
-  const [displayLevel, setDisplayLevel] = useState<Level>(initialLevel);
+  // What is shown comes from the block itself, not from a copy made when it first rendered. A copy goes stale
+  // when something other than this block changes the definition, such as April's edit or its Undo.
+  const displayText  = initialText;
+  const displayLevel = initialLevel;
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -78,8 +80,6 @@ export default memo(function HeaderBlock({
 
   function save() {
     const text = draftText.trim() || displayText;
-    setDisplayText(text);
-    setDisplayLevel(draftLevel);
     setEditing(false);
     onSelect?.(null);
     onDefinitionChange?.(block.id, { ...block.definition, text, level: draftLevel });

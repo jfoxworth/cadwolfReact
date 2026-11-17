@@ -1165,6 +1165,14 @@ export default function DocumentWrapper({
     });
   }, []);
 
+  // Overview is about the whole document, so switching to it clears any block selection.
+  useEffect(() => {
+    if (mode === "overview") {
+      selectedBlockIdRef.current = null;
+      setSelectedBlockId(null);
+    }
+  }, [mode]);
+
   // Tell the chat which block (if any) is currently selected, so it can show a chip and use it
   // as a hint about what the user means — see prompts/document.md's guidance on this.
   useEffect(() => {
@@ -1499,6 +1507,11 @@ export default function DocumentWrapper({
             const idx = sequence.findIndex((b) => b.id === targetBlockId);
             if (idx === -1) throw new Error("That block no longer exists.");
             const target = sequence[idx];
+            // An edit tool only changes a block of its own kind: a text edit cannot overwrite an equation.
+            if (target.type !== blockType) {
+              const kind = (t: string) => t.toLowerCase().replace(/_/g, " ");
+              throw new Error(`That block is a ${kind(target.type)} block, so a ${kind(blockType)} edit can't change it.`);
+            }
             const previousDefinition = target.definition;
             let newDefinition: Record<string, unknown>;
             if (blockType === "EQUATION") {

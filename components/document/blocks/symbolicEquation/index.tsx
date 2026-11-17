@@ -22,7 +22,9 @@ export default function SymbolicEquationBlock({
   const def = block.definition as { expression?: string };
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(def.expression ?? "");
-  const [expression, setExpression] = useState(def.expression ?? "");
+  // Read the expression from the block itself, not from a copy made when the block first rendered. A copy
+  // goes stale when something other than this block changes the definition, such as April's edit or its Undo.
+  const expression = def.expression ?? "";
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (!isSelected) setEditing(false); }, [isSelected]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -46,7 +48,6 @@ export default function SymbolicEquationBlock({
 
   const handleSave = useCallback(() => {
     const trimmed = draft.trim();
-    setExpression(trimmed);
     setEditing(false);
     onDefinitionChange?.(block.id, { ...block.definition, expression: trimmed });
   }, [draft, block.id, block.definition, onDefinitionChange]);

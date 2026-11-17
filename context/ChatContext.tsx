@@ -401,6 +401,29 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               input.anchorBlockId = selectedBlock.id;
               input.position ??= "after";
             }
+            // Inspect mode changes only the block that was selected when the request was sent. An edit
+            // (it has a targetBlockId) aimed at any other block is refused here, shown in the chat as
+            // failed, and never reaches onAutoApplyBatch.
+            if (mode === "inspect" && input.targetBlockId && input.targetBlockId !== selectedBlock?.id) {
+              const refused: BlockProposal = {
+                id: event.id as string,
+                tool: event.name as ProposalToolName,
+                input,
+                status: "failed",
+                error: selectedBlock
+                  ? "Inspect mode only edits the selected block. This change was for a different block, so it was not applied."
+                  : "Inspect mode edits the selected block, and no block was selected, so this change was not applied.",
+              };
+              setMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last.role === "assistant") {
+                  updated[updated.length - 1] = { ...last, proposals: [...(last.proposals ?? []), refused] };
+                }
+                return updated;
+              });
+              continue;
+            }
             const proposal: BlockProposal = {
               id: event.id as string,
               tool: event.name as ProposalToolName,

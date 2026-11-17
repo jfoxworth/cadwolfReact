@@ -9,6 +9,8 @@ export interface PromptView {
   /** Which call it is. */
   call: string;
   tool: string;
+  /** The tool definitions exactly as sent to the model with this call, as JSON. */
+  toolDefinitions?: string;
   /** What else is sent with the prompt, in one sentence. */
   alsoSent: string;
   prompt: string;
@@ -18,7 +20,7 @@ export interface PromptView {
 }
 
 /** A button that opens a modal showing the prompt for one call. */
-export function PromptButton({ view }: { view: PromptView }) {
+export function PromptButton({ view, label = "View prompt" }: { view: PromptView; label?: string }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function PromptButton({ view }: { view: PromptView }) {
         onClick={() => setOpen(true)}
         className="mt-3 inline-flex items-center rounded border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
       >
-        View prompt
+        {label}
       </button>
       {open && (
         <div
@@ -75,6 +77,16 @@ export function PromptButton({ view }: { view: PromptView }) {
               <pre className="mt-4 whitespace-pre-wrap break-words rounded border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800">
                 {view.prompt}
               </pre>
+              {view.toolDefinitions && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs font-medium text-slate-700">
+                    Tool definitions (sent with the prompt)
+                  </summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-words rounded border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800">
+                    {view.toolDefinitions}
+                  </pre>
+                </details>
+              )}
               {view.appendix && (
                 <details className="mt-3">
                   <summary className="cursor-pointer text-xs font-medium text-slate-700">

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Anthropic from "@anthropic-ai/sdk";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { TYPE_ROUTE } from "@/utils/resolveRoute";
 import {
@@ -9,6 +7,7 @@ import {
   READ_PART_TREE_TOOL_NAME, getPartTreeTools, getDocumentTools,
 } from "./tools";
 import { runDocumentBuild } from "./documentBuild";
+import { getSystemPrompt } from "./systemPrompt";
 import { messageCost } from "@/utils/aiPricing";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { readDocumentForChat } from "@/utils/readDocument";
@@ -35,12 +34,6 @@ function derivePageType(pagePath: string | undefined): string {
   return segment && PAGE_TYPES.has(segment) ? segment : "workspace";
 }
 
-function getSystemPrompt(pageType: string): string {
-  const shared = readFileSync(join(process.cwd(), "prompts", "_shared.md"), "utf-8");
-  const specific = readFileSync(join(process.cwd(), "prompts", `${pageType}.md`), "utf-8");
-  return `${shared}\n\n${specific}`;
-}
-
 export async function POST(req: NextRequest) {
   const { userId } = await getSessionUser();
 
@@ -52,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, pageEquations, mode, modelKey, effortKey, trace } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, pageEquations, selectedBlockContext, mode, modelKey, effortKey, trace } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -73,8 +66,23 @@ export async function POST(req: NextRequest) {
   // and is independent of chat mode, so it's not a reliable signal of what the user means in
   // conversation — always assume they mean the document as a whole. Not authoritative on its
   // own (a user can still explicitly ask about something else), just a default assumption.
-  const referentHint =
-    `[If the user says "this" or "it" without naming something specific, they mean the document as a whole.]`;
+  // The one exception is Inspect mode on a document: there the user's selected block is the thing being
+  // worked on, so the browser's note naming it (id, type, name, content) is passed to the model and "this"
+  // means that block. In every other mode the note is not sent on, because those modes work on the whole page.
+  const inspectSelection =
+    derivePageType(pagePath) === "document" && mode === "inspect"
+    && typeof selectedBlockContext === "string" && selectedBlockContext.startsWith("[User has this block selected")
+      ? selectedBlockContext
+      : null;
+  // In Overview the model is told its mode outright. It has no block tools there, and without this it has to
+  // work that out from its tool list, so a request to change something could get a vague or wrong answer.
+  const overviewNote =
+    derivePageType(pagePath) === "document" && mode === "overview"
+      ? `[Mode: Overview. You cannot change the document in this mode. If the user asks you to add, edit or delete anything, say plainly that Overview is read-only and that they can switch to Inspect or Build.]`
+      : null;
+  const referentHint = inspectSelection
+    ? `[If the user says "this" or "it" without naming something specific, they mean the selected block.]`
+    : `[If the user says "this" or "it" without naming something specific, they mean the document as a whole.]`;
 
   // Inject page path + referent hint + live page content into the LAST message (the turn the
   // model is actually about to answer), not the first. pageContext is rebuilt fresh and resent
@@ -88,6 +96,8 @@ export async function POST(req: NextRequest) {
   const contextPrefix = [
     pagePath ? `[User is on page: ${pagePath}]` : null,
     referentHint,
+    overviewNote,
+    inspectSelection,
     pageContext ? `[Current page contents:\n${pageContext}\n]`
       // An empty document sends an empty string. Without this line the model sees no page
       // contents at all and reads that as "the document was not provided".
