@@ -10,7 +10,6 @@ export default function Nav() {
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-gray-300">
           <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-          <a href="#community" className="hover:text-white transition-colors">Community</a>
           <a href="#demos" className="hover:text-white transition-colors">Demos</a>
           <a href="/modules" className="hover:text-white transition-colors">Modules</a>
           <a href="/accounts" className="hover:text-white transition-colors">Pricing</a>
