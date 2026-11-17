@@ -8,7 +8,6 @@ import PartTreeBuildTour from "./PartTreeBuildTour";
 import EngenticAI from "./EngenticAI";
 import BuildTour from "./BuildTour";
 import CadBreak from "./CadBreak";
-import ComparisonTable from "./ComparisonTable";
 import StartNow from "./StartNow";
 import Community from "./Community";
 import Footer from "./Footer";
