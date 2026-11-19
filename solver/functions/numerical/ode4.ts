@@ -1,4 +1,5 @@
-import type { BuiltinFn, Matrix, SolveContext, ResolvedEquation } from "../../types";
+import type { BuiltinFn, Matrix, SolveContext } from "../../types";
+import { evaluateWith, type UnitInfo } from "./eval-with";
 
 /**
  * ode4(x, y0, exprs)
@@ -73,9 +74,9 @@ export async function ode4Impl(
   xMat: Matrix,
   y0Mat: Matrix,
   ctx: SolveContext,
+  xUnit?: UnitInfo,
+  yUnit?: UnitInfo,
 ): Promise<Matrix> {
-  const { runPipeline } = await import("../../pipeline");
-  const emptyBase: [number,number,number,number,number,number,number,number] = [0,0,0,0,0,0,0,0];
 
   // Parse expression list — strip outer brackets then split by top-level commas
   const exprs = splitTopLevel(stripBrackets(rawExprStr));
@@ -111,87 +112,14 @@ export async function ode4Impl(
    * Returns an array of derivatives [dy1/dx, dy2/dx, ...].
    */
   async function evalDerivatives(x: number, yState: number[]): Promise<number[]> {
-    // Build injected equations: remove any existing y1/y2/x variables, then add current values
-    // State variables are y0, y1, y2, ... (zero-indexed, matching Python convention)
-    const stateNames = Array.from({ length: nStates }, (_, i) => `y${i}`);
-    const baseDoc = ctx.documentEquations.filter(
-      (e) =>
-        e.variableName.toLowerCase() !== "x" &&
-        !stateNames.includes(e.variableName.toLowerCase()),
-    );
-
-    const injected: ResolvedEquation[] = [
-      ...baseDoc,
-      {
-        blockId: "_ode4_x_",
-        order: -1,
-        variableName: "x",
-        solution: {
-          real: { "0-0": x },
-          imag: { "0-0": 0 },
-          size: "1x1",
-          units: "",
-          baseUnits: emptyBase,
-          multiplier: 1,
-          quantity: "",
-        },
-        error: null,
-      },
-      ...stateNames.map((name, i): ResolvedEquation => ({
-        blockId: `_ode4_${name}_`,
-        order: -1,
-        variableName: name,
-        solution: {
-          real: { "0-0": yState[i] },
-          imag: { "0-0": 0 },
-          size: "1x1",
-          units: "",
-          baseUnits: emptyBase,
-          multiplier: 1,
-          quantity: "",
-        },
-        error: null,
-      })),
+    // State variables are y0, y1, y2, ... (zero-indexed, matching Python convention).
+    // x carries the unit of the x vector and each state carries the unit of y0, so an
+    // expression is checked for units the same way it would be in a block.
+    const vars = [
+      { name: "x", value: x, unit: xUnit },
+      ...yState.map((value, i) => ({ name: `y${i}`, value, unit: yUnit })),
     ];
-
-    // Evaluate each expression independently
-    return Promise.all(
-      exprs.map(async (expr) => {
-        const subCtx: SolveContext = {
-          ...ctx,
-          eqId: `${ctx.eqId}_ode4`,
-          rawEquation: `_f_=${expr}`,
-          workingString: `_f_=${expr}`,
-          variableName: "",
-          rhsString: "",
-          tokens: [],
-          keyArray: [],
-          variableArray: [],
-          postfixArray: [],
-          solution: {
-            real: { "0-0": 0 },
-            imag: { "0-0": 0 },
-            size: "1x1",
-            units: "",
-            baseUnits: emptyBase,
-            multiplier: 1,
-            quantity: "",
-          },
-          display: {
-            equation: "",
-            solution: "",
-            numericalModel: "",
-            unitsModel: "",
-            dimensionsModel: "",
-            quantitiesModel: "",
-          },
-          errors: [],
-          documentEquations: injected,
-        };
-        const r = await runPipeline(subCtx);
-        return (r.solution.real["0-0"] ?? 0) * r.solution.multiplier;
-      }),
-    );
+    return Promise.all(exprs.map((expr) => evaluateWith(expr, "ode4", ctx, vars)));
   }
 
   // RK4 loop — result[stateIdx][timeIdx] stored as "stateIdx-timeIdx"

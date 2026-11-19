@@ -190,7 +190,13 @@ function HexNav({
     : "linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%)";
   const activeColor = isRed ? "#dc2626" : isLink ? "#059669" : "#4f46e5";
   const iconColor = isRed ? "#dc2626" : lit ? activeColor : "#374151";
-  const labelColor = isRed ? "#dc2626" : lit ? activeColor : "#9ca3af";
+  const labelColor = isRed ? "#dc2626" : lit ? activeColor : "#6b7280";
+  // The thin edge drawn round each face: pale grey normally, the glow colour when lit.
+  const ringBg = lit
+    ? glowColor
+    : isRed
+      ? "linear-gradient(145deg, #fecaca 0%, #f87171 100%)"
+      : "linear-gradient(145deg, #ffffff 0%, #c9ced6 100%)";
 
   return (
     <div
@@ -215,7 +221,7 @@ function HexNav({
             : "none"
           : lit
             ? `drop-shadow(0 0 12px ${glowColor}) drop-shadow(0 4px 10px rgba(0,0,0,0.3))`
-            : "drop-shadow(0 3px 8px rgba(0,0,0,0.2)) drop-shadow(0 1px 3px rgba(0,0,0,0.12))",
+            : "drop-shadow(0 2px 5px rgba(0,0,0,0.14)) drop-shadow(0 1px 2px rgba(0,0,0,0.1))",
         pointerEvents: "auto",
       }}
     >
@@ -230,9 +236,17 @@ function HexNav({
       />
       <div
         style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
+          position: "absolute",
+          inset: 2,
+          clipPath: HEX_CLIP,
+          background: ringBg,
+          transition: "background 0.2s",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 3.5,
           clipPath: HEX_CLIP,
           background: lit ? litBg : unlitBg,
           display: "flex",
@@ -264,7 +278,8 @@ function HexNav({
         />
         <span
           style={{
-            fontSize: hexW < 80 ? 7 : 8,
+            fontSize: hexW < 80 ? 8 : 9,
+            fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
             fontWeight: 700,
             letterSpacing: "0.08em",
             color: labelColor,

@@ -4,6 +4,12 @@ import type { SolveContext, StepFn } from "../types";
 // Matches the legacy SplitText() helper from eqSolverOld.js (lines 619-651).
 export function splitText(text: string): string[] {
   let t = text.toString().trim();
+  // The sign in a number's exponent (1.004e-6, 2.5e+3) is part of the number, not an operator.
+  // Hide it from the operator splitting below and put it back on the tokens at the end.
+  t = t.replace(
+    /(^|[^A-Za-z_\d.])((?:\d+\.?\d*|\.\d+)[eE])([+-])(?=\d)/g,
+    (_m, before: string, num: string, sign: string) => `${before}${num}${sign === "-" ? "\u0001" : "\u0002"}`,
+  );
   t = t.replace(/\s+[+]\s+/g, "?+?");
   t = t.replace(/\s+[-]\s+/g, "?-?");
   t = t.replace(/\s+[*]\s+/g, "?*?");
@@ -27,7 +33,10 @@ export function splitText(text: string): string[] {
   t = t.replace(/^\?\-\?/, "-?");
   t = t.trim();
   t = t.replace(/^\?+|\?+$/g, "");
-  return t.split("?").filter((s) => s !== "");
+  return t
+    .split("?")
+    .filter((s) => s !== "")
+    .map((s) => s.replace(/\u0001/g, "-").replace(/\u0002/g, "+"));
 }
 
 // Step 01: Get_Variables (eqSolverOld.js lines 604-618)

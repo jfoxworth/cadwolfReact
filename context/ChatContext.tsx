@@ -60,6 +60,8 @@ export interface ChatMessage {
   content: string;
   /** Build mode only: the problem statement the first step wrote, shown above the reply. */
   understood?: string;
+  /** Step 1's scenario, shown beside the problem statement (`understood`). */
+  scenario?: string;
   /** Any block proposals this assistant message made — approved/rejected in place via their status. */
   proposals?: BlockProposal[];
 }
@@ -131,6 +133,8 @@ interface ChatContextType {
   setEffortKey: (key: AiEffortKey) => void;
   /** Tokens used by the most recent request (summed over all its API calls); null until one completes. */
   lastUsage: { input: number; output: number; cost: number | null } | null;
+  /** Estimated cost of every request in the current conversation added together. Back to 0 when the chat is cleared. */
+  conversationCost: number;
   /** Whether Build mode is currently allowed on this page — true by default (Workspace/Dataset
    *  have no checkout concept and never call setCanBuild); Document sets this to
    *  canEdit && checked-out-by-me, since adding blocks requires both. */
@@ -177,6 +181,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [modelKey, setModelKeyState] = useState<AiModelKey>(DEFAULT_MODEL_KEY);
   const [effortKey, setEffortKeyState] = useState<AiEffortKey>(DEFAULT_EFFORT_KEY);
   const [lastUsage, setLastUsage] = useState<{ input: number; output: number; cost: number | null } | null>(null);
+  const [conversationCost, setConversationCost] = useState(0);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -309,6 +314,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const openChat = useCallback(() => setIsOpen(true), []);
   const clearMessages = useCallback(() => {
     setMessages([]);
+    setConversationCost(0);
   }, []);
 
   const sendMessage = useCallback(async (content: string, pagePath?: string) => {
@@ -383,10 +389,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             });
           } else if (event.type === "understood") {
             const problem = event.problem as string;
+            const scenario = typeof event.scenario === "string" ? event.scenario : undefined;
             setMessages((prev) => {
               const updated = [...prev];
               const last = updated[updated.length - 1];
-              if (last.role === "assistant") updated[updated.length - 1] = { ...last, understood: problem };
+              if (last.role === "assistant") updated[updated.length - 1] = { ...last, understood: problem, scenario };
               return updated;
             });
           } else if (event.type === "tool_use") {
@@ -446,6 +453,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               output: event.output as number,
               cost: typeof event.cost === "number" ? event.cost : null,
             });
+            if (typeof event.cost === "number") {
+              const requestCost = event.cost;
+              setConversationCost((total) => total + requestCost);
+            }
           } else if (event.type === "error") {
             const message = event.message as string;
             setMessages((prev) => {
@@ -549,6 +560,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         effortKey,
         setEffortKey,
         lastUsage,
+        conversationCost,
         canBuild,
         setCanBuild,
         toggleChat,

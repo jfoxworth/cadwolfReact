@@ -148,8 +148,7 @@ Engentic equations have no comment syntax at all — this isn't Python or JavaSc
 **Every given physical quantity gets its unit, exactly as the problem states it.** If the problem says `E = 200 GPa`, `A = 2500 mm²`, a 4 m span and a 40 kN load, write `E_mod = 200GPa`, `A_chord = 2500mm^2`, `L = 4m`, `F = 40kN`. The solver converts and tracks everything.
 
 - **Do not invent a unitless "kN and m" (or any other) working system.** Don't pre-convert to a base set and enter bare numbers (`E_mod = 200000000`, `A = 0.0025`) with the units described in a text block — the solver can't check, convert or label anything it can't see.
-- **Unitless is for genuinely dimensionless values only:** ratios, angles in radians, direction cosines, counts and indices.
-- **To report a result in a particular unit, divide by that unit** — this also strips the unit so the value is a plain number in the unit you name in the heading:
+- **Unitless is for genuinely dimensionless values only:** 
 
 ```
 E_mod = 200GPa
@@ -180,7 +179,19 @@ Adding or subtracting incompatible unit families **errors**:
 bad = 5m + 3s   ← ERROR
 ```
 
-Multiplying/dividing different families is valid (that is how derived units are formed: N = kg·m/s²).
+**A plain number can't be added to, or subtracted from, a value that has a unit.** Both sides of `+` and `-` must carry the same unit, so give the number its unit. This also applies inside a function such as `abs()`, `sqrt()` or `bisect()`.
+
+```
+H = 100m
+bad  = H + 5     ← ERROR (m + a plain number)
+good = H + 5m
+bad  = H - 0.5   ← ERROR
+good = H - 0.5m
+```
+
+Before writing `+` or `-`, check that both sides have the same unit. The exception is a value that is genuinely dimensionless, such as a ratio or a count, which can be added to another dimensionless value.
+
+Multiplying/dividing different families is valid (that is how derived units are formed: N = kg·m/s²). Multiplying or dividing by a plain number is also valid: `2 * H` is 200m.
 
 ### Unitless Values
 
@@ -413,6 +424,13 @@ The expression f(x) is written as an engentic expression referencing `x` as the 
 | `incSearch(f(x), xmin, xmax, ns)` | f(x): expression; xmin, xmax: scalars; ns: integer steps (default 50) | N×2 matrix (or scalar 0 if none found) | Scans ns+1 equally-spaced points for sign changes in f(x). Each row of output is [xl, xu] for one bracket. Use to find starting bounds for bisect/secant/falsePos. |
 | `ode4(x, y0, [exprs])` | x: 1×N row vector (time/independent variable, e.g. from linspace); y0: row/column vector of initial conditions; exprs: comma-separated derivative expressions in brackets | R×N matrix, row i = values of yᵢ at each x step | 4th-order Runge-Kutta ODE integration. State variables in expressions are **y0, y1, y2, …** (zero-indexed). Independent variable is `x`. |
 
+**bisect, secant, falsePos, incSearch and ode4: the variable `x` and units**
+
+- The function sets `x` itself on every trial (and `y0, y1, …` in ode4). Never define `x` in the document.
+- `x` takes its unit from the bounds (`xl`, `xu`, `x1`, `x2`, `xmin`, `xmax`). In ode4, `x` takes the unit of the x vector and the states take the unit of `y0`. If `f(x)` mixes `x` with variables that have units, give the bounds units: `bisect(H_A - x, 50.01m, 99.99m)`. With plain-number bounds `x` is a plain number, and `H_A - x` is a unit error.
+- The result comes back in the unit of the bounds. Take the root with `r[0]`.
+- `f(x)` must be defined at every point the function tries, **including both bounds**. If it divides by zero or takes the root of a negative number at a bound, move that bound slightly inside.
+
 **ode4 — scalar ODE example:**
 ```
 Time   = linspace(0, 12, 100)
@@ -439,7 +457,7 @@ Row 0 of Result = position (y0), Row 1 = velocity (y1).
 | `rotate(mat)` | mat: R×C matrix | C×R matrix | Rotate 90° clockwise. No angle parameter. |
 | `interpolate(vec, n)` | vec: 1×N row vector; n: integer scalar | 1×((N−1)·n + 1) row vector | Insert n evenly-spaced sub-intervals between each adjacent pair of values, producing a denser vector. |
 | `spline(x, y, xi)` | x: 1×N or N×1 knot x-values (strictly increasing); y: 1×N or N×1 knot y-values; xi: scalar or 1×M (or M×1) query points | same shape as xi | Natural cubic spline interpolation. Extrapolates linearly beyond the data range. |
-| `IfElse(testVal, op, compareVal, trueVal, falseVal)` | testVal: scalar/vector/matrix; op: string one of `==` `!=` `>` `<` `>=` `<=`; compareVal: same shape as testVal; trueVal: any; falseVal: any (optional, defaults to 0) | trueVal or falseVal | Returns trueVal if the condition holds for ALL elements, falseVal otherwise |
+| `IfElse(testVal, op, compareVal, trueVal, falseVal)` | testVal: scalar/vector/matrix; op: the operator written as it is, **not in quotes**, one of `==` `!=` `>` `<` `>=` `<=` (e.g. `IfElse(a, >, b, 1, 0)`); compareVal: same shape as testVal; trueVal: any; falseVal: any (optional, defaults to 0) | trueVal or falseVal | Returns trueVal if the condition holds for ALL elements, falseVal otherwise |
 | `firstPos(arr, dim?)` | arr: 1×N row vector, N×1 column vector, or R×C matrix; dim: scalar 0 or 1 (optional, inferred from shape) | scalar index (for vector) or row vector of indices (for matrix) | Find the first index where values cross from ≤ 0 to > 0 (sign change). Row vector → column index. Column vector → row index. |
 | `isPosDef(A)` | A: n×n matrix | scalar 0 or 1 | 1 if positive definite (Sylvester's criterion), else 0 |
 | `erf(x)` | x: scalar/vector/matrix | same shape as x | Error function (elementwise). Abramowitz & Stegun approximation, error ≤ 1.5×10⁻⁷ |
@@ -502,6 +520,8 @@ Mass properties are fetched on demand when the user clicks "Refresh from CAD". T
 - **stdev is population** — divides by N, not N−1. For sample std dev: `sqrt(variance(x) * length(x) / (length(x) - 1))`.
 - **polyfit column vector** — output is a column vector [a₀, a₁, …]. a₀ is the constant term.
 - **ode4 state names** — state variables are y0, y1, y2, … (zero-indexed).
+- **Quotes around the IfElse operator** — write `IfElse(a, >, b, 1, 0)`, never `IfElse(a, ">", b, 1, 0)`. The operator is not a string; with quotes it matches nothing and the equation errors.
+- **Root-finding bounds on a singularity** — if `f(x)` divides by zero at a bound (for example a bound equal to a reservoir head in a flow formula), the call fails with "Division by zero". Keep the bounds strictly inside, such as `50.01m` instead of `50m`.
 - **row vs column** — col2mat expects a column vector (N×1) input; row2mat expects a row vector (1×M) input. Passing the wrong orientation will produce an incorrect result.
 
 ---

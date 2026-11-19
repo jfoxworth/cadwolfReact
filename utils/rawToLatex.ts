@@ -203,6 +203,34 @@ function captureBalancedBrace(s: string, pos: number): number {
 }
 
 /**
+ * The index where the operand that ends just before `end` in `s` begins. Used for a base that
+ * sits in front of a ^ or _ (e.g. the {b} in {b}^{2}). The base is a brace group, a bracketed
+ * group (with its \left), or a simple token.
+ */
+function baseStart(s: string, end: number): number {
+  if (s[end - 1] === "}") {
+    let d = 1, j = end - 2;
+    while (j >= 0 && d > 0) {
+      if (s[j] === "}") d++;
+      else if (s[j] === "{") d--;
+      j--;
+    }
+    return j + 1;
+  }
+  if (s[end - 1] === ")") {
+    let d = 1, j = end - 2;
+    while (j >= 0 && d > 0) {
+      if (s[j] === ")") d++;
+      else if (s[j] === "(") d--;
+      j--;
+    }
+    return j + 1 >= 5 && s.slice(j + 1 - 5, j + 1) === "\\left" ? j + 1 - 5 : j + 1;
+  }
+  const m = s.slice(0, end).match(TOKEN_CHARS_END);
+  return m ? end - m[0].length : end;
+}
+
+/**
  * Replace a/b → \frac{a}{b} where a and b are either:
  *   - parenthesised groups  (expr)
  *   - LaTeX brace groups    \cmd{expr}  or  \cmd[n]{expr}
@@ -255,6 +283,11 @@ function expandDivision(expr: string): string {
         const prefixStr = before.slice(0, j + 1).trimEnd();
         const cmdMatch = prefixStr.match(/(\\[A-Za-z]+(?:\[[^\]]*\])?[_A-Za-z0-9]*)\s*$/);
         lhsStart = cmdMatch ? prefixStr.length - cmdMatch[0].length : j + 1;
+        // A group that follows ^ or _ is an exponent or subscript: the operand starts at its base
+        // ({b}^{2}, not just {2}).
+        while (lhsStart > 0 && (before[lhsStart - 1] === "^" || before[lhsStart - 1] === "_")) {
+          lhsStart = baseStart(before, lhsStart - 1);
+        }
         lhs = before.slice(lhsStart); // keep braces — already valid LaTeX
       } else {
         const m = before.match(TOKEN_CHARS_END);
@@ -273,6 +306,22 @@ function expandDivision(expr: string): string {
         const closeIdx = findClose(after.slice(1));
         rhs = after.slice(1, closeIdx + 1);             // strip outer ( )
         rhsLen = closeIdx + 2 + skipSpaces;
+      } else if (after.startsWith("{")) {
+        // A LaTeX brace group such as {b}^{2} (what power() produces), plus any ^ or _ that follows
+        // it. A plain-token match would stop at a "(" inside the group and cut a \left from its bracket.
+        let pos = captureBalancedBrace(after, 0);
+        while (after[pos] === "^" || after[pos] === "_") {
+          pos++;
+          if (after[pos] === "{") {
+            pos = captureBalancedBrace(after, pos);
+          } else {
+            const t = after.slice(pos).match(/^[A-Za-z0-9_.]+/);
+            pos += t ? t[0].length : 0;
+            break;
+          }
+        }
+        rhs = after.slice(0, pos);
+        rhsLen = pos + skipSpaces;
       } else if (after.startsWith("\\")) {
         // LaTeX command: \cmd, \cmd[opt], followed by zero or more {...} groups
         const cmdMatch = after.match(/^\\[A-Za-z]+(?:\[[^\]]*\])?/);

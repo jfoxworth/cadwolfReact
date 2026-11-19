@@ -79,7 +79,7 @@ const PART_CALCULATION_VIEW: PromptView = {
   agent: "Part agent",
   call: "Stage 1: write the calculation",
   tool: "write_calculation (and lookup_material)",
-  alsoSent: "the build request; the part's design document in full; the list of values it can import.",
+  alsoSent: "the part's design document in full; the list of values it can import.",
   prompt: readPrompt("part-calculation.md"),
   appendixTitle: "Platform reference (equation syntax, units, functions, constants)",
   appendix: readFileSync(join(process.cwd(), "prompts", "document.md"), "utf-8").split("\n## Modes")[0],
@@ -93,6 +93,22 @@ const PART_DOCUMENT_VIEW: PromptView = {
     "the part's design document in full; the values imported; the solved steps with their results and reasons; any unresolved problems.",
   prompt: readPrompt("part-document.md"),
 };
+
+const PROMPTS_SENT = [
+  ...STEPS.map((s, i) => ({
+    step: `Coordinator, step ${s.n}: ${s.name}`,
+    files: ["prompts/agents/coordinator.md", `prompts/agents/passes/${STEP_FILES[i]}.md`],
+  })),
+  {
+    step: "Part agent, stage 1: calculation",
+    files: [
+      "prompts/agents/part-calculation.md",
+      "the heading \"# Platform reference\"",
+      "prompts/document.md, only the lines before \"## Modes\" (the rest of the file is cut off in the code)",
+    ],
+  },
+  { step: "Part agent, stage 2: document", files: ["prompts/agents/part-document.md"] },
+];
 
 const SECTIONS = [
   { name: "Orientation", kind: "prose", does: "A short briefing for whoever works on this item next: what it is for, where it sits, what it has to get right." },
@@ -229,7 +245,7 @@ export default function PartTreeProcessPage() {
         {/* 6. Part agent */}
         <Section
           title="What a part agent does"
-          intro="A part agent works in two stages. First it works out the design, and the server checks it. Then a second AI call writes the document a person reads. The two jobs are kept apart so the design can be checked on its own, and so the writing can't change the numbers."
+          intro="A part agent works in two stages. First it works out the design, and the server checks it. Then a second AI call writes the document a person reads. The two jobs are kept apart so the design can be checked on its own, and so the writing can't change the numbers. Each prompt opens with the same numbered outline of the three stages (coordinator, calculation, document) and says which one the model is. The part agent is not sent the user's build prompt."
         >
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stage 1: work out the design</div>
           <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-stretch">
@@ -239,15 +255,13 @@ export default function PartTreeProcessPage() {
             </Card>
             <Arrow />
             <Card title="Writes the calculation" tone="blue" className="md:w-1/3" action={<PromptButton view={PART_CALCULATION_VIEW} />}>
-              A list of equations in order. Each one has a role (given, choice, calculation, check or output), a
-              one-sentence reason, and a note on whether the result must be above zero. It can look up built-in material
-              properties.
+              A list of equations in order. Each one has a role (given, choice, calculation or output) and a
+              one-sentence reason. It can look up built-in material properties.
             </Card>
             <Arrow />
             <Card title="Solved and checked on the server" tone="slate" className="md:w-1/3">
               Every equation is solved with the same solver the app uses. The agent is sent back to fix any equation that
-              doesn&apos;t solve, any check that fails, any result that should be above zero and isn&apos;t, and any step
-              with no reason. Up to 6 rounds.
+              doesn&apos;t solve and any step with no reason. Up to 6 rounds.
             </Card>
           </div>
           <div className="my-3 flex justify-center">
@@ -272,7 +286,31 @@ export default function PartTreeProcessPage() {
           </div>
         </Section>
 
-        {/* 7. Not built */}
+        {/* 7. Prompts sent at each step */}
+        <Section
+          title="The prompts sent at each step"
+          intro="Every file that is joined together to make the system prompt of each AI call, in the order it is joined. This list is written by hand from agents/coordinator.ts and agents/partAgent.ts."
+        >
+          <div className="overflow-hidden rounded-lg border border-slate-300 bg-white">
+            <div className="hidden border-b border-slate-300 bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:flex">
+              <span className="w-56 shrink-0">Agent and step</span>
+              <span className="flex-1">System prompt files, in order</span>
+            </div>
+            {PROMPTS_SENT.map((row) => (
+              <div key={row.step} className="flex flex-col gap-1 border-b border-slate-100 px-4 py-2 last:border-b-0 md:flex-row md:gap-0">
+                <span className="w-56 shrink-0 text-sm font-medium">{row.step}</span>
+                <ol className="flex-1 list-decimal space-y-0.5 pl-5 text-xs text-slate-700">
+                  {row.files.map((f) => <li key={f}>{f}</li>)}
+                </ol>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            The research agent has no prompt: it is not built yet. No part tree step is sent <code>_shared.md</code>.
+          </p>
+        </Section>
+
+        {/* 8. Not built */}
         <Section title="Not built yet">
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
             <li>A separate review of finished part documents for mistakes the code checks can&apos;t catch.</li>

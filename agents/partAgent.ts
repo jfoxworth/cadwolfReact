@@ -4,7 +4,7 @@
 //
 //   1. Calculation (prompts/agents/part-calculation.md + the platform reference). The agent
 //      proposes the equations, each with a role and the reason for it. They are solved here, on the
-//      server, and sent back with any errors, failed checks and impossible values until they are
+//      server, and sent back with any errors until they are
 //      clean or the rounds run out.
 //   2. Document (prompts/agents/part-document.md). A separate call writes the document a person
 //      reads: headings and text explaining the design and how it was reached. It places each
@@ -23,9 +23,9 @@ import { getSolvedDocumentVariables } from "@/utils/getSolvedDocumentVariables";
 import { isDesignDocument } from "./designDocument";
 import { designText, readDesignDocument } from "./designDocumentFormat";
 import {
-  LOOKUP_MATERIAL_TOOL, LOOKUP_MATERIAL_TOOL_NAME, STEP_ROLES, WRITE_CALCULATION_TOOL, WRITE_CALCULATION_TOOL_NAME,
+  LOOKUP_MATERIAL_TOOL, LOOKUP_MATERIAL_TOOL_NAME, PART_STEP_ROLES, WRITE_CALCULATION_TOOL, WRITE_CALCULATION_TOOL_NAME,
   WRITE_DOCUMENT_TOOL, WRITE_DOCUMENT_TOOL_NAME, lookupMaterial,
-  type StepRole, type WriteCalculationInput, type WriteDocumentInput,
+  type PartStepRole, type WriteCalculationInput, type WriteDocumentInput,
 } from "./partAgentTools";
 import { solvePartEquations, type SolvedEquation } from "./solvePartDocument";
 import { textToHtml, type DesignBlock } from "./writeDesignDocument";
@@ -53,16 +53,15 @@ interface Step {
   /** 1-based, as the model sees it. */
   number: number;
   raw: string;
-  role: StepRole;
+  role: PartStepRole;
   why: string;
-  positive: boolean;
   solved: SolvedEquation;
 }
 
 interface Calculation {
   steps: Step[];
   imports: PartImportRow[];
-  /** What is still wrong: solve errors, failed checks, impossible values. Empty when accepted. */
+  /** What is still wrong: solve errors. Empty when accepted. */
   problems: string[];
   /** What the model is told after a round. */
   text: string;
@@ -146,8 +145,7 @@ function scalarOf(solved: SolvedEquation): number | undefined {
 }
 
 /** Turns the model's proposal into solved steps and reports everything still wrong with it:
- *  imports that aren't on the list, equations that don't solve, checks that fail, and values
- *  that the model itself said must be positive and aren't. */
+ *  imports that aren't on the list and equations that don't solve. */
 async function evaluateCalculation(input: WriteCalculationInput, options: ImportOption[]): Promise<Calculation> {
   const problems: string[] = [];
 
@@ -171,7 +169,7 @@ async function evaluateCalculation(input: WriteCalculationInput, options: Import
     });
   }
 
-  const proposed: { raw: string; role: StepRole; why: string; positive: boolean }[] = [];
+  const proposed: { raw: string; role: PartStepRole; why: string }[] = [];
   for (const s of Array.isArray(input.steps) ? input.steps.slice(0, MAX_STEPS) : []) {
     const raw = typeof s?.raw === "string" ? s.raw.trim() : "";
     if (!raw.includes("=")) {
@@ -180,9 +178,8 @@ async function evaluateCalculation(input: WriteCalculationInput, options: Import
     }
     proposed.push({
       raw,
-      role: STEP_ROLES.includes(s.role) ? s.role : "calculation",
+      role: PART_STEP_ROLES.includes(s.role) ? s.role : "calculation",
       why: typeof s.why === "string" ? s.why.trim() : "",
-      positive: s.positive === true,
     });
   }
   if (proposed.length === 0) problems.push("The calculation has no equations. A part must calculate something.");
@@ -203,16 +200,6 @@ async function evaluateCalculation(input: WriteCalculationInput, options: Import
       continue;
     }
     const value = scalarOf(step.solved);
-    if (step.role === "check") {
-      if (value === undefined || (value !== 0 && value !== 1)) {
-        problems.push(`Step ${step.number}: "${name}" is a check, so it must give 1 (met) or 0 (not met). It gave ${step.solved.summary}.`);
-      } else if (value === 0) {
-        problems.push(`Step ${step.number}: the check "${name}" fails. The design does not meet it. Change the design (a choice or a size) until it passes. Do not weaken the check.`);
-      }
-    }
-    if (step.positive && value !== undefined && !(value > 0)) {
-      problems.push(`Step ${step.number}: "${name}" is ${step.solved.summary}, but it must be greater than zero. Find out why and fix the design.`);
-    }
   }
 
   const text = [
@@ -423,7 +410,6 @@ export const partAgent: AgentFn = async (task: AgentTask, ctx: AgentContext) => 
   const header = [
     `Part: ${part.name}`,
     container ? `Contained in: ${container.name}` : null,
-    `Build request: ${ctx.prompt}`,
     "",
     `Design document for this part ("Design: ${design.name}"), in full. Read the Orientation first; the other sections are structured data:`,
     designText(design),

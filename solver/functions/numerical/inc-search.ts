@@ -1,4 +1,5 @@
 import type { BuiltinFn, Matrix, SolveContext } from "../../types";
+import { evaluateWith, type UnitInfo } from "./eval-with";
 
 // incSearch(f(x), xmin, xmax, ns?)
 // Incremental search: evaluates f at ns+1 equally-spaced points over [xmin, xmax],
@@ -21,35 +22,9 @@ export async function incSearchImpl(
   xmax: number,
   ns: number,
   ctx: SolveContext,
+  xUnit?: UnitInfo,
 ): Promise<Matrix> {
-  const { runPipeline } = await import("../../pipeline");
-  const emptyBase: [number,number,number,number,number,number,number,number] = [0,0,0,0,0,0,0,0];
-
-  async function evalAt(x: number): Promise<number> {
-    const subCtx: SolveContext = {
-      ...ctx,
-      eqId: `${ctx.eqId}_incsearch`,
-      rawEquation: `_f_=${rawExpr}`,
-      workingString: `_f_=${rawExpr}`,
-      variableName: "", rhsString: "",
-      tokens: [], keyArray: [], variableArray: [], postfixArray: [],
-      solution: { real: {"0-0":0}, imag: {"0-0":0}, size:"1x1", units:"", baseUnits:emptyBase, multiplier:1, quantity:"" },
-      display: { equation: "", solution: "", numericalModel: "", unitsModel: "", dimensionsModel: "", quantitiesModel: "" },
-      errors: [],
-      documentEquations: [
-        ...ctx.documentEquations.filter((e) => e.variableName.toLowerCase() !== "x"),
-        {
-          blockId: "_incsearch_x_",
-          order: -1,
-          variableName: "x",
-          solution: { real: {"0-0": x}, imag: {"0-0":0}, size:"1x1", units:"", baseUnits:emptyBase, multiplier:1, quantity:"" },
-          error: null,
-        },
-      ],
-    };
-    const r = await runPipeline(subCtx);
-    return (r.solution.real["0-0"] ?? 0) * r.solution.multiplier;
-  }
+  const evalAt = (x: number) => evaluateWith(rawExpr, "incsearch", ctx, [{ name: "x", value: x, unit: xUnit }]);
 
   const xdiff = (xmax - xmin) / ns;
   const result: Matrix = {};

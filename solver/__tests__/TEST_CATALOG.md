@@ -365,6 +365,40 @@ expect(r.solution?.real["0-0"]).toBeCloseTo(Math.ceil(3.7 * FT_M), 4); // 2 m
 
 ---
 
+## solver/functions/numerical/ — Unit Tests
+
+These functions evaluate an expression many times with trial values of `x` (and, for `ode4`, `y0`, `y1`, …). The unit of `x` comes from the bounds (or the x vector for `ode4`), the root or bracket comes back in that unit, and an expression that fails to evaluate (for example a unit conflict) is reported as an error. The shared evaluator is `functions/numerical/eval-with.ts`. Tests solve equation blocks top to bottom through `numerical/solve-blocks.ts`.
+
+| Function | Test File | Tests | Coverage |
+|----------|-----------|-------|----------|
+| `bisect` | `__tests__/numerical/bisect.test.ts` | 6 | Plain-number root; x takes the unit of the bounds (variable in m, root in m); bounds in mm give the same root; a unit conflict in f(x) is an error, not a wrong root; bounds with different units are an error; a three-reservoir junction head with unit-bearing variables, `sign`, `abs`, `sqrt` and `log10` solves with no unit error |
+| `falsepos` | `__tests__/numerical/false-pos.test.ts` | 5 | Same five cases as `bisect` |
+| `secant` | `__tests__/numerical/secant.test.ts` | 5 | Same five cases as `bisect`, with two starting guesses |
+| `incsearch` | `__tests__/numerical/inc-search.test.ts` | 4 | Plain-number bracket; bracket returned in the bounds' unit; unit conflict in f(x) is an error; bounds with different units are an error |
+| `ode4` | `__tests__/numerical/ode4.test.ts` | 3 | Plain-number integration; y takes the unit of y0 with x in s and the derivative in m/s; a unit conflict in the derivative is an error |
+
+The root, bracket or y values carry the unit; for `bisect`, `falsepos` and `secant` the whole `[root, error%, iterations]` row is labelled with it, so the error and iteration count show the unit too.
+
+---
+
+## solver/steps/ — units of sqrt, root and power inside a divided product
+
+`__tests__/units/sqrt-in-denominator.test.ts` — 6 tests. `nu / (D * sqrt(g*h))` is dimensionless (it used to keep the sqrt's unit); the same quotient can be added to a dimensionless ratio (the pre-check in step 16 used to treat the unit inside the group as multiplied, not divided); a variable in place of the sqrt gives the same result; sqrt alone, multiplied and divided keep their units; a quotient that really has a unit, or two terms with different units, still cannot be added.
+
+---
+
+## solver/steps/01 — scientific notation
+
+`__tests__/units/scientific-notation.test.ts` — 7 tests. The sign in a number's exponent (`1.004e-6`, `2.5e+3`) is part of the number: it used to be split off as an operator, so `1.004e-6 m^2/s` errored and `1.004e-6` alone read as `1.004 * e - 6`. Covers a positive and a negative exponent with a unit, capital `E`, an explicit `+`, a negative exponent with no unit, use inside expressions, and that `10-3`, `e-3` and `s2e-3` still subtract.
+
+---
+
+## utils/rawToLatex.ts
+
+`__tests__/rawToLatex.test.ts` — 20 tests. The first 14 cover root, power, division to `\frac`, trig, abs, IfElse and sqrt. The last 6 cover a `power()` result next to `/`: `0.25/power(2, log10(...))` keeps each `\left` with its `(` (a brace-group operand used to be cut at the `(`, which made KaTeX fail with "Expected group as argument to \left"); `power(2, b) / c` puts `{b}^{2}` in the numerator (it used to give `{b}^\frac{{2}}{c}`); a bracketed base on both sides of `/`; and the reported equation and the power cases render in KaTeX with `throwOnError`.
+
+---
+
 ## Future Sections (to be added)
 
 - `solver/functions/trig/` — sin, cos, tan, asin, acos, atan, atan2, sinh, cosh, tanh, asinh, acosh, atanh, sec, csc, cot, asec, acsc, acot, asech, acsch, acoth

@@ -6,6 +6,7 @@ import { secantImpl } from "../functions/numerical/secant";
 import { falsePosImpl } from "../functions/numerical/false-pos";
 import { incSearchImpl } from "../functions/numerical/inc-search";
 import { ode4Impl } from "../functions/numerical/ode4";
+import type { UnitInfo } from "../functions/numerical/eval-with";
 import { termsToUnitString } from "../units/parse-compound";
 
 // SI base-unit dimension names (index matches UnitBaseArray position)
@@ -59,10 +60,39 @@ function parseFunctionToken(tok: string): { name: string; rawArgs: string[] } | 
   return { name, rawArgs };
 }
 
+// Arguments that are not values: the function evaluates them itself, many times, or reads
+// them as a name. They are not pre-evaluated strictly.
+function isExpressionArg(name: string, idx: number): boolean {
+  if (["bisect", "secant", "falsepos", "incsearch"].includes(name)) return idx === 0;
+  if (name === "ode4") return idx === 2;
+  if (name === "floor" || name === "ceil") return idx === 1;
+  if (name === "ifelse") return idx === 1; // the comparison operator: ==, <, >=, ...
+  return false;
+}
+
+const hasUnit = (b?: number[]) => !!b && b.some((v) => v !== 0);
+
+// The unit of an argument, if it has one.
+function unitOf(arg?: { baseUnits?: number[] }): UnitInfo | undefined {
+  return hasUnit(arg?.baseUnits) ? { baseUnits: [...arg!.baseUnits!], units: baseArrayToUnitString(arg!.baseUnits!) } : undefined;
+}
+
+// The unit x takes in a root-finding function, from its two bound arguments. A bound with no
+// unit (a bare 0) takes the unit of the other. Two bounds with different units are an error.
+function boundsUnit(name: string, a?: { baseUnits?: number[] }, b?: { baseUnits?: number[] }): UnitInfo | undefined {
+  if (hasUnit(a?.baseUnits) && hasUnit(b?.baseUnits) && a!.baseUnits!.some((v, i) => v !== (b!.baseUnits![i] ?? 0))) {
+    throw new Error(`${name}: the two bounds must have the same unit (${baseArrayToUnitString(a!.baseUnits!)} and ${baseArrayToUnitString(b!.baseUnits!)})`);
+  }
+  return unitOf(a) ?? unitOf(b);
+}
+
 interface ComplexResult { real: Matrix; imag: Matrix; units?: string; baseUnits?: number[]; }
 
 // Solve a raw argument string via the full pipeline, returning both real and imag (plus units).
-async function solveArgComplex(rawArg: string, ctx: SolveContext): Promise<ComplexResult> {
+// With `strict`, an argument that fails to evaluate is an error (e.g. "Division by zero").
+// Otherwise it is read as a plain number or 0, which is right only for arguments that are not
+// values: the expression passed to bisect, a unit name passed to floor, and so on.
+async function solveArgComplex(rawArg: string, ctx: SolveContext, strict = false): Promise<ComplexResult> {
   const { runPipeline } = await import("../pipeline");
   const emptyBase: [number,number,number,number,number,number,number,number] = [0,0,0,0,0,0,0,0];
   const subCtx: SolveContext = {
@@ -90,6 +120,7 @@ async function solveArgComplex(rawArg: string, ctx: SolveContext): Promise<Compl
   };
   const result = await runPipeline(subCtx);
   if (result.errors.length > 0) {
+    if (strict) throw new Error(result.errors[0]);
     const n = parseFloat(rawArg);
     const v = isNaN(n) ? 0 : n;
     return { real: { "0-0": v }, imag: { "0-0": 0 } };
@@ -152,6 +183,10 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
   const errors   = [...ctx.errors];
   // Set when a calculus function propagates derived units to the output solution.
   let derivedSolution: typeof ctx.solution | undefined;
+  // True when that was set by root, power or sqrt. It is only right if the call is the whole
+  // right-hand side. In `nu / (D * sqrt(...))` the result's unit comes from the postfix step,
+  // and a stale sqrt unit would stay on a dimensionless result.
+  let derivedFromPower = false;
 
   for (let i = 0; i < tokens.length; i++) {
     const parsed = parseFunctionToken(tokens[i]);
@@ -162,7 +197,7 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
     try {
       // Evaluate all args, capturing both real and imag parts
       const complexArgs: ComplexResult[] = await Promise.all(
-        parsed.rawArgs.map((a) => solveArgComplex(a, ctx))
+        parsed.rawArgs.map((a, idx) => solveArgComplex(a, ctx, !isExpressionArg(parsed.name, idx)))
       );
 
       // ── Special case: real(z) → real part ───────────────────────────────
@@ -191,9 +226,10 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         const xu    = complexArgs[2]?.real["0-0"] ?? 1;
         const es    = parsed.rawArgs.length > 3 ? (complexArgs[3]?.real["0-0"] ?? 0.001) : 0.001;
         const maxit = parsed.rawArgs.length > 4 ? Math.round(complexArgs[4]?.real["0-0"] ?? 50) : 50;
-        const res = await bisectImpl(parsed.rawArgs[0], xl, xu, es, maxit, ctx);
+        const xUnit = boundsUnit("bisect", complexArgs[1], complexArgs[2]);
+        const res = await bisectImpl(parsed.rawArgs[0], xl, xu, es, maxit, ctx, xUnit);
         const size = `1x${Object.keys(res).length}`;
-        tokens[i] = encodeMatrix(res, size);
+        tokens[i] = encodeMatrix(res, size, undefined, xUnit?.baseUnits);
         keyArray[i] = 0;
         continue;
       }
@@ -204,9 +240,10 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         const x2    = complexArgs[2]?.real["0-0"] ?? 1;
         const es    = parsed.rawArgs.length > 3 ? (complexArgs[3]?.real["0-0"] ?? 0.0001) : 0.0001;
         const maxit = parsed.rawArgs.length > 4 ? Math.round(complexArgs[4]?.real["0-0"] ?? 50) : 50;
-        const res = await secantImpl(parsed.rawArgs[0], x1, x2, es, maxit, ctx);
+        const xUnit = boundsUnit("secant", complexArgs[1], complexArgs[2]);
+        const res = await secantImpl(parsed.rawArgs[0], x1, x2, es, maxit, ctx, xUnit);
         const size = `1x${Object.keys(res).length}`;
-        tokens[i] = encodeMatrix(res, size);
+        tokens[i] = encodeMatrix(res, size, undefined, xUnit?.baseUnits);
         keyArray[i] = 0;
         continue;
       }
@@ -217,9 +254,10 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         const xu    = complexArgs[2]?.real["0-0"] ?? 1;
         const es    = parsed.rawArgs.length > 3 ? (complexArgs[3]?.real["0-0"] ?? 0.001) : 0.001;
         const maxit = parsed.rawArgs.length > 4 ? Math.round(complexArgs[4]?.real["0-0"] ?? 50) : 50;
-        const res = await falsePosImpl(parsed.rawArgs[0], xl, xu, es, maxit, ctx);
+        const xUnit = boundsUnit("falsepos", complexArgs[1], complexArgs[2]);
+        const res = await falsePosImpl(parsed.rawArgs[0], xl, xu, es, maxit, ctx, xUnit);
         const size = `1x${Object.keys(res).length}`;
-        tokens[i] = encodeMatrix(res, size);
+        tokens[i] = encodeMatrix(res, size, undefined, xUnit?.baseUnits);
         keyArray[i] = 0;
         continue;
       }
@@ -229,7 +267,8 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         const xmin = complexArgs[1]?.real["0-0"] ?? 0;
         const xmax = complexArgs[2]?.real["0-0"] ?? 1;
         const ns   = parsed.rawArgs.length > 3 ? Math.round(complexArgs[3]?.real["0-0"] ?? 50) : 50;
-        const res = await incSearchImpl(parsed.rawArgs[0], xmin, xmax, ns, ctx);
+        const xUnit = boundsUnit("incsearch", complexArgs[1], complexArgs[2]);
+        const res = await incSearchImpl(parsed.rawArgs[0], xmin, xmax, ns, ctx, xUnit);
         const keys = Object.keys(res);
         let maxRow = 0, maxCol = 0;
         for (const k of keys) {
@@ -238,7 +277,7 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
           if (c > maxCol) maxCol = c;
         }
         const size = keys.length > 1 ? `${maxRow + 1}x${maxCol + 1}` : "1x1";
-        tokens[i] = encodeMatrix(res, size);
+        tokens[i] = encodeMatrix(res, size, undefined, xUnit?.baseUnits);
         keyArray[i] = 0;
         continue;
       }
@@ -256,7 +295,9 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
         }
         const xMat  = complexArgs[0]?.real ?? { "0-0": 0 };
         const y0Mat = complexArgs[1]?.real ?? { "0-0": 0 };
-        const res = await ode4Impl(parsed.rawArgs[2], xMat, y0Mat, ctx);
+        const xUnit = unitOf(complexArgs[0]);
+        const yUnit = unitOf(complexArgs[1]);
+        const res = await ode4Impl(parsed.rawArgs[2], xMat, y0Mat, ctx, xUnit, yUnit);
         const resKeys = Object.keys(res);
         let maxRow = 0, maxCol = 0;
         for (const k of resKeys) {
@@ -265,7 +306,7 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
           if (c > maxCol) maxCol = c;
         }
         const size = resKeys.length > 1 ? `${maxRow + 1}x${maxCol + 1}` : "1x1";
-        tokens[i] = encodeMatrix(res, size);
+        tokens[i] = encodeMatrix(res, size, undefined, yUnit?.baseUnits);
         keyArray[i] = 0;
         continue;
       }
@@ -330,6 +371,7 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
             // Record in derivedSolution if this equation had no prior units
             if (!ctx.solution.units) {
               derivedSolution = { ...ctx.solution, units: unitStr, baseUnits: outputBase as UnitBaseArray };
+              derivedFromPower = true;
             }
           }
         }
@@ -546,6 +588,7 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
             // Record in derivedSolution if this equation had no prior units
             if (!ctx.solution.units) {
               derivedSolution = { ...ctx.solution, units: unitStr, baseUnits: outputBase as UnitBaseArray };
+              derivedFromPower = true;
             }
           }
         }
@@ -658,6 +701,7 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
             i++;
             if (!ctx.solution.units) {
               derivedSolution = { ...ctx.solution, units: unitStr, baseUnits: outputBase as UnitBaseArray };
+              derivedFromPower = true;
             }
           }
         }
@@ -776,6 +820,8 @@ export const removeBuiltinEquations: StepFn = async (ctx: SolveContext): Promise
       errors.push(`Solve5: Error in ${parsed.name}(): ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+
+  if (derivedFromPower && tokens.filter((_, idx) => keyArray[idx] !== 1).length > 1) derivedSolution = undefined;
 
   return {
     ...ctx,

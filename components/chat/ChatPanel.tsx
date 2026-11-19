@@ -323,7 +323,7 @@ function ModeHex({
         transition: "transform 0.2s cubic-bezier(.34,1.56,.64,1), filter 0.2s ease",
         filter: lit
           ? `drop-shadow(0 0 12px ${colors.glow}) drop-shadow(0 4px 10px rgba(0,0,0,0.3))`
-          : "drop-shadow(0 3px 8px rgba(0,0,0,0.2)) drop-shadow(0 1px 3px rgba(0,0,0,0.12))",
+          : "drop-shadow(0 2px 5px rgba(0,0,0,0.14)) drop-shadow(0 1px 2px rgba(0,0,0,0.1))",
       }}
     >
       <div
@@ -337,9 +337,17 @@ function ModeHex({
       />
       <div
         style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
+          position: "absolute",
+          inset: 2,
+          clipPath: HEX_CLIP,
+          background: lit ? colors.glow : "linear-gradient(145deg, #ffffff 0%, #c9ced6 100%)",
+          transition: "background 0.2s",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 3.5,
           clipPath: HEX_CLIP,
           background: lit ? colors.litBg : "linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%)",
           display: "flex",
@@ -364,10 +372,11 @@ function ModeHex({
         <Icon size={18} style={{ color: lit ? colors.active : "#374151", position: "relative", transition: "color 0.2s" }} />
         <span
           style={{
-            fontSize: 7,
+            fontSize: 8,
+            fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
             fontWeight: 700,
             letterSpacing: "0.08em",
-            color: lit ? colors.active : "#9ca3af",
+            color: lit ? colors.active : "#6b7280",
             textTransform: "uppercase",
             userSelect: "none",
             position: "relative",
@@ -382,12 +391,14 @@ function ModeHex({
 }
 
 /** Model and effort selectors shown directly above the message input. */
-function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, disabled, className = "" }: {
+function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, conversationCost, disabled, className = "" }: {
   modelKey: AiModelKey;
   onChange: (k: AiModelKey) => void;
   effortKey: AiEffortKey;
   onEffortChange: (k: AiEffortKey) => void;
   lastUsage: { input: number; output: number; cost: number | null } | null;
+  /** When given, a second line shows the estimated cost of the whole conversation. */
+  conversationCost?: number;
   disabled: boolean;
   className?: string;
 }) {
@@ -395,12 +406,22 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
   return (
     <div className={`flex items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0 ${className}`}>
       {lastUsage && (
-        <span
-          className="mr-auto min-w-0 truncate text-xs text-gray-400"
-          title="Tokens and estimated cost of the last request, summed over all its API calls. The cost is worked out from list prices, not your bill."
-        >
-          Last: {lastUsage.input.toLocaleString()} in · {lastUsage.output.toLocaleString()} out
-          {lastUsage.cost !== null && ` · ~$${lastUsage.cost.toFixed(lastUsage.cost < 0.1 ? 4 : 2)}`}
+        <span className="mr-auto flex min-w-0 flex-col text-xs text-gray-400">
+          <span
+            className="truncate"
+            title="Tokens and estimated cost of the last request, summed over all its API calls. The cost is worked out from list prices, not your bill."
+          >
+            Last: {lastUsage.input.toLocaleString()} in · {lastUsage.output.toLocaleString()} out
+            {lastUsage.cost !== null && ` · ~$${lastUsage.cost.toFixed(lastUsage.cost < 0.1 ? 4 : 2)}`}
+          </span>
+          {conversationCost !== undefined && (
+            <span
+              className="truncate"
+              title="Estimated cost of every request in this conversation added together. It starts again from zero when you clear the chat. The cost is worked out from list prices, not your bill."
+            >
+              Conversation: ~${conversationCost.toFixed(conversationCost < 0.1 ? 4 : 2)}
+            </span>
+          )}
         </span>
       )}
       <label htmlFor="ai-model-picker">Model</label>
@@ -429,7 +450,7 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
 
 export default function ChatPanel() {
   const {
-    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage,
+    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage, conversationCost,
     toggleChat, openChat, setMode, sendMessage, clearMessages, clearSelectedBlock,
     approveProposal, rejectProposal, undoProposal,
   } = useChat();
@@ -496,7 +517,14 @@ export default function ChatPanel() {
                 {msg.understood && (
                   <details className="not-prose mb-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
                     <summary className="cursor-pointer font-semibold text-gray-800">What I understood</summary>
-                    <p className="mt-2 whitespace-pre-wrap">{msg.understood}</p>
+                    {msg.scenario && (
+                      <>
+                        <div className="mt-2 font-semibold text-gray-800">Scenario</div>
+                        <p className="mt-1 whitespace-pre-wrap">{msg.scenario}</p>
+                      </>
+                    )}
+                    <div className="mt-2 font-semibold text-gray-800">Problem statement</div>
+                    <p className="mt-1 whitespace-pre-wrap">{msg.understood}</p>
                   </details>
                 )}
                 {msg.content === "" && isLoading ? (
@@ -636,7 +664,7 @@ export default function ChatPanel() {
             transition: "transform 0.2s cubic-bezier(.34,1.56,.64,1), filter 0.2s ease",
             filter: lit
               ? "drop-shadow(0 0 12px rgba(16,185,129,0.65)) drop-shadow(0 4px 10px rgba(0,0,0,0.3))"
-              : "drop-shadow(0 3px 8px rgba(0,0,0,0.2)) drop-shadow(0 1px 3px rgba(0,0,0,0.12))",
+              : "drop-shadow(0 2px 5px rgba(0,0,0,0.14)) drop-shadow(0 1px 2px rgba(0,0,0,0.1))",
           }}
         >
           <div
@@ -650,9 +678,17 @@ export default function ChatPanel() {
           />
           <div
             style={{
-              position: "relative",
-              width: "100%",
-              height: "100%",
+              position: "absolute",
+              inset: 2,
+              clipPath: HEX_CLIP,
+              background: lit ? "rgba(16,185,129,0.65)" : "linear-gradient(145deg, #ffffff 0%, #c9ced6 100%)",
+              transition: "background 0.2s",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 3.5,
               clipPath: HEX_CLIP,
               background: lit
                 ? "linear-gradient(145deg, #f0fdf9 0%, #d1fae5 100%)"
@@ -869,7 +905,9 @@ export default function ChatPanel() {
               things and that's exactly what's blocked; the notice above already explains why. */}
           {!(mode === "build" && !canBuild) && (
             <>
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} disabled={isLoading} className="pb-3" />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} conversationCost={conversationCost} disabled={isLoading} className="pb-3" />
+            {/* Part Tree Build has no prompt: it works only from the requirements documents. */}
+            {!(pageType === "part-tree" && mode === "build") && (
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">
               <textarea
                 ref={textareaRef}
@@ -891,6 +929,7 @@ export default function ChatPanel() {
                 <Send size={16} />
               </button>
             </div>
+            )}
             </>
           )}
 

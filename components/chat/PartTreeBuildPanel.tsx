@@ -9,9 +9,12 @@ import type { BuildEvent } from "@/agents/types";
 // chat panel's picker. With "Design documents only" checked (the default) the build writes the
 // design documents and creates the structure, then stops before the parts are built, so the
 // design can be checked before the full build is paid for.
+// The build works only from the requirements documents, so there is no prompt to type. The route and
+// the coordinators still take a prompt, so this fixed one is sent.
+const BUILD_PROMPT = "Read the requirements documents and build the system.";
+
 export default function PartTreeBuildPanel() {
   const { currentFileId, modelKey, effortKey } = useChat();
-  const [prompt, setPrompt] = useState("Read the requirements documents and build the system.");
   const [designOnly, setDesignOnly] = useState(true);
   const [running, setRunning] = useState(false);
   const [wroteChanges, setWroteChanges] = useState(false);
@@ -54,7 +57,7 @@ export default function PartTreeBuildPanel() {
       const res = await fetch("/api/part-tree/build", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partTreeId: currentFileId, prompt, modelKey, effortKey, designOnly }),
+        body: JSON.stringify({ partTreeId: currentFileId, prompt: BUILD_PROMPT, modelKey, effortKey, designOnly }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -93,14 +96,10 @@ export default function PartTreeBuildPanel() {
         parts. Unchecking the box below also writes the document of every part. Uses the model and
         effort chosen below.
       </p>
-
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        rows={3}
-        disabled={running}
-        className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-      />
+      <p className="text-xs text-gray-500">
+        The build works only from the requirements documents in this part tree. There is no prompt to
+        write: put everything the design needs in those documents.
+      </p>
 
       <label className="flex items-center gap-2 text-sm text-gray-700">
         <input type="checkbox" checked={designOnly} onChange={(e) => setDesignOnly(e.target.checked)} disabled={running} />
@@ -126,7 +125,7 @@ export default function PartTreeBuildPanel() {
         )}
         <button
           onClick={handleStart}
-          disabled={running || !prompt.trim() || currentFileId === null}
+          disabled={running || currentFileId === null}
           className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
         >
           {running ? "Running…" : designOnly ? "Build design documents" : "Build everything"}

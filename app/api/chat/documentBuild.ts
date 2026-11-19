@@ -647,9 +647,8 @@ async function runWrite(run: DocumentBuildRun, solution: Solution | null, notes:
 /** Runs the three steps for one Build-mode message. */
 export async function runDocumentBuild(input: DocumentBuildRun): Promise<void> {
   const classification = await runClassify(input);
-  // The chat shows the problem statement, so the user can see what the task was taken to be.
-  // The scenario is written to the later steps, not to the user, so it is not sent.
-  if (classification) input.emit({ type: "understood", problem: classification.problemStatement });
+  // The chat shows the scenario and the problem statement, so the user can see what the task was taken to be.
+  if (classification) input.emit({ type: "understood", scenario: classification.scenario, problem: classification.problemStatement });
   // Solve and Write both get the scenario and problem statement after the user's message.
   const run: DocumentBuildRun = classification
     ? { ...input, messages: appendToLast(input.messages, formatClassification(classification)) }
@@ -658,11 +657,15 @@ export async function runDocumentBuild(input: DocumentBuildRun): Promise<void> {
   if (solution && solution.steps.length > 0) {
     const n = solution.steps.length;
     const left = solution.problems.length;
+    const errors = solution.steps.filter((s) => s.solved.error).length;
+    const equations = `${n} equation${n === 1 ? "" : "s"}`;
     run.emit({
       type: "text",
       text: left === 0
-        ? `*Solved ${n} equation${n === 1 ? "" : "s"}. Writing the document…*\n\n`
-        : `*Solved ${n} equation${n === 1 ? "" : "s"}, with ${left} problem${left === 1 ? "" : "s"} left. Writing the document…*\n\n`,
+        ? `*Solved ${equations}. Writing the document…*\n\n`
+        : errors > 0
+          ? `*Wrote ${equations}; ${errors} had ${errors === 1 ? "an error" : "errors"}. Writing the document…*\n\n`
+          : `*Solved ${equations}, with ${left} problem${left === 1 ? "" : "s"} left. Writing the document…*\n\n`,
     });
   }
   await runWrite(run, solution, notes);

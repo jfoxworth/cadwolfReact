@@ -1,3 +1,4 @@
+import katex from "katex";
 import { rawToLatex } from "@/utils/rawToLatex";
 import { describe, it, expect } from "vitest";
 
@@ -76,5 +77,41 @@ describe("rawToLatex", () => {
 
   it("sqrt expr divided by scalar → \\frac{\\sqrt{...}}{n}", () => {
     expect(rawToLatex("x = sqrt(a+b)/2")).toBe("x = \\frac{\\sqrt{a+b}}{2}");
+  });
+});
+
+describe("rawToLatex: division next to a power() result", () => {
+  // Every \left must be followed by "(", "[", "|" or similar, never cut off from its bracket.
+  const leftsAreComplete = (tex: string) => !/\\left(?![(|\[.])/.test(tex);
+
+  it("0.25/power(2, log10(...)) keeps \\left( with its group", () => {
+    const tex = rawToLatex("fC_4 = 0.25/power(2, log10(rr_C/3.7 + 5.74/power(0.9, Re_C_4)))");
+    expect(leftsAreComplete(tex)).toBe(true);
+    expect(tex).toContain("\\frac{0.25}{{\\operatorname{log10}\\left(");
+    expect(tex).toContain("\\right)}^{2}}");
+  });
+
+  it("a power() result as the denominator is one operand", () => {
+    expect(rawToLatex("x = a / power(2, b)")).toBe("x = \\frac{a}{{b}^{2}}");
+  });
+
+  it("a power() result as the numerator is one operand", () => {
+    expect(rawToLatex("x = power(2, b) / c")).toBe("x = \\frac{{b}^{2}}{c}");
+  });
+
+  it("a power() result with a bracketed base on either side of /", () => {
+    const tex = rawToLatex("x = power(2, a + b) / power(2, c + d)");
+    expect(tex).toBe("x = \\frac{{a + b}^{2}}{{c + d}^{2}}");
+  });
+
+  it("the reported equation renders in KaTeX without an error", () => {
+    const tex = rawToLatex("fC_4 = 0.25/power(2, log10(rr_C/3.7 + 5.74/power(0.9, Re_C_4)))");
+    expect(() => katex.renderToString(tex, { throwOnError: true })).not.toThrow();
+  });
+
+  it("power() results on both sides of / render in KaTeX", () => {
+    for (const raw of ["x = power(2, b) / c", "x = a / power(2, b)", "x = power(2, a + b) / power(2, c + d)"]) {
+      expect(() => katex.renderToString(rawToLatex(raw), { throwOnError: true }), raw).not.toThrow();
+    }
   });
 });

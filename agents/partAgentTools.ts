@@ -11,6 +11,10 @@ export const LOOKUP_MATERIAL_TOOL_NAME = "lookup_material";
 export const STEP_ROLES = ["given", "choice", "calculation", "check", "output"] as const;
 export type StepRole = (typeof STEP_ROLES)[number];
 
+/** The roles a part agent's calculation steps use. (STEP_ROLES above is shared with the document builder.) */
+export const PART_STEP_ROLES = ["given", "choice", "calculation", "output"] as const;
+export type PartStepRole = (typeof PART_STEP_ROLES)[number];
+
 export interface PartImportInput {
   sourceFileId: number;
   sourceVariableName: string;
@@ -19,9 +23,8 @@ export interface PartImportInput {
 
 export interface CalculationStepInput {
   raw: string;
-  role: StepRole;
+  role: PartStepRole;
   why: string;
-  positive: boolean;
 }
 
 export interface WriteCalculationInput {
@@ -44,7 +47,7 @@ export interface WriteDocumentInput {
 export const WRITE_CALCULATION_TOOL: Anthropic.Tool = {
   name: WRITE_CALCULATION_TOOL_NAME,
   description:
-    "Write the part's calculation: its equations in order, each with its role and the reason for it, and the variables it imports. The equations are solved and the results, errors and failed checks are returned. If anything is wrong, fix it and call this again with the whole calculation. When nothing is wrong the calculation is accepted and you are done. Do not write headings or prose here.",
+    "Write the part's calculation: its equations in order, each with its role and the reason for it, and the variables it imports. The equations are solved and the results and errors are returned. If anything is wrong, fix it and call this again with the whole calculation. When nothing is wrong the calculation is accepted and you are done. Do not write headings or prose here.",
   input_schema: {
     type: "object",
     properties: {
@@ -57,22 +60,17 @@ export const WRITE_CALCULATION_TOOL: Anthropic.Tool = {
             raw: { type: "string", description: "`name = expression` in the platform's syntax." },
             role: {
               type: "string",
-              enum: [...STEP_ROLES],
+              enum: [...PART_STEP_ROLES],
               description:
-                "given: a value the design needs that is not imported (a stated input, or an assumption). choice: a design decision such as a material, a size or a count. calculation: a value worked out from earlier steps. check: a pass/fail test against a requirement; the equation must give 1 when the requirement is met and 0 when it is not. output: a value other parts import, named exactly as in the Interfaces section.",
+                "given: a value the design needs that is not imported (a stated input, or an assumption). choice: a design decision such as a material, a size or a count. calculation: a value worked out from earlier steps. output: a value other parts import, named exactly as in the Interfaces section.",
             },
             why: {
               type: "string",
               description:
-                "One or two plain sentences giving the reason, the way an engineer would explain it to a colleague. For a given: where it comes from, or that it is an assumption to be checked. For a choice: why this one. For a check: which requirement it tests.",
-            },
-            positive: {
-              type: "boolean",
-              description:
-                "True if the result must be greater than zero: a size, area, length, mass, strength, safety factor or count. False for quantities that can be zero or negative, such as a coordinate difference or a force direction.",
+                "One or two plain sentences giving the reason, the way an engineer would explain it to a colleague. For a given: where it comes from, or that it is an assumption to be checked. For a choice: why this one.",
             },
           },
-          required: ["raw", "role", "why", "positive"],
+          required: ["raw", "role", "why"],
         },
       },
       imports: {

@@ -40,6 +40,26 @@ function getPrecedingOp(tokens: string[], i: number): string | null {
   return null;
 }
 
+function isPlainNumber(tok: string | undefined): boolean {
+  return !!tok && tok.length > 0 && !isNaN(Number(tok));
+}
+
+// +1 or -1: whether the groups enclosing tokens[i] (counting from s) leave it multiplied or
+// divided. A group that opens right after "/" flips the sign of everything inside it.
+function groupSign(tokens: string[], s: number, i: number): number {
+  const stack: number[] = [];
+  let current = 1;
+  for (let j = s; j < i; j++) {
+    if (tokens[j] === "(") {
+      stack.push(current);
+      if (j > 0 && tokens[j - 1] === "/") current = -current;
+    } else if (tokens[j] === ")") {
+      current = stack.pop() ?? 1;
+    }
+  }
+  return current;
+}
+
 // Validates that top-level addition/subtraction of inline literal units is compatible.
 // Bails out (defers entirely to step 26's real evaluator) if a "^" appears anywhere —
 // this is a simple per-segment linear scan that sums unit exponents by the */÷ operator
@@ -84,12 +104,20 @@ function checkAddCompat(tokens: string[], keyArray: (number | string)[]): string
         if (mat?.baseArray?.some((v) => v !== 0)) base = mat.baseArray!;
       }
       if (base) {
-        const op = i > 0 ? getPrecedingOp(tokens, i - 1) : null;
+        // A raw unit token follows its own number, so the operator that applies to it is the
+        // one before that number.
+        const isRawUnit = keyArray[i] === 1 || (keyArray[i] as unknown as string) === "1";
+        const prevIdx = isRawUnit && i >= 2 && isPlainNumber(tokens[i - 1]) ? i - 2 : i - 1;
+        const op = i > 0 ? getPrecedingOp(tokens, prevIdx) : null;
         if (op === "+" || op === "-") {
           if (!hasUnit) { for (let j = 0; j < 8; j++) segBase[j] += base[j]; hasUnit = true; }
         } else {
-          const divide = op === "/";
-          for (let j = 0; j < 8; j++) segBase[j] += divide ? -base[j] : base[j];
+          // Divides if the operator right before it is "/" (not when it opens a group), or if
+          // it sits inside a group that follows a "/": a / (b * c) divides b and c both.
+          const prevTok = prevIdx >= 0 ? tokens[prevIdx] : null;
+          const local = prevTok === "/" ? -1 : 1;
+          const sign = local * groupSign(tokens, s, i);
+          for (let j = 0; j < 8; j++) segBase[j] += sign < 0 ? -base[j] : base[j];
           hasUnit = true;
         }
       }
