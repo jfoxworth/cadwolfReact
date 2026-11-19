@@ -22,7 +22,7 @@ import { join } from "path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropicClient as client } from "@/utils/anthropicClient";
 import { resolveModelId, type AiEffortKey, type AiModelKey } from "@/utils/aiModels";
-import { messageCost } from "@/utils/aiPricing";
+import { addMessageUsage, type UsageTally } from "@/utils/aiCredits";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { solvePartEquations, type SolvedEquation } from "@/agents/solvePartDocument";
 import { STEP_ROLES, type StepRole } from "@/agents/partAgentTools";
@@ -359,7 +359,7 @@ export interface DocumentBuildRun {
   /** Summed across every call; the route reports it once at the end. `cost` is the estimated
    *  dollars (utils/aiPricing.ts), worked out per call because cache reads and writes are priced
    *  differently from plain input. */
-  usage: { input: number; output: number; cost: number };
+  usage: UsageTally;
   signal?: AbortSignal;
   /** Playground (/ai/documentPlayground) only: also stream, for every model call, what was sent, the
    *  thinking, the tool calls and what the server replied. Normal chat requests never set it. */
@@ -367,11 +367,7 @@ export interface DocumentBuildRun {
 }
 
 function addUsage(run: DocumentBuildRun, message: Anthropic.Message) {
-  run.usage.input += (message.usage.input_tokens ?? 0)
-    + (message.usage.cache_creation_input_tokens ?? 0)
-    + (message.usage.cache_read_input_tokens ?? 0);
-  run.usage.output += message.usage.output_tokens ?? 0;
-  run.usage.cost += messageCost(run.modelKey, message);
+  addMessageUsage(run.usage, run.modelKey, message);
 }
 
 /** The last message as plain text: what the model was newly given in this call. */

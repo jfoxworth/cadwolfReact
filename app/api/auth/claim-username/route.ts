@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { getIronSession } from "iron-session";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
+import { isUsernameTaken } from "@/utils/username";
+import { ensureRootWorkspace } from "@/utils/ensureRootWorkspace";
 
 const VALID_USERNAME = /^[a-zA-Z0-9_-]+$/;
 
@@ -31,12 +33,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (await isUsernameTaken(trimmed, session.userId)) {
+    return NextResponse.json({ error: "Username already taken" }, { status: 409 });
+  }
+
   try {
     const updated = await db.user.update({
       where: { id: session.userId },
       data: { username: trimmed },
       select: { id: true, username: true },
     });
+
+    await ensureRootWorkspace(updated.id, updated.username!);
 
     session.userUsername = updated.username;
     await session.save();

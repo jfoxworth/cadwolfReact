@@ -1,3 +1,4 @@
+import { addMessageUsage, newUsageTally, parseRequestedTeamId, recordUsage, resolveAccount, spendBlock } from "@/utils/aiCredits";
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -73,6 +74,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
+
+  // Which credits pay: the user's own or a team's (the server checks the user belongs to that team).
+  const account = await resolveAccount(userId, parseRequestedTeamId(body.teamId));
+  const blocked = await spendBlock(account);
+  if (blocked) {
+    return NextResponse.json({ error: blocked.message }, { status: 402 });
+  }
   const {
     fileId, name, description, isRequirementsDocument, templateFileId, referenceTreeId, buildPrompt,
     requirementsContext, dependencyContext,
@@ -169,6 +177,15 @@ export async function POST(req: NextRequest) {
     tool_choice: { type: "tool", name: GENERATE_DOCUMENT_CONTENT_TOOL_NAME },
     messages: [{ role: "user", content: userMessage }],
   });
+
+  // Charge for the call whether or not its answer is usable.
+  const usage = newUsageTally();
+  addMessageUsage(usage, modelKey, message);
+  try {
+    await recordUsage({ account, pageType: "part-tree", fileId: Number(fileId), source: "generate_document", model: modelKey, usage });
+  } catch (err) {
+    console.error("[generate-document] could not record AI usage:", err);
+  }
 
   const toolUse = message.content.find((b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use");
   if (!toolUse) return NextResponse.json({ error: "Model didn't return content." }, { status: 502 });

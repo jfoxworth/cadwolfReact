@@ -18,6 +18,7 @@ import { join } from "path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropicClient } from "@/utils/anthropicClient";
 import { resolveModelId } from "@/utils/aiModels";
+import { addMessageUsage } from "@/utils/aiCredits";
 import { db } from "@/utils/db";
 import { getSolvedDocumentVariables } from "@/utils/getSolvedDocumentVariables";
 import { isDesignDocument } from "./designDocument";
@@ -228,6 +229,7 @@ async function ask(
     { signal: ctx.signal },
   );
   const message = await stream.finalMessage();
+  addMessageUsage(ctx.usage, ctx.modelKey, message);
   if (message.stop_reason === "max_tokens") {
     throw new Error(`${label}: the model's answer was cut off at ${MAX_TOKENS} tokens.`);
   }

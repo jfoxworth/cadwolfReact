@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
 import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
+import { ensureRootWorkspace } from "@/utils/ensureRootWorkspace";
 
 export async function POST(req: NextRequest) {
   const { limited } = checkRateLimit(`login:${getClientIp(req)}`, { limit: 5, windowMs: 15 * 60 * 1000 });
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
       console.log("[login] password mismatch for user id:", user.id);
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
+
+    // Accounts made before signup created a workspace have none; give them one.
+    if (user.username) await ensureRootWorkspace(user.id, user.username);
 
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     session.userId = user.id;

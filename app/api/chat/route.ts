@@ -8,7 +8,7 @@ import {
 } from "./tools";
 import { runDocumentBuild } from "./documentBuild";
 import { getSystemPrompt } from "./systemPrompt";
-import { messageCost } from "@/utils/aiPricing";
+import { addMessageUsage, getBalanceCredits, newUsageTally, parseRequestedTeamId, recordUsage, resolveAccount, resolvePageFile, spendBlock } from "@/utils/aiCredits";
 import { searchDocuments } from "@/utils/searchEmbeddings";
 import { readDocumentForChat } from "@/utils/readDocument";
 import { readPartTreeForChat } from "@/utils/readPartTree";
@@ -45,10 +45,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, pageEquations, selectedBlockContext, mode, modelKey, effortKey, trace } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, pageEquations, selectedBlockContext, mode, modelKey, effortKey, trace, teamId } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // Which credits pay: the user's own or a team's. The client's teamId is only a request; the server
+  // checks the user belongs to that team.
+  const account = await resolveAccount(userId, parseRequestedTeamId(teamId));
+  const blocked = await spendBlock(account);
+  if (blocked) {
+    return NextResponse.json({ error: blocked.message }, { status: 402 });
   }
 
   // The client sends only a model *key*, validated against the allowlist — never a raw model id.
@@ -161,7 +169,7 @@ export async function POST(req: NextRequest) {
       let currentMessages = messagesWithContext;
       // Summed across every underlying API call this request makes (tool-result rounds and
       // max_tokens continuations each count) and reported once at the end as a "usage" event.
-      const totalUsage = { input: 0, output: 0, cost: 0 };
+      const totalUsage = newUsageTally();
 
       try {
         if (twoStepBuild) {
@@ -197,11 +205,7 @@ export async function POST(req: NextRequest) {
           stream.on("text", (text) => emit({ type: "text", text }));
 
           const message = await stream.finalMessage();
-          totalUsage.input += (message.usage.input_tokens ?? 0)
-            + (message.usage.cache_creation_input_tokens ?? 0)
-            + (message.usage.cache_read_input_tokens ?? 0);
-          totalUsage.output += message.usage.output_tokens ?? 0;
-          totalUsage.cost += messageCost(aiModelKey, message);
+          addMessageUsage(totalUsage, aiModelKey, message);
           const toolUseBlocks = message.content.filter(
             (b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use",
           );
@@ -310,7 +314,23 @@ export async function POST(req: NextRequest) {
         emit({ type: "error", message: err instanceof Error ? err.message : "Something went wrong." });
       } finally {
         if (totalUsage.input || totalUsage.output) {
-          try { emit({ type: "usage", input: totalUsage.input, output: totalUsage.output, cost: totalUsage.cost }); } catch { /* stream already cancelled */ }
+          // Charge the user for what this request used, then report the new balance with it.
+          let balance: number | null = null;
+          try {
+            const page = await resolvePageFile(pagePath, userId);
+            balance = await recordUsage({
+              account,
+              pageType: page.pageType,
+              fileId: page.fileId,
+              source: twoStepBuild ? "document_build" : "chat",
+              model: aiModelKey,
+              usage: totalUsage,
+            });
+          } catch (err) {
+            console.error("[chat] could not record AI usage:", err);
+            balance = await getBalanceCredits(account).catch(() => null);
+          }
+          try { emit({ type: "usage", input: totalUsage.input, output: totalUsage.output, cost: totalUsage.cost, balance }); } catch { /* stream already cancelled */ }
         }
         controller.close();
       }

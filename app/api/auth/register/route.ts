@@ -7,18 +7,25 @@ import { db } from "@/utils/db";
 import { sessionOptions, type SessionData } from "@/utils/session";
 import { sendVerificationEmail } from "@/utils/email";
 import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
+import { isUsernameTaken } from "@/utils/username";
+import { ensureRootWorkspace } from "@/utils/ensureRootWorkspace";
 
 const VALID_USERNAME = /^[a-zA-Z0-9_-]+$/;
 
 export async function POST(req: NextRequest) {
   const { limited } = checkRateLimit(`register:${getClientIp(req)}`, { limit: 5, windowMs: 60 * 60 * 1000 });
   if (limited) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
-  const { name, email, password, username } = await req.json() as {
+  const { name, email, password, username, acceptedTerms } = await req.json() as {
     name: string;
     email: string;
     password: string;
     username: string;
+    acceptedTerms?: boolean;
   };
+
+  if (acceptedTerms !== true) {
+    return NextResponse.json({ error: "You must agree to the Terms and Privacy Policy" }, { status: 400 });
+  }
 
   if (!name || !email || !password || !username) {
     return NextResponse.json({ error: "Name, email, username, and password are required" }, { status: 400 });
@@ -46,8 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "An account with that email already exists" }, { status: 409 });
   }
 
-  const existingUsername = await db.user.findFirst({ where: { username: trimmedUsername } });
-  if (existingUsername) {
+  if (await isUsernameTaken(trimmedUsername)) {
     return NextResponse.json({ error: "Username already taken" }, { status: 409 });
   }
 
@@ -60,6 +66,8 @@ export async function POST(req: NextRequest) {
       username: trimmedUsername,
     },
   });
+
+  await ensureRootWorkspace(user.id, trimmedUsername);
 
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   session.userId = user.id;

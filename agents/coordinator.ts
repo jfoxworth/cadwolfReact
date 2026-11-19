@@ -8,6 +8,7 @@ import { join } from "path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropicClient } from "@/utils/anthropicClient";
 import { resolveModelId } from "@/utils/aiModels";
+import { addMessageUsage } from "@/utils/aiCredits";
 import { createTreeItem } from "./createTreeItem";
 import { designBlocks, type DesignChild, type DesignData, type DesignInterface, type DesignNote } from "./designDocumentFormat";
 import {
@@ -75,6 +76,7 @@ async function callTool<T>(
       { signal: ctx.signal },
     );
     const message = await stream.finalMessage();
+    addMessageUsage(ctx.usage, ctx.modelKey, message);
     stopReason = message.stop_reason;
     // A cut-off answer can still contain a half-written tool call; never use it.
     if (stopReason === "max_tokens") {

@@ -14,7 +14,8 @@ import type { BuildEvent } from "@/agents/types";
 const BUILD_PROMPT = "Read the requirements documents and build the system.";
 
 export default function PartTreeBuildPanel() {
-  const { currentFileId, modelKey, effortKey } = useChat();
+  const { currentFileId, modelKey, effortKey, balance, setBalance, account } = useChat();
+  const outOfCredits = balance !== null && balance <= 0;
   const [designOnly, setDesignOnly] = useState(true);
   const [running, setRunning] = useState(false);
   const [wroteChanges, setWroteChanges] = useState(false);
@@ -32,6 +33,7 @@ export default function PartTreeBuildPanel() {
       case "notice": return event.message;
       case "design_document": return `${event.name} ${event.replaced ? "replaced" : "created"}.`;
       case "item": return `${event.created ? "Created" : "Kept existing"} ${event.kind}: ${event.name}`;
+      case "usage": return null;
       case "error": return `Error: ${event.message}`;
       case "done": return "Done.";
     }
@@ -49,6 +51,7 @@ export default function PartTreeBuildPanel() {
     const handle = (event: BuildEvent) => {
       const line = describe(event);
       if (line) setLog((prev) => [...prev, line]);
+      if (event.type === "usage" && typeof event.balance === "number") setBalance(event.balance);
       if (event.type === "design_document") setDesignDocuments((prev) => [...prev, { slug: event.slug, name: event.name }]);
       if (event.type === "design_document" || (event.type === "item" && event.created)) setWroteChanges(true);
     };
@@ -57,11 +60,14 @@ export default function PartTreeBuildPanel() {
       const res = await fetch("/api/part-tree/build", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partTreeId: currentFileId, prompt: BUILD_PROMPT, modelKey, effortKey, designOnly }),
+        body: JSON.stringify({ partTreeId: currentFileId, prompt: BUILD_PROMPT, modelKey, effortKey, designOnly, teamId: account }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
-        setLog((prev) => [...prev, `Error: the build could not start (${res.status}).`]);
+        const refusal = res.status === 402 ? await res.json().catch(() => null) as { error?: string } | null : null;
+        setLog((prev) => [...prev, res.status === 402
+          ? (refusal?.error ?? "You are out of AI credits. Buy more on the Billing page to continue.")
+          : `Error: the build could not start (${res.status}).`]);
         return;
       }
       const reader = res.body.getReader();
@@ -106,6 +112,10 @@ export default function PartTreeBuildPanel() {
         Design documents only (don&apos;t build the parts)
       </label>
 
+      {outOfCredits && (
+        <p className="text-xs text-red-600">You are out of AI credits. Buy more on the Billing page to build.</p>
+      )}
+
       <div className="flex justify-end gap-2">
         {!running && wroteChanges && (
           <button
@@ -125,7 +135,7 @@ export default function PartTreeBuildPanel() {
         )}
         <button
           onClick={handleStart}
-          disabled={running || currentFileId === null}
+          disabled={running || currentFileId === null || outOfCredits}
           className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
         >
           {running ? "Running…" : designOnly ? "Build design documents" : "Build everything"}

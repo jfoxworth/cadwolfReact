@@ -192,13 +192,15 @@ model User {
   aiModel              String    @default("sonnet") @map("ai_model")
   // AI chat reasoning effort: "low" | "medium" | "high" | "xhigh" | "max" (see utils/aiModels.ts)
   aiEffort             String    @default("medium") @map("ai_effort")
+  // Which pool AI use is charged to: null = this user's own credits, otherwise a team the user belongs to
+  aiAccountTeamId      Int?      @map("ai_account_team_id")
   storageUsed          BigInt    @default(0) @map("storage_used")
   storageQuota         BigInt    @default(524288000) @map("storage_quota")  // 500 MB default
   emailVerifiedAt      DateTime? @map("email_verified_at")
   stripeCustomerId     String?   @map("stripe_customer_id")
   stripeSubscriptionId String?   @map("stripe_subscription_id")
-  createdAt            DateTime? @map("created_at")
-  updatedAt            DateTime? @map("updated_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -352,4 +354,75 @@ model Datapoint {
   dataset         Dataset   @relation(fields: [datasetId], references: [id])
 
   @@map("datapoints")
+}
+
+// ── AI credits ───────────────────────────────────────────────────────────────
+// Amounts are whole "units": 1 unit = one millionth of a dollar. 1 credit = $0.001 = 1,000 units.
+// For any user: sum(AiCreditPurchase.units) - sum(AiUsageLog.costUnits) = sum(AiCreditBalance.remaining).
+
+// One row per AI interaction (a chat request, a build, a part-tree build, a generated document).
+model AiUsageLog {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  teamId           Int?     @map("team_id") // the team whose credits paid; null = the user's own
+  pageType         String   @map("page_type") // document | dataset | workspace | part-tree
+  fileId           Int?     @map("file_id")
+  source           String   // chat | document_build | part_tree_build | generate_document
+  model            String   // haiku | sonnet | opus
+  inputTokens      Int      @default(0) @map("input_tokens")
+  cacheReadTokens  Int      @default(0) @map("cache_read_tokens")
+  cacheWriteTokens Int      @default(0) @map("cache_write_tokens")
+  outputTokens     Int      @default(0) @map("output_tokens")
+  costUnits        BigInt   @map("cost_units")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([teamId, createdAt])
+  @@index([fileId])
+  @@map("ai_usage_log")
+}
+
+// One row per credit purchase or grant. `source` is not Stripe-specific: stripe | grant | manual.
+model AiCreditPurchase {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")  // who bought or was granted it
+  teamId      Int?     @map("team_id")  // set = a team's shared credits; null = the user's own
+  units       BigInt
+  source      String
+  reference   String   // Stripe session id, "welcome:<userId>", ...
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  balance     AiCreditBalance?
+
+  @@unique([source, reference])
+  @@index([userId])
+  @@index([teamId])
+  @@map("ai_credit_purchases")
+}
+
+// How much is left of each purchase. Created with the purchase and reduced on every use.
+model AiCreditBalance {
+  id         Int              @id @default(autoincrement())
+  purchaseId Int              @unique @map("purchase_id")
+  userId     Int              @map("user_id")
+  teamId     Int?             @map("team_id")
+  remaining  BigInt
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+  purchase   AiCreditPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([teamId])
+  @@map("ai_credit_balances")
+}
+
+// Optional monthly spending cap for one member of a team, in units. No row = no cap.
+model TeamAiLimit {
+  id           Int      @id @default(autoincrement())
+  teamId       Int      @map("team_id")
+  userId       Int      @map("user_id")
+  monthlyUnits BigInt   @map("monthly_units")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([teamId, userId])
+  @@map("team_ai_limits")
 }

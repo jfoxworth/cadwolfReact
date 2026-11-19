@@ -135,6 +135,15 @@ interface ChatContextType {
   lastUsage: { input: number; output: number; cost: number | null } | null;
   /** Estimated cost of every request in the current conversation added together. Back to 0 when the chat is cleared. */
   conversationCost: number;
+  /** Credits left in the account being charged (the user's own or a team's), or null until loaded. */
+  balance: number | null;
+  setBalance: (credits: number) => void;
+  /** Every account the user can charge: their own (teamId null) and each team they belong to. */
+  accounts: { teamId: number | null; name: string; balance: number }[];
+  /** The team being charged, or null for the user's own credits. */
+  account: number | null;
+  /** Switches which credits pay for AI use. Saved on the user's profile. */
+  switchAccount: (teamId: number | null) => void;
   /** Whether Build mode is currently allowed on this page — true by default (Workspace/Dataset
    *  have no checkout concept and never call setCanBuild); Document sets this to
    *  canEdit && checked-out-by-me, since adding blocks requires both. */
@@ -182,6 +191,50 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [effortKey, setEffortKeyState] = useState<AiEffortKey>(DEFAULT_EFFORT_KEY);
   const [lastUsage, setLastUsage] = useState<{ input: number; output: number; cost: number | null } | null>(null);
   const [conversationCost, setConversationCost] = useState(0);
+  const [balance, setBalanceState] = useState<number | null>(null);
+  const [accounts, setAccounts] = useState<{ teamId: number | null; name: string; balance: number }[]>([]);
+  const [account, setAccount] = useState<number | null>(null);
+  const accountRef = useRef<number | null>(null);
+
+  // Sets the balance of the account being charged, and keeps that account's entry in the list in step.
+  const setBalance = useCallback((credits: number) => {
+    setBalanceState(credits);
+    setAccounts((prev) => prev.map((a) => (a.teamId === accountRef.current ? { ...a, balance: credits } : a)));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/ai-credits")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || typeof d.balance !== "number") return;
+        accountRef.current = d.account ?? null;
+        setAccount(d.account ?? null);
+        setAccounts(Array.isArray(d.accounts) ? d.accounts : []);
+        setBalanceState(d.balance);
+      })
+      .catch(() => {});
+  }, []);
+
+  const switchAccount = useCallback((teamId: number | null) => {
+    const target = accounts.find((a) => a.teamId === teamId);
+    if (!target) return;
+    const previous = accountRef.current;
+    accountRef.current = teamId;
+    setAccount(teamId);
+    setBalanceState(target.balance);
+    fetch("/api/ai-credits/account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId }),
+    }).then((r) => {
+      if (r.ok) return;
+      // The server refused (not a member): go back to the previous account.
+      const back = accounts.find((a) => a.teamId === previous);
+      accountRef.current = previous;
+      setAccount(previous);
+      if (back) setBalanceState(back.balance);
+    }).catch(() => {});
+  }, [accounts]);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -330,6 +383,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       ? `[User has this block selected — id "${selectedBlock.id}", ${selectedBlock.type} "${selectedBlock.name}" (in "${selectedBlock.location}"): ${selectedBlock.contextLine}]`
       : null;
 
+    let blockedMessage: string | null = null;
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -346,9 +400,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           mode,
           modelKey,
           effortKey,
+          teamId: accountRef.current,
         }),
       });
 
+      if (response.status === 402) {
+        // Out of AI credits, or over a team member limit: the server refused before doing any work.
+        const refusal = await response.json().catch(() => null) as { error?: string } | null;
+        blockedMessage = refusal?.error ?? null;
+        throw new Error("OUT_OF_CREDITS");
+      }
       if (!response.ok || !response.body) {
         throw new Error("Request failed");
       }
@@ -453,6 +514,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               output: event.output as number,
               cost: typeof event.cost === "number" ? event.cost : null,
             });
+            if (typeof event.balance === "number") setBalance(event.balance);
             if (typeof event.cost === "number") {
               const requestCost = event.cost;
               setConversationCost((total) => total + requestCost);
@@ -529,14 +591,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           });
         }
       }
-    } catch {
+    } catch (err) {
+      const outOfCredits = err instanceof Error && err.message === "OUT_OF_CREDITS";
       setMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last.role === "assistant" && last.content === "") {
           updated[updated.length - 1] = {
             ...last,
-            content: "Something went wrong. Please try again.",
+            content: outOfCredits
+              ? (blockedMessage ?? "You are out of AI credits. Buy more on the Billing page to continue.")
+              : "Something went wrong. Please try again.",
           };
         }
         return updated;
@@ -544,7 +609,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, selectedBlock, mode, modelKey, effortKey]);
+  }, [messages, selectedBlock, mode, modelKey, effortKey, setBalance]);
 
   return (
     <ChatContext.Provider
@@ -561,6 +626,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setEffortKey,
         lastUsage,
         conversationCost,
+        balance,
+        setBalance,
+        accounts,
+        account,
+        switchAccount,
         canBuild,
         setCanBuild,
         toggleChat,

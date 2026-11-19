@@ -391,7 +391,7 @@ function ModeHex({
 }
 
 /** Model and effort selectors shown directly above the message input. */
-function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, conversationCost, disabled, className = "" }: {
+function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, conversationCost, balance, accounts, account, onAccountChange, disabled, className = "" }: {
   modelKey: AiModelKey;
   onChange: (k: AiModelKey) => void;
   effortKey: AiEffortKey;
@@ -399,22 +399,54 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
   lastUsage: { input: number; output: number; cost: number | null } | null;
   /** When given, a second line shows the estimated cost of the whole conversation. */
   conversationCost?: number;
+  /** Credits left in the user's AI balance; null while it loads. */
+  balance: number | null;
+  /** Every account the user can charge. The switcher shows only when there is more than one. */
+  accounts: { teamId: number | null; name: string; balance: number }[];
+  /** The team being charged, or null for the user's own credits. */
+  account: number | null;
+  onAccountChange: (teamId: number | null) => void;
   disabled: boolean;
   className?: string;
 }) {
   const selectClass = "rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 disabled:opacity-50";
   return (
     <div className={`flex items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0 ${className}`}>
-      {lastUsage && (
+      {(lastUsage || balance !== null) && (
         <span className="mr-auto flex min-w-0 flex-col text-xs text-gray-400">
-          <span
-            className="truncate"
-            title="Tokens and estimated cost of the last request, summed over all its API calls. The cost is worked out from list prices, not your bill."
-          >
-            Last: {lastUsage.input.toLocaleString()} in · {lastUsage.output.toLocaleString()} out
-            {lastUsage.cost !== null && ` · ~$${lastUsage.cost.toFixed(lastUsage.cost < 0.1 ? 4 : 2)}`}
-          </span>
-          {conversationCost !== undefined && (
+          {balance !== null && (
+            <span
+              className={`truncate font-medium ${balance <= 0 ? "text-red-600" : "text-gray-600"}`}
+              title="What is left of the AI credits you have bought. 1,000 credits is $1 of AI use."
+            >
+              Credits left: {balance.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+            </span>
+          )}
+          {accounts.length > 1 && (
+            <select
+              value={account === null ? "" : String(account)}
+              onChange={(e) => onAccountChange(e.target.value === "" ? null : Number(e.target.value))}
+              disabled={disabled}
+              title="Which credits pay for AI use: your own, or a team's shared credits."
+              className="mt-0.5 max-w-[10rem] truncate rounded border border-gray-200 bg-white px-1 py-0.5 text-xs text-gray-600 outline-none focus:border-emerald-400 disabled:opacity-50"
+            >
+              {accounts.map((a) => (
+                <option key={a.teamId ?? "personal"} value={a.teamId === null ? "" : String(a.teamId)}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {lastUsage && (
+            <span
+              className="truncate"
+              title="Tokens and estimated cost of the last request, summed over all its API calls. The cost is worked out from list prices, not your bill."
+            >
+              Last: {lastUsage.input.toLocaleString()} in · {lastUsage.output.toLocaleString()} out
+              {lastUsage.cost !== null && ` · ~$${lastUsage.cost.toFixed(lastUsage.cost < 0.1 ? 4 : 2)}`}
+            </span>
+          )}
+          {lastUsage && conversationCost !== undefined && (
             <span
               className="truncate"
               title="Estimated cost of every request in this conversation added together. It starts again from zero when you clear the chat. The cost is worked out from list prices, not your bill."
@@ -450,7 +482,7 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
 
 export default function ChatPanel() {
   const {
-    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage, conversationCost,
+    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage, conversationCost, balance, accounts, account, switchAccount,
     toggleChat, openChat, setMode, sendMessage, clearMessages, clearSelectedBlock,
     approveProposal, rejectProposal, undoProposal,
   } = useChat();
@@ -789,7 +821,7 @@ export default function ChatPanel() {
               </div>
             ) : null}
 
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} disabled={isLoading} />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} balance={balance} accounts={accounts} account={account} onAccountChange={switchAccount} disabled={isLoading} />
             {/* Input — larger compose area */}
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">
               <textarea
@@ -905,7 +937,7 @@ export default function ChatPanel() {
               things and that's exactly what's blocked; the notice above already explains why. */}
           {!(mode === "build" && !canBuild) && (
             <>
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} conversationCost={conversationCost} disabled={isLoading} className="pb-3" />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} conversationCost={conversationCost} balance={balance} accounts={accounts} account={account} onAccountChange={switchAccount} disabled={isLoading} className="pb-3" />
             {/* Part Tree Build has no prompt: it works only from the requirements documents. */}
             {!(pageType === "part-tree" && mode === "build") && (
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">

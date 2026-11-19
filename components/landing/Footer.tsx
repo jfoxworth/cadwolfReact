@@ -4,6 +4,8 @@ const links = [
   { label: "Homework", href: "/workspace/Homework" },
   { label: "Projects", href: "/workspace/Projects" },
   { label: "Tutorials", href: "/Tutorials" },
+  { label: "Terms", href: "/terms" },
+  { label: "Privacy", href: "/privacy" },
 ];
 
 const social = [

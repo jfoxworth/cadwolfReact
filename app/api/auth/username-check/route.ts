@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/utils/db";
+import { isUsernameTaken } from "@/utils/username";
 import { checkRateLimit, getClientIp } from "@/utils/rateLimit";
 
 const VALID_USERNAME = /^[a-zA-Z0-9_-]+$/;
@@ -22,6 +22,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ available: false, error: "Letters, numbers, underscores, and hyphens only" });
   }
 
-  const existing = await db.user.findFirst({ where: { username } });
-  return NextResponse.json({ available: !existing });
+  return NextResponse.json({ available: !(await isUsernameTaken(username)) });
 }

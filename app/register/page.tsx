@@ -64,6 +64,7 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const { state: usernameState, errorMsg: usernameError } = useUsernameCheck(username);
 
@@ -89,7 +90,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, username, email, password }),
+      body: JSON.stringify({ name, username, email, password, acceptedTerms: agreed }),
     });
 
     if (res.ok) {
@@ -144,6 +145,11 @@ export default function RegisterPage() {
             <FacebookIcon />
             Sign up with Facebook
           </a>
+          <p className="text-xs text-gray-400 text-center">
+            By continuing you agree to the{" "}
+            <Link href="/terms" className="underline hover:text-gray-600">Terms</Link> and{" "}
+            <Link href="/privacy" className="underline hover:text-gray-600">Privacy Policy</Link>.
+          </p>
         </div>
 
         <div className="flex items-center gap-3 mb-4">
@@ -221,6 +227,21 @@ export default function RegisterPage() {
             />
           </div>
 
+          <label className="flex items-start gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              required
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-blue-600 hover:underline">Terms</Link> and{" "}
+              <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline">Privacy Policy</Link>
+            </span>
+          </label>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
               {error}
@@ -229,7 +250,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !agreed}
             className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {loading ? "Creating account…" : "Create account"}

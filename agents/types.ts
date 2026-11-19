@@ -3,6 +3,7 @@
 // app/api/part-tree/build/ adapts the HTTP request into an AgentContext.
 
 import type { AiEffortKey, AiModelKey } from "@/utils/aiModels";
+import type { UsageTally } from "@/utils/aiCredits";
 
 /** One kind per module in agents/. The main coordinator is the "root-coordinator"; every system
  *  below it has its own "system-coordinator"; parts get a "part-agent"; reference links get a
@@ -21,6 +22,7 @@ export type BuildEvent =
   | { type: "design_document"; agent: AgentKind; fileId: number; slug: string; name: string; replaced: boolean }
   | { type: "item"; kind: "system" | "part"; name: string; fileId: number; created: boolean }
   | { type: "notice"; message: string }
+  | { type: "usage"; input: number; output: number; cost: number; balance: number | null }
   | { type: "error"; message: string }
   | { type: "done" };
 
@@ -37,6 +39,9 @@ export interface AgentContext {
    *  user check the design before paying for the part agents. */
   designOnly: boolean;
   emit: (event: BuildEvent) => void;
+  /** Tokens and cost of every model call the build makes, summed. The route charges it to the
+   *  user when the build ends. */
+  usage: UsageTally;
   /** Aborts when the client disconnects, so agents stop spending tokens on a build nobody sees. */
   signal: AbortSignal;
 }
