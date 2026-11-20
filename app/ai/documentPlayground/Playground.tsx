@@ -111,6 +111,7 @@ export function Playground(props: {
   const [prompt, setPrompt] = useState("");
   const [modelKey, setModelKey] = useState(props.defaultModel);
   const [effortKey, setEffortKey] = useState(props.defaultEffort);
+  const [solveMode, setSolveMode] = useState<"one_call" | "batches" | "auto">("one_call");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Result>(EMPTY);
   const abortRef = useRef<AbortController | null>(null);
@@ -121,13 +122,18 @@ export function Playground(props: {
     setRunning(true);
     setResult({ ...EMPTY, model: modelKey });
     try {
-      // What the document page would hand the chat with this document open.
-      const ctxResponse = await fetch(`/api/playground/context?documentId=${document?.id}`, { signal: controller.signal });
-      if (!ctxResponse.ok) {
-        const detail = await ctxResponse.json().catch(() => null);
-        throw new Error(detail?.error ?? `Couldn't read the document (${ctxResponse.status})`);
+      // What the document page would hand the chat with this document open. With no document chosen
+      // the run is on the prompt alone: the same request the chat sends from a blank document.
+      let context: { pageContext: string; pageImages: string[]; pageEquations: string[] } =
+        { pageContext: "", pageImages: [], pageEquations: [] };
+      if (document) {
+        const ctxResponse = await fetch(`/api/playground/context?documentId=${document.id}`, { signal: controller.signal });
+        if (!ctxResponse.ok) {
+          const detail = await ctxResponse.json().catch(() => null);
+          throw new Error(detail?.error ?? `Couldn't read the document (${ctxResponse.status})`);
+        }
+        context = await ctxResponse.json();
       }
-      const context = await ctxResponse.json();
 
       // The same request the chat sends for a Build, plus `trace` to also stream each call.
       const response = await fetch("/api/chat", {
@@ -136,13 +142,14 @@ export function Playground(props: {
         signal: controller.signal,
         body: JSON.stringify({
           messages: [{ role: "user", content: prompt }],
-          pagePath: `/document/${document?.id}`,
+          pagePath: document ? `/document/${document.id}` : "/document",
           pageContext: context.pageContext,
           pageImages: context.pageImages,
           pageEquations: context.pageEquations,
           mode: "build",
           modelKey,
           effortKey,
+          solveMode,
           trace: true,
         }),
       });
@@ -209,7 +216,7 @@ export function Playground(props: {
     }
   }
 
-  const canRun = !running && prompt.trim() !== "" && document !== null;
+  const canRun = !running && prompt.trim() !== "";
 
   // Each finished call costed at the run's model, then added up part by part.
   const priced = isAiModelKey(result.model)
@@ -233,17 +240,27 @@ export function Playground(props: {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="text-2xl font-semibold text-gray-900">Document build playground</h1>
       <p className="mt-2 text-sm text-gray-700">
-        Runs a whole Document Build on a saved document: the classify step (scenario and problem statement), the solve step with the solver&apos;s replies and retries, then the write step.
+        Runs a whole Document Build on a saved document, or on the prompt alone if you don&apos;t pick one: the classify step (scenario and problem statement), the solve step with the solver&apos;s replies and retries, then the write step.
         For every model call you see what was sent, the model&apos;s thinking, its tool calls and what the server answered.
         Nothing is added to the document or saved.
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className={label}>Document</label>
+          <label className={label}>Document (optional)</label>
           <DocumentBrowser selectedId={document?.id ?? null} onSelect={setDocument} />
-          <p className="mt-1 truncate text-xs text-gray-600">
-            {document ? `Selected: ${document.name}` : "Open a workspace and folder, then click a document."}
+          <p className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+            <span className="truncate">
+              {document
+                ? `Selected: ${document.name}`
+                : "None selected: the run uses the prompt alone, as if from a blank document. Or open a workspace and folder and click a document."}
+            </span>
+            {document && (
+              <button type="button" onClick={() => setDocument(null)} disabled={running}
+                className="shrink-0 rounded border border-gray-300 bg-white px-2 py-0.5 font-semibold text-gray-900 disabled:opacity-40">
+                Clear selection
+              </button>
+            )}
           </p>
         </div>
         <div>
@@ -256,6 +273,14 @@ export function Playground(props: {
           <label className={label}>Effort</label>
           <select className={field} value={effortKey} onChange={(e) => setEffortKey(e.target.value)}>
             {props.efforts.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className={label}>Solve method</label>
+          <select className={field} value={solveMode} onChange={(e) => setSolveMode(e.target.value as "one_call" | "batches" | "auto")}>
+            <option value="one_call">One call: the model writes every equation at once</option>
+            <option value="auto">Auto: one call, then batches if it is cut off by the length limit</option>
+            <option value="batches">Batches: a few equations per call, with the results back before the next</option>
           </select>
         </div>
       </div>
@@ -350,7 +375,7 @@ export function Playground(props: {
               </p>
             </Panel>
           )}
-          <p className="text-xs text-gray-500">Sent to /api/chat with mode &ldquo;build&rdquo; and trace on.</p>
+          <p className="text-xs text-gray-500">Sent to /api/chat with mode &ldquo;build&rdquo;, the chosen solve method and trace on.</p>
         </div>
       )}
     </div>

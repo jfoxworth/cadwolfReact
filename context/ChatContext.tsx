@@ -9,6 +9,9 @@ import { DEFAULT_MODEL_KEY, isAiModelKey, type AiModelKey, DEFAULT_EFFORT_KEY, i
 // app/api/chat/tools.ts, which pulls in server-only modules that can't reach a client bundle
 // (same reason ChatPanel.tsx duplicates its own small constants instead of importing from
 // route.ts).
+export type SolveMode = "one_call" | "batches" | "auto";
+const SOLVE_MODE_STORAGE_KEY = "aiSolveMode";
+
 const SERVER_EXECUTED_TOOL_NAMES = new Set(["search_documents", "read_document", "read_part_tree", "find_similar_part_trees"]);
 
 /** A block-add/edit (or, for create_file, a real file creation) proposed by a tool call —
@@ -135,6 +138,10 @@ interface ChatContextType {
   lastUsage: { input: number; output: number; cost: number | null } | null;
   /** Estimated cost of every request in the current conversation added together. Back to 0 when the chat is cleared. */
   conversationCost: number;
+  /** How a document Build solves: "one_call" (the model writes every equation at once, the default) or
+   *  "batches" (a few equations per call, with the results back before the next). Kept in this browser. */
+  solveMode: SolveMode;
+  setSolveMode: (mode: SolveMode) => void;
   /** Credits left in the account being charged (the user's own or a team's), or null until loaded. */
   balance: number | null;
   setBalance: (credits: number) => void;
@@ -195,6 +202,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<{ teamId: number | null; name: string; balance: number }[]>([]);
   const [account, setAccount] = useState<number | null>(null);
   const accountRef = useRef<number | null>(null);
+
+  // The solve method is a per-browser preference, so it is kept in localStorage, not on the account.
+  const [solveMode, setSolveModeState] = useState<SolveMode>("one_call");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SOLVE_MODE_STORAGE_KEY);
+      if (saved === "batches" || saved === "auto") setSolveModeState(saved);
+    } catch { /* storage blocked: stay on one call */ }
+  }, []);
+  const setSolveMode = useCallback((mode: SolveMode) => {
+    setSolveModeState(mode);
+    try { localStorage.setItem(SOLVE_MODE_STORAGE_KEY, mode); } catch { /* not saved, still applies now */ }
+  }, []);
 
   // Sets the balance of the account being charged, and keeps that account's entry in the list in step.
   const setBalance = useCallback((credits: number) => {
@@ -401,6 +421,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           modelKey,
           effortKey,
           teamId: accountRef.current,
+          solveMode,
         }),
       });
 
@@ -609,7 +630,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, selectedBlock, mode, modelKey, effortKey, setBalance]);
+  }, [messages, selectedBlock, mode, modelKey, effortKey, solveMode, setBalance]);
 
   return (
     <ChatContext.Provider
@@ -626,6 +647,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setEffortKey,
         lastUsage,
         conversationCost,
+        solveMode,
+        setSolveMode,
         balance,
         setBalance,
         accounts,

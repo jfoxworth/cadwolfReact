@@ -6,7 +6,7 @@ import { Bot, X, Send, Trash2, MessageCircle, Eye, Hammer, Lock } from "lucide-r
 import type { LucideIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { AI_MODELS, type AiModelKey, AI_EFFORTS, type AiEffortKey } from "@/utils/aiModels";
-import { useChat, type BlockProposal, type ChatMode } from "@/context/ChatContext";
+import { useChat, type BlockProposal, type ChatMode, type SolveMode } from "@/context/ChatContext";
 import PartTreeBuildPanel from "./PartTreeBuildPanel";
 
 // Mirrors derivePageType() in app/api/chat/route.ts — same fallback ("workspace" for an
@@ -391,7 +391,7 @@ function ModeHex({
 }
 
 /** Model and effort selectors shown directly above the message input. */
-function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, conversationCost, balance, accounts, account, onAccountChange, disabled, className = "" }: {
+function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage, conversationCost, balance, accounts, account, onAccountChange, solveMode, onSolveModeChange, disabled, className = "" }: {
   modelKey: AiModelKey;
   onChange: (k: AiModelKey) => void;
   effortKey: AiEffortKey;
@@ -406,12 +406,15 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
   /** The team being charged, or null for the user's own credits. */
   account: number | null;
   onAccountChange: (teamId: number | null) => void;
+  /** Document Build only: how step 2 solves. The selector shows only when both are given. */
+  solveMode?: SolveMode;
+  onSolveModeChange?: (mode: SolveMode) => void;
   disabled: boolean;
   className?: string;
 }) {
   const selectClass = "rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 disabled:opacity-50";
   return (
-    <div className={`flex items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0 ${className}`}>
+    <div className={`flex flex-wrap items-center justify-end gap-2 px-4 pt-3 text-sm text-gray-500 shrink-0 ${className}`}>
       {(lastUsage || balance !== null) && (
         <span className="mr-auto flex min-w-0 flex-col text-xs text-gray-400">
           {balance !== null && (
@@ -456,6 +459,23 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
           )}
         </span>
       )}
+      {solveMode && onSolveModeChange && (
+        <>
+          <label htmlFor="ai-solve-picker">Solve</label>
+          <select
+            id="ai-solve-picker"
+            value={solveMode}
+            onChange={(e) => onSolveModeChange(e.target.value as SolveMode)}
+            disabled={disabled}
+            title="How a Build solves the equations. One call: the model writes them all at once. Auto: one call, then batches only if that is cut off by the length limit. Batches: a few at a time, with the results back before the next. Batches can finish problems a smaller model can't do in one call, but the result may be less polished."
+            className={selectClass}
+          >
+            <option value="one_call">One call</option>
+            <option value="auto">Auto</option>
+            <option value="batches">In batches</option>
+          </select>
+        </>
+      )}
       <label htmlFor="ai-model-picker">Model</label>
       <select
         id="ai-model-picker"
@@ -482,7 +502,7 @@ function ModelPicker({ modelKey, onChange, effortKey, onEffortChange, lastUsage,
 
 export default function ChatPanel() {
   const {
-    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage, conversationCost, balance, accounts, account, switchAccount,
+    isOpen, messages, isLoading, selectedBlock, mode, canBuild, modelKey, setModelKey, effortKey, setEffortKey, lastUsage, conversationCost, balance, accounts, account, switchAccount, solveMode, setSolveMode,
     toggleChat, openChat, setMode, sendMessage, clearMessages, clearSelectedBlock,
     approveProposal, rejectProposal, undoProposal,
   } = useChat();
@@ -937,7 +957,7 @@ export default function ChatPanel() {
               things and that's exactly what's blocked; the notice above already explains why. */}
           {!(mode === "build" && !canBuild) && (
             <>
-            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} conversationCost={conversationCost} balance={balance} accounts={accounts} account={account} onAccountChange={switchAccount} disabled={isLoading} className="pb-3" />
+            <ModelPicker modelKey={modelKey} onChange={setModelKey} effortKey={effortKey} onEffortChange={setEffortKey} lastUsage={lastUsage} conversationCost={conversationCost} balance={balance} accounts={accounts} account={account} onAccountChange={switchAccount} solveMode={pageType === "document" && mode === "build" ? solveMode : undefined} onSolveModeChange={setSolveMode} disabled={isLoading} className="pb-3" />
             {/* Part Tree Build has no prompt: it works only from the requirements documents. */}
             {!(pageType === "part-tree" && mode === "build") && (
             <div className="border-t border-gray-200 px-4 py-4 flex gap-2 items-end shrink-0">

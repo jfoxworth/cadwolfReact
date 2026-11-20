@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS "ai_credit_balances" (
 );
 CREATE INDEX IF NOT EXISTS "ai_credit_balances_user_id_idx" ON "ai_credit_balances" ("user_id");
 
--- Team-shared credits. team_id NULL = the user's own credits; set = that team's shared credits.
+-- Team-shared credits. team_id NULL means the user's own credits, and set means that team's shared credits.
 -- ai_usage_log.user_id stays the person who made the request. The invariant above then holds per
 -- account: group by team_id, or by user_id where team_id IS NULL.
 ALTER TABLE "ai_usage_log"        ADD COLUMN IF NOT EXISTS "team_id" INTEGER;

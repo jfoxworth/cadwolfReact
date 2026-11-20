@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { messages, pagePath, pageContext, pageImages, pageEquations, selectedBlockContext, mode, modelKey, effortKey, trace, teamId } = await req.json();
+  const { messages, pagePath, pageContext, pageImages, pageEquations, selectedBlockContext, mode, modelKey, effortKey, trace, teamId, solveMode } = await req.json();
 
   if (!messages || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -183,6 +183,8 @@ export async function POST(req: NextRequest) {
             emit,
             usage: totalUsage,
             signal: buildAbort.signal,
+            // How step 2 solves. Only the playground asks for "batches"; the chat sends nothing and uses one call.
+            solveMode: solveMode === "batches" || solveMode === "auto" ? solveMode : "one_call",
             // Set only by the playground (/ai/documentPlayground) to also stream what each call sent and thought.
             trace: trace === true,
           });

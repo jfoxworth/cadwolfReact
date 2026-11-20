@@ -31,10 +31,15 @@ import { SEARCH_TOOL, SEARCH_TOOL_NAME } from "./tools";
 
 export const CLASSIFY_TOOL_NAME = "classify_request";
 export const SOLVE_PROBLEM_TOOL_NAME = "solve_problem";
+export const ADD_STEPS_TOOL_NAME = "add_steps";
 export const WRITE_DOCUMENT_TOOL_NAME = "write_document";
 
 const MAX_CLASSIFY_ROUNDS = 2;
 const MAX_SOLVE_ROUNDS = 2;
+// Batches solve method (see runSolveBatches): the model adds a few steps per call.
+const MAX_BATCH_ROUNDS = 30;
+const MAX_BATCH_STEPS = 25;
+const MAX_BATCH_REJECTIONS = 3;
 const MAX_WRITE_ROUNDS = 2;
 const MAX_STEPS = 120;
 const MAX_BLOCKS = 300;
@@ -64,6 +69,31 @@ export const CLASSIFY_TOOL: Anthropic.Tool = {
   },
 };
 
+/** One step of the solve, as the model writes it. Shared by solve_problem and add_steps. */
+const STEP_ITEM_SCHEMA = {
+  type: "object",
+  properties: {
+    raw: { type: "string", description: "`name = expression` in the platform's syntax." },
+    role: {
+      type: "string",
+      enum: [...STEP_ROLES],
+      description:
+        "given: a value stated in the problem or an assumption. choice: a decision such as a material or a size. calculation: worked out from earlier steps. check: a pass/fail test that must give 1 (met) or 0 (not met). output: a final result the user asked for.",
+    },
+    why: {
+      type: "string",
+      description:
+        "One or two plain sentences, the way an engineer would explain it to a colleague: where a given comes from, why a choice was made, what a calculation finds, what a check tests. The next step turns these into the explanation a person reads.",
+    },
+    positive: {
+      type: "boolean",
+      description:
+        "True if the result must be greater than zero (a size, area, length, mass, strength, count). False for quantities that can be zero or negative, such as a coordinate difference or a force direction.",
+    },
+  },
+  required: ["raw", "why"],
+};
+
 export const SOLVE_PROBLEM_TOOL: Anthropic.Tool = {
   name: SOLVE_PROBLEM_TOOL_NAME,
   description:
@@ -74,29 +104,33 @@ export const SOLVE_PROBLEM_TOOL: Anthropic.Tool = {
       steps: {
         type: "array",
         description: "Every equation the request needs, one per step, in the order they must be solved. Empty if none.",
-        items: {
-          type: "object",
-          properties: {
-            raw: { type: "string", description: "`name = expression` in the platform's syntax." },
-            role: {
-              type: "string",
-              enum: [...STEP_ROLES],
-              description:
-                "given: a value stated in the problem or an assumption. choice: a decision such as a material or a size. calculation: worked out from earlier steps. check: a pass/fail test that must give 1 (met) or 0 (not met). output: a final result the user asked for.",
-            },
-            why: {
-              type: "string",
-              description:
-                "One or two plain sentences, the way an engineer would explain it to a colleague: where a given comes from, why a choice was made, what a calculation finds, what a check tests. The next step turns these into the explanation a person reads.",
-            },
-            positive: {
-              type: "boolean",
-              description:
-                "True if the result must be greater than zero (a size, area, length, mass, strength, count). False for quantities that can be zero or negative, such as a coordinate difference or a force direction.",
-            },
-          },
-          required: ["raw", "why"],
-        },
+        items: STEP_ITEM_SCHEMA,
+      },
+    },
+    required: ["steps"],
+  },
+};
+
+/** The batches solve method's tool: the model adds a few steps per call and sees the results before the next call. */
+export const ADD_STEPS_TOOL: Anthropic.Tool = {
+  name: ADD_STEPS_TOOL_NAME,
+  description:
+    `Add the next equations of the mathematics for the request, each with its reason, in the order they must be solved. At most ${MAX_BATCH_STEPS} steps per call. A small problem fits in one call: send every equation and set done to true. They are solved after the equations already accepted, and the results, errors and impossible values come back before you write the next ones. If anything is wrong the batch is not added: fix it and send that batch again. If an accepted step turns out to be wrong without giving an error, set replace_from to its step number: that step and every step after it are discarded and this batch takes their place. Set done to true when everything the request needs is solved. If the request needs no calculation (a question, a note, a heading), call this with an empty list and done set to true. Do not write headings or prose here.`,
+  input_schema: {
+    type: "object",
+    properties: {
+      steps: {
+        type: "array",
+        description: `The next equations, one per step, in the order they must be solved. At most ${MAX_BATCH_STEPS}. Empty if none.`,
+        items: STEP_ITEM_SCHEMA,
+      },
+      done: {
+        type: "boolean",
+        description: "True when, with this batch, everything the request needs is solved and nothing more will be added.",
+      },
+      replace_from: {
+        type: "integer",
+        description: "Only to correct an accepted step that is wrong without giving an error. The number of the first step to replace: it and every step after it are discarded, and this batch is numbered from there. Write again every later step you still need.",
       },
     },
     required: ["steps"],
@@ -173,11 +207,20 @@ function scalarOf(solved: SolvedEquation): number | undefined {
 
 /** Solves the model's list after the equations already in the document (so it can use those
  *  variables) and reports everything still wrong with it. */
-export async function evaluateSolution(input: { steps?: unknown }, existing: string[]): Promise<Solution> {
+export async function evaluateSolution(
+  input: { steps?: unknown },
+  existing: string[],
+  /** Batches method only: the steps accepted so far (their equations are solved first and the new
+   *  steps are numbered after them) and how many steps this call may add. */
+  opts: { accepted?: Step[]; limit?: number } = {},
+): Promise<Solution> {
+  const batch = opts.accepted !== undefined;
+  const accepted = opts.accepted ?? [];
+  const limit = opts.limit ?? MAX_STEPS;
   const problems: string[] = [];
 
   const proposed: { raw: string; role: StepRole; why: string; positive: boolean }[] = [];
-  for (const s of (Array.isArray(input.steps) ? input.steps.slice(0, MAX_STEPS) : []) as StepInput[]) {
+  for (const s of (Array.isArray(input.steps) ? input.steps.slice(0, limit) : []) as StepInput[]) {
     const raw = typeof s?.raw === "string" ? s.raw.trim() : "";
     if (!raw.includes("=")) {
       problems.push(`A step was skipped because it is not an equation: "${raw}".`);
@@ -193,7 +236,7 @@ export async function evaluateSolution(input: { steps?: unknown }, existing: str
 
   let solved: SolvedEquation[] = [];
   if (proposed.length > 0) {
-    const before = existing.filter((r) => r.includes("=")).map((raw, i) => ({ index: -(i + 1), raw }));
+    const before = [...existing, ...accepted.map((s) => s.raw)].filter((r) => r.includes("=")).map((raw, i) => ({ index: -(i + 1), raw }));
     const all = await solvePartEquations(
       [...before, ...proposed.map((s, i) => ({ index: i, raw: s.raw }))],
       [],
@@ -201,7 +244,7 @@ export async function evaluateSolution(input: { steps?: unknown }, existing: str
     solved = all.slice(before.length);
   }
 
-  const steps: Step[] = proposed.map((s, i) => ({ ...s, number: i + 1, solved: solved[i] }));
+  const steps: Step[] = proposed.map((s, i) => ({ ...s, number: accepted.length + i + 1, solved: solved[i] }));
   for (const step of steps) {
     const name = nameOf(step.raw);
     if (!step.why) problems.push(`Step ${step.number} (${name}) has no reason. Every step needs one.`);
@@ -222,7 +265,15 @@ export async function evaluateSolution(input: { steps?: unknown }, existing: str
     }
   }
 
-  const text = [
+  const sent = Array.isArray(input.steps) ? input.steps.length : 0;
+  const trimmed = batch && sent > limit ? `Only the first ${limit} steps were used. Send the rest in the next call.` : "";
+  const text = batch ? [
+    steps.length ? "Results:\n" + steps.map((s) => `step ${s.number} [${s.role}] ${s.raw} → ${s.solved.summary}`).join("\n") : "",
+    problems.length
+      ? `Problems:\n${problems.join("\n")}\n\n${problems.length} problem${problems.length === 1 ? "" : "s"}. This batch was NOT added. Fix them and call ${ADD_STEPS_TOOL_NAME} again with this batch, corrected.`
+      : `No problems. Accepted. ${accepted.length + steps.length} step${accepted.length + steps.length === 1 ? "" : "s"} so far. Add the next steps, or set done to true if the request is fully solved.`,
+    trimmed,
+  ].filter(Boolean).join("\n\n") : [
     steps.length ? "Results:\n" + steps.map((s) => `step ${s.number} [${s.role}] ${s.raw} → ${s.solved.summary}`).join("\n") : "",
     problems.length
       ? `Problems:\n${problems.join("\n")}\n\n${problems.length} problem${problems.length === 1 ? "" : "s"}. Fix them and call ${SOLVE_PROBLEM_TOOL_NAME} again with the whole list.`
@@ -308,8 +359,15 @@ export function classifySystemPrompt(): string {
   return `${readPrompt("_shared.md")}\n\n${readPrompt("document-classify.md")}`;
 }
 
-export function solveSystemPrompt(): string {
-  return `${readPrompt("_shared.md")}\n\n${readPrompt("document-solve.md")}\n\n# Platform reference\n\n${platformReference()}`;
+/** How step 2 works. "one_call": the model writes every equation in one call and fixes what comes back
+ *  (runSolve). "batches": it adds a few equations per call and sees their results before the next
+ *  (runSolveBatches). "auto": one call, and batches only if the one-call attempt is cut off by the
+ *  length limit and does not end clean. */
+export type SolveMode = "one_call" | "batches" | "auto";
+
+export function solveSystemPrompt(mode: SolveMode = "one_call"): string {
+  const file = mode === "batches" ? "document-solve-batches.md" : "document-solve.md";
+  return `${readPrompt("_shared.md")}\n\n${readPrompt(file)}\n\n# Platform reference\n\n${platformReference()}`;
 }
 
 export function writeSystemPrompt(): string {
@@ -361,6 +419,8 @@ export interface DocumentBuildRun {
    *  differently from plain input. */
   usage: UsageTally;
   signal?: AbortSignal;
+  /** How step 2 solves. Defaults to "one_call". */
+  solveMode?: SolveMode;
   /** Playground (/ai/documentPlayground) only: also stream, for every model call, what was sent, the
    *  thinking, the tool calls and what the server replied. Normal chat requests never set it. */
   trace?: boolean;
@@ -503,12 +563,13 @@ function formatClassification(c: Classification): string {
 
 /** Step 2. Returns the last solution the model produced; `problems` is empty if it was clean.
  *  `notes` is anything the model said in words with no tool call. */
-async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | null; notes: string }> {
+async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | null; notes: string; cutOff: boolean }> {
   const system = solveSystemPrompt();
   const messages: Anthropic.MessageParam[] = run.messages.slice();
   let last: Solution | null = null;
   let notes = "";
   let nudged = false;
+  let cutOff = false;
 
   for (let round = 0; round < MAX_SOLVE_ROUNDS; round++) {
     if (run.signal?.aborted) break;
@@ -516,6 +577,7 @@ async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | n
 
     // A cut-off answer can hold a half-written tool call, so it is never used.
     if (message.stop_reason === "max_tokens") {
+      cutOff = true;
       if (run.trace) run.emit({ type: "reply", text: CUT_OFF });
       messages.push({ role: "assistant", content: textOf(message) || "(continuing)" });
       messages.push({ role: "user", content: CUT_OFF });
@@ -557,7 +619,98 @@ async function runSolve(run: DocumentBuildRun): Promise<{ solution: Solution | n
     messages.push({ role: "user", content: results });
     if (last && last.problems.length === 0) break;
   }
-  return { solution: last, notes };
+  return { solution: last, notes, cutOff };
+}
+
+const CUT_OFF_BATCH =
+  "[You were cut off by a length limit before finishing, so that call was not used. Send a smaller batch: fewer steps, and shorter 'why' entries.]";
+
+/** Step 2, batches method. The model adds a few steps per call. Each batch is solved after the ones
+ *  already accepted and the results come back before it writes the next, until it says it is done.
+ *  A batch with problems is not added and is sent again; after MAX_BATCH_REJECTIONS rejections in a row
+ *  the last batch is kept with its problems, as the one-call method keeps its last list, so the write
+ *  step reports them as unresolved. Returns the same as runSolve. */
+async function runSolveBatches(run: DocumentBuildRun): Promise<{ solution: Solution | null; notes: string }> {
+  const system = solveSystemPrompt("batches");
+  const messages: Anthropic.MessageParam[] = run.messages.slice();
+  const accepted: Step[] = [];
+  let open: string[] = [];
+  let notes = "";
+  let rejected = 0;
+  let nudged = false;
+
+  for (let round = 0; round < MAX_BATCH_ROUNDS; round++) {
+    if (run.signal?.aborted) break;
+    const message = await ask(run, `Step 2: Solve, batch ${round + 1}`, system, [ADD_STEPS_TOOL, SEARCH_TOOL], messages);
+
+    // A cut-off answer can hold a half-written tool call, so it is never used.
+    if (message.stop_reason === "max_tokens") {
+      if (run.trace) run.emit({ type: "reply", text: CUT_OFF_BATCH });
+      messages.push({ role: "assistant", content: textOf(message) || "(continuing)" });
+      messages.push({ role: "user", content: CUT_OFF_BATCH });
+      continue;
+    }
+
+    const uses = toolUses(message);
+    messages.push({ role: "assistant", content: message.content });
+    if (uses.length === 0) {
+      notes = textOf(message);
+      if (accepted.length > 0 || nudged) break;
+      nudged = true;
+      messages.push({ role: "user", content: `Call ${ADD_STEPS_TOOL_NAME} now. It is your only output. If the request needs no calculation, call it with an empty list and done set to true.` });
+      continue;
+    }
+
+    const results: Anthropic.ToolResultBlockParam[] = [];
+    let finished = false;
+    for (const use of uses) {
+      if (use.name === ADD_STEPS_TOOL_NAME) {
+        const input = use.input as { steps?: unknown; done?: unknown; replace_from?: unknown };
+        // replace_from: this batch takes the place of an accepted step and everything after it.
+        const from = Number(input.replace_from);
+        const replacing = Number.isInteger(from) && from >= 1 && from <= accepted.length;
+        const base = replacing ? accepted.slice(0, from - 1) : accepted;
+        const batch = await evaluateSolution(input, run.existingEquations, {
+          accepted: base,
+          limit: Math.min(MAX_BATCH_STEPS, MAX_STEPS - base.length),
+        });
+        if (run.trace) run.emit({ type: "reply", text: batch.text });
+        results.push({ type: "tool_result", tool_use_id: use.id, content: batch.text });
+        if (batch.problems.length === 0) {
+          accepted.splice(base.length, accepted.length, ...batch.steps);
+          rejected = 0;
+          open = [];
+          if (input.done === true || (batch.steps.length === 0 && !replacing) || accepted.length >= MAX_STEPS) finished = true;
+        } else {
+          rejected++;
+          open = batch.problems;
+          if (rejected >= MAX_BATCH_REJECTIONS) {
+            accepted.splice(base.length, accepted.length, ...batch.steps);
+            finished = true;
+          }
+        }
+      } else if (use.name === SEARCH_TOOL_NAME) {
+        let content: string;
+        try {
+          const found = await searchDocuments(run.userId, String((use.input as { query?: unknown }).query ?? ""));
+          content = found.length > 0
+            ? found.map((r) => `[Document: "${r.fileName}"] ${r.chunkText}`).join("\n\n")
+            : "No relevant content found.";
+        } catch (err) {
+          content = `Search failed: ${err instanceof Error ? err.message : "unknown error"}`;
+        }
+        if (run.trace) run.emit({ type: "reply", text: `Document search:\n${content}` });
+        results.push({ type: "tool_result", tool_use_id: use.id, content });
+      } else {
+        results.push({ type: "tool_result", tool_use_id: use.id, content: "Unknown tool.", is_error: true });
+      }
+    }
+    messages.push({ role: "user", content: results });
+    if (finished) break;
+  }
+
+  const solution: Solution | null = accepted.length > 0 || open.length > 0 ? { steps: accepted, problems: open, text: "" } : null;
+  return { solution, notes };
 }
 
 /** How the writing step introduces the solved steps. The closing "]" is added after the steps. */
@@ -649,7 +802,22 @@ export async function runDocumentBuild(input: DocumentBuildRun): Promise<void> {
   const run: DocumentBuildRun = classification
     ? { ...input, messages: appendToLast(input.messages, formatClassification(classification)) }
     : input;
-  const { solution, notes } = await runSolve(run);
+  let solved: { solution: Solution | null; notes: string };
+  if (run.solveMode === "batches") {
+    solved = await runSolveBatches(run);
+  } else {
+    const oneCall = await runSolve(run);
+    solved = oneCall;
+    // Auto: the one-call attempt was cut off by the length limit and did not end clean, so redo
+    // step 2 in batches. The one-call calls are already counted in the usage.
+    if (run.solveMode === "auto" && oneCall.cutOff && !run.signal?.aborted && (!oneCall.solution || oneCall.solution.problems.length > 0)) {
+      const note = "The problem was too long to solve in one call, so I'm solving it in batches.";
+      if (run.trace) run.emit({ type: "reply", text: note });
+      run.emit({ type: "text", text: `*${note}*\n\n` });
+      solved = await runSolveBatches(run);
+    }
+  }
+  const { solution, notes } = solved;
   if (solution && solution.steps.length > 0) {
     const n = solution.steps.length;
     const left = solution.problems.length;
